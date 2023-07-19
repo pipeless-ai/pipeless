@@ -1,0 +1,13 @@
+input:
+  video:
+    type: mp4
+    url: my_mp4_file.mp4
+output:
+  audio:
+    enabled: false
+  data:
+    enabled: false
+  video:
+    enabled: true
+    type: mp4
+    url: my_mp4_output.mp4
