@@ -3,13 +3,23 @@ import os
 import typer
 from rich import print as rprint
 import yaml
+import shutil
 
 app = typer.Typer()
 
-@app.command(help="Create a new project")
-def create(name: str):
+@app.command(name="project", help="Create a new project")
+def create_project(name: str):
     rprint(f"[yellow bold]Creating new project: {name}[/yellow bold]")
-    os.mkdir(name)
+
+    # TODO: support more templates
+    base_dir = os.path.dirname(__file__)
+    project_template = base_dir + '/templates/default'
+    try:
+        shutil.copytree(project_template, name) # Also creates the directory
+        print("Directory copied successfully!")
+    except Exception as e:
+        rprint(f"[red bold]An error occurred setting up the project template:[/red bold] {str(e)}")
+
     # TODO: all config should be possible to override form CLI options
     default_config = {
         "input": {
@@ -35,8 +45,12 @@ def create(name: str):
             }
         }
     }
-    # TODO: override default config with user provided args
-    new_config_file=open(f"{name}/retina_config.yaml","w")
-    yaml.dump(default_config, new_config_file)
-    new_config_file.close()
-    rprint("[yellow]Config file created.[yellow]")
+
+    try:
+        # TODO: override default config with user provided args
+        new_config_file=open(f"{name}/config.yaml","w")
+        yaml.dump(default_config, new_config_file)
+        new_config_file.close()
+        rprint("[yellow]Config file created.[/yellow]")
+    except Exception as e:
+        rprint(f"[red bold]An error occurred setting up the project config file:[/red bold] {str(e)}")
