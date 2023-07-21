@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "retina-core"
+version = "0.1.0"
+description = "Core package of the Retina computer vision framework"
+authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "core"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+rich = "^13.4.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

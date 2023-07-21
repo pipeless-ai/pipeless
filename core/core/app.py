@@ -1,3 +1,5 @@
+from lib.decorators import time
+
 class App():
     """
     Base class for the Retina App
@@ -6,18 +8,23 @@ class App():
     def __init__(self):
         self.ctx = {}
 
+    @time
     def before(self, ctx):
         pass
 
+    @time
     def pre_process(self, frame, ctx):
         pass
 
+    @time
     def process(self, frame, ctx):
         pass
 
+    @time
     def post_process(self, frame, ctx):
         pass
 
+    @time
     def after(self, ctx):
         pass
 
