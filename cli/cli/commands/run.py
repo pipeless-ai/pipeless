@@ -12,6 +12,13 @@ def run_app():
 
     exec_dir = os.getcwd()
     apps_dir = os.path.join(exec_dir, 'apps')
+    config_file_path = os.path.join(exec_dir, 'config.yaml')
+
+    rprint('Loading config.yaml...')
+    config_file=open(config_file_path, "r")
+    config = yaml.safe_load(config_file)
+    config_file.close()
+    rprint('[green]Config loaded[/green]')
 
     for filename in os.listdir(apps_dir):
         if filename.endswith(".py"):
@@ -29,5 +36,5 @@ def run_app():
                 app_class = getattr(module, app_name.capitalize())
 
                 # Instantiate the app
-                instance = app_class()
+                instance = app_class(config)
                 instance.start()
