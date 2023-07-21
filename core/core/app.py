@@ -1,4 +1,4 @@
-from lib.decorators import time
+from .lib.decorators import time
 
 class App():
     """
@@ -9,29 +9,29 @@ class App():
         self.ctx = {}
 
     @time
-    def before(self, ctx):
+    def __before(self, ctx):
+        self.before(self, ctx)
+
+    @time
+    def __pre_process(self, frame, ctx):
         pass
 
     @time
-    def pre_process(self, frame, ctx):
+    def __process(self, frame, ctx):
         pass
 
     @time
-    def process(self, frame, ctx):
+    def __post_process(self, frame, ctx):
         pass
 
     @time
-    def post_process(self, frame, ctx):
-        pass
-
-    @time
-    def after(self, ctx):
+    def __after(self, ctx):
         pass
 
     def start(self):
-        self.before(self.ctx)
+        self.__before(self.ctx)
 
         # TODO: while loop for processing
-        self.pre_process(self.)
 
-        self.after(self.ctx)
+
+        self.__after(self.ctx)
