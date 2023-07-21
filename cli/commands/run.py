@@ -29,4 +29,4 @@ def run_app():
 
                 # Instantiate the app
                 instance = app_class()
-                instance.run()
+                instance.start()
