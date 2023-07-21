@@ -1,16 +1,15 @@
-"""
-Main application class.
+from core import app
 
-Note the main class MUST be called like the app
-file to be loaded properly.
+class Example(app.App):
+    """
+    Main application class.
 
-The context can be modified as required to access
-shared vairables between stages.
-"""
+    Note the main class MUST be called like the app
+    file to be loaded properly.
 
-import retina
-
-class Example(retina.App):
+    The context can be modified as required to access
+    shared vairables between stages.
+    """
 
     # Hook to execute before the processing loop
     def before(self, ctx):
