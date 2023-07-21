@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "retina-cli"
+version = "0.1.0"
+description = "CLI component of the retina computer vision framework"
+authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "cli"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+typer = {version = "^0.9.0", extras = ["all"]}
+pyyaml = "^6.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+retina-cli = "cli.main:app"
