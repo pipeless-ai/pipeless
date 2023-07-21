@@ -1,4 +1,4 @@
-from .lib.decorators import time
+from .lib.decorators import timer
 
 class App():
     """
@@ -8,23 +8,23 @@ class App():
     def __init__(self):
         self.ctx = {}
 
-    @time
+    @timer
     def __before(self, ctx):
-        self.before(self, ctx)
+        self.before(ctx)
 
-    @time
+    @timer
     def __pre_process(self, frame, ctx):
         pass
 
-    @time
+    @timer
     def __process(self, frame, ctx):
         pass
 
-    @time
+    @timer
     def __post_process(self, frame, ctx):
         pass
 
-    @time
+    @timer
     def __after(self, ctx):
         pass
 
