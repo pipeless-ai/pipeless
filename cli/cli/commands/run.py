@@ -8,7 +8,7 @@ def run_app():
     The run command must be executed from the project dir.
     It will load all apps under the project's 'apps' directory.
     """
-    rprint(f"[yellow bold]Running project...[/yellow bold]")
+    rprint(f"[yellow]Running project...[/yellow]")
 
     exec_dir = os.getcwd()
     apps_dir = os.path.join(exec_dir, 'apps')
@@ -17,6 +17,7 @@ def run_app():
         if filename.endswith(".py"):
             app_name = filename[:-3]  # Remove the ".py" extension
             app_path = os.path.join(apps_dir, filename)
+            rprint(f"[green]App found at {app_path}[/green]")
 
             # Load the module
             spec = importlib.util.spec_from_file_location(app_name, app_path)
