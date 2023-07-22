@@ -22,6 +22,7 @@ def create_project(name: str):
 
     # TODO: all config should be possible to override form CLI options
     default_config = {
+        "debug": False,
         "input": {
             "video": {
                 "url": 'my_mp4_file.mp4',
