@@ -1,5 +1,5 @@
 from rich import print as rprint
-import time
+import queue
 
 from .lib.decorators import timer
 from .lib.stream import pipelines
@@ -11,6 +11,7 @@ class App():
 
     def __init__(self, config):
         self.config = config
+        self.media_pipeline = pipelines.MediaPipeline(self.config)
         self.ctx = {}
 
     @timer
@@ -33,26 +34,29 @@ class App():
         if callable(self.post_process):
             self.post_process(frame, self.ctx)
 
+        # Put the buffer in queue for the output stream
+        self.media_pipeline.get_output_video_buffer().put(frame)
+
     @timer
     def __after(self):
         if callable(self.after):
             self.after(self.ctx)
 
     def start(self):
-        # Create the streams
-        media_pipeline = pipelines.MediaPipeline(self.config)
-        in_video_buf = media_pipeline.get_input_video_buffer()
-        out_video_buffer = media_pipeline.get_output_video_buffer()
+        in_video_buf = self.media_pipeline.get_input_video_buffer()
 
         self.__before()
 
         while True:
-            time.sleep(0.1)
-            if in_video_buf.qsize() == 0:
-                rprint("[yellow]No more frames to process in the input buffer[/yellow]")
+            if in_video_buf.qsize() == 0 and not self.media_pipeline.input_stream_is_active():
+                # The input stream has stopped and we have read all the frames that were added to the input buffer
+                rprint("[pruple]No more frames to process in the input buffer[/purple]")
                 break
             else:
-                video_frame = in_video_buf.get()
+                try:
+                    video_frame = in_video_buf.get(block=False)
+                except queue.Empty:
+                    continue
                 video_frame = self.__pre_process(video_frame)
                 video_frame = self.__process(video_frame)
                 video_frame = self.__post_process(video_frame)
