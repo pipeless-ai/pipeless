@@ -16,7 +16,7 @@ class OutputStream():
 
     # Receives the RTMP URL where to send the output, the video parameters and
     # the audio stream that corresponds to the original video.
-    def __init__(self, rtmp_url, video_buffer, video_stream_metadata, audio_buffer, audio_stream_metadata):
+    def __init__(self, rtmp_url, video_buffer, video_stream_metadata, audio_buffer, audio_stream_metadata, input_finished_flag):
         """
         Receives the RTMP Url where to send the multimedia and the video and audio parameters.
         """
@@ -29,6 +29,8 @@ class OutputStream():
         audio_channels = audio_stream_metadata['channels']
         audio_sample_rate = audio_stream_metadata['sample_rate']
         audio_channel_layout = audio_stream_metadata['channel_layout']
+
+        self.input_finished_flag = input_finished_flag
 
         # Input buffers. Queues with the audio and video frames to mux
         self._audio_input_buffer = audio_buffer
@@ -91,8 +93,10 @@ class OutputStream():
                         audio_frame = self._audio_input_buffer.get()
                         os.write(audio_pipe_fd, audio_frame)
                     else:
-                        # TODO: we need to identify when the video has ended, if not, processing the video faster could lead to premature stop
-                        break
+                        # Only break when there aren no more frames and the input stopped.
+                        if self.input_finished_flag:
+                            logger.warning('Breaking audio write loop')
+                            break
             except BlockingIOError:
                 logger.warning('[yellow]Audio pipe blocked.[/yellow] Ignore this warning if it just happens from time to time')
 
@@ -100,10 +104,13 @@ class OutputStream():
         while True:
             if not self._video_input_buffer.empty():
                 video_frame = self._video_input_buffer.get()
-                self._ffmpeg_process.stdin.write(video_frame.astype(np.uint8).tobytes())
+                if video_frame:
+                    self._ffmpeg_process.stdin.write(video_frame.astype(np.uint8).tobytes())
             else:
-                # TODO: we need to identify when the video has ended, if not, processing the video faster could lead to premature stop
-                break
+                if self.input_finished_flag:
+                    # Only break when there aren no more frames and the input stopped.
+                    logger.warning('Breaking video write loop')
+                    break
 
     # Release the streams we opened during instantiation
     def __exit__(self):

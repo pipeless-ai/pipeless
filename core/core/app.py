@@ -36,7 +36,7 @@ class App():
             self.post_process(frame, self.ctx)
 
         # Put the buffer in queue for the output stream
-        self.media_pipeline.get_output_video_buffer().put(frame)
+        out_video_buf = self.media_pipeline.add_output_video_frame(frame)
 
     @timer
     def __after(self):
@@ -49,9 +49,11 @@ class App():
         self.__before()
 
         while True:
-            if in_video_buf.qsize() == 0 and not self.media_pipeline.input_stream_is_active():
+            if self.media_pipeline.is_input_video_buffer_empty() and not self.media_pipeline.input_stream_is_active():
                 # The input stream has stopped and we have read all the frames that were added to the input buffer
-                logger.info("[pruple]No more frames to process in the input buffer[/purple]")
+                logger.info("[purple]No more frames to process in the input buffer[/purple]")
+                # Indicate the output stream to process remaining and stop
+                media_pipeline.set_input_finished_flag(True)
                 break
             else:
                 try:
