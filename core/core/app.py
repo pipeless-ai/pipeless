@@ -1,8 +1,8 @@
-from rich import print as rprint
 import queue
 
 from .lib.decorators import timer
 from .lib.stream import pipelines
+from .lib.logger import logger, update_logger_level
 
 class App():
     """
@@ -10,9 +10,10 @@ class App():
     """
 
     def __init__(self, config):
-        self.config = config
-        self.media_pipeline = pipelines.MediaPipeline(self.config)
+        self.config = config # TODO: validate config values (must be done on the CLI component)
+        update_logger_level(config['log_level'])
         self.ctx = {}
+        self.media_pipeline = pipelines.MediaPipeline(self.config)
 
     @timer
     def __before(self):
@@ -50,7 +51,7 @@ class App():
         while True:
             if in_video_buf.qsize() == 0 and not self.media_pipeline.input_stream_is_active():
                 # The input stream has stopped and we have read all the frames that were added to the input buffer
-                rprint("[pruple]No more frames to process in the input buffer[/purple]")
+                logger.info("[pruple]No more frames to process in the input buffer[/purple]")
                 break
             else:
                 try:

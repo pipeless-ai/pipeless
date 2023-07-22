@@ -3,8 +3,9 @@ import numpy as np
 import time
 import multiprocessing
 import os
-from rich import print as rprint
 import select
+
+from ..logger import logger
 
 class InputStream():
     """
@@ -34,7 +35,7 @@ class InputStream():
             .run_async(pipe_stdout=True)
         )
 
-        rprint(f"Checking input source: [purple]{rtmp_url}[/purple]")
+        logger.info(f"Checking input source: [purple]{rtmp_url}[/purple]")
         probe = ffmpeg.probe(rtmp_url)
 
         video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
@@ -44,10 +45,10 @@ class InputStream():
             'height': int(video_stream['height']),
             'fps': eval(video_stream['avg_frame_rate']),
         }
-        rprint(f"[green]Input video FPS: {self._in_stream_video_metadata['fps']}[/green]")
+        logger.info(f"[green]Input video FPS: {self._in_stream_video_metadata['fps']}[/green]")
 
         audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
-        print('Input audio metadata:', audio_stream)
+        logger.info('Input audio metadata:', audio_stream)
         self._in_stream_audio_metadata = {
             'channels': int(audio_stream['channels']),
             'codec': audio_stream['codec_name'],
@@ -90,7 +91,7 @@ class InputStream():
                     self._video_buffer.put(in_frame)
             else:
                 # The connection has not received frames for read_timeout seconds
-                rprint(f'[yellow] No video data received after {self.read_timeout} seconds. Stopping video input process.[yellow]')
+                logger.warning(f'[yellow] No video data received after {self.read_timeout} seconds. Stopping video input process.[yellow]')
                 break
 
     # Read the audio stream and store frames in the internal buffer.
@@ -115,7 +116,7 @@ class InputStream():
                     self._audio_buffer.put(in_bytes)
             else:
                 # The connection has not received frames for read_timeout seconds
-                rprint(f'[yellow] No audio data received after {self.read_timeout} seconds. Stopping audio input process.[yellow]')
+                logger.warning(f'[yellow] No audio data received after {self.read_timeout} seconds. Stopping audio input process.[yellow]')
                 break
 
     # Returns input video metadata
@@ -137,15 +138,15 @@ class InputStream():
 
     def __exit__(self):
         # Perform clean up when the object is no longer needed
-        print('Cleaning video read process')
+        logger.debug('Cleaning video read process')
         self._read_stream_video_process.terminate()
         self._read_stream_video_process.close()
-        print('Cleaning video ffmpeg process')
+        logger.debug('Cleaning video ffmpeg process')
         self._in_stream_video.stdout.close()
         self._in_stream_video.wait(timeout=10)
-        print('Cleaning audio read process')
+        logger.debug('Cleaning audio read process')
         self._read_stream_audio_process.terminate()
         self._read_stream_audio_process.close()
-        print('Cleaning audio ffmpeg process')
+        logger.debug('Cleaning audio ffmpeg process')
         self._in_stream_audio.stdout.close()
         self._in_stream_audio.wait(timeout=10)

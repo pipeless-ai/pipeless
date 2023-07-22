@@ -3,7 +3,9 @@ import numpy as np
 import time
 import multiprocessing
 import os
-from rich import print as rprint
+import logging
+
+from ..logger import logger
 
 class OutputStream():
     """
@@ -58,7 +60,7 @@ class OutputStream():
                 crf=0, # Used by H.264/H.265 (libx264/libx265) codecs. Lower CRF produces higer quality but bigger file size. Usually 0-51
                 # Audio params
                 acodec=audio_codec, ac=audio_channels, ar=audio_sample_rate, bit_rate=128000,
-                # loglevel='debug'
+                loglevel=('debug' if logger.getEffectiveLevel() == logging.DEBUG else 'info')
             )
         )
         self._ffmpeg_process = ffmpeg_command.overwrite_output().run_async(pipe_stdin=True)
@@ -92,7 +94,7 @@ class OutputStream():
                         # TODO: we need to identify when the video has ended, if not, processing the video faster could lead to premature stop
                         break
             except BlockingIOError:
-                rprint('[yellow]WARN: Audio pipe blocked.[/yellow] Ignore this warning if it just happens from time to time')
+                logger.warning('[yellow]Audio pipe blocked.[/yellow] Ignore this warning if it just happens from time to time')
 
     def _write_video(self):
         while True:
@@ -105,17 +107,20 @@ class OutputStream():
 
     # Release the streams we opened during instantiation
     def __exit__(self):
-        print('Cleaning up...')
+        logger.debug('Cleaning output audio pipe')
         os.close(self._audio_pipe_fd)
         os.remove(self._audio_input_pipe_name)
 
+        logger.debug('Cleaning output ffmpeg process')
         self._ffmpeg_process.stdin.close()
         self._ffmpeg_process.terminate()
         self._ffmpeg_process.close()
         self._ffmpeg_process.wait(timeout=10)
 
+        logger.debug('Cleaning output audio process')
         self._pipe_audio_buffer_thread.terminate()
         self._pipe_audio_buffer_thread.close()
 
+        logger.debug('Cleaning output video process')
         self._pipe_video_buffer_thread.terminate()
         self._pipe_video_buffer_thread.close()
