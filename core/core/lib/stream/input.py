@@ -4,6 +4,7 @@ import time
 import multiprocessing
 import os
 from rich import print as rprint
+import select
 
 class InputStream():
     """
@@ -16,6 +17,8 @@ class InputStream():
         """
         self._video_buffer = multiprocessing.Queue() # TODO: this could end into an out-of-memory issue if we fail to process images. We should specify a maxsize
         self._audio_buffer = multiprocessing.Queue()
+
+        self.read_timeout = 5 # seconds
 
         self._in_stream = ffmpeg.input(rtmp_url)
 
@@ -72,51 +75,48 @@ class InputStream():
     # Read the video stream and store frames in the internal buffer.
     def _read_stream_video_bg(self, frame_width, frame_height):
         frame_size = frame_width * frame_height * 3
-        reconnect_count = 0
+
         while True:
-            in_bytes = self._in_stream_video.stdout.read(frame_size)
-            if len(in_bytes) > 0:
-                in_frame = (
-                    np
-                    .frombuffer(in_bytes, np.uint8)
-                    .reshape([frame_height, frame_width, 3])
-                )
-                self._video_buffer.put(in_frame)
+            fd = self._in_stream_video.stdout.fileno()
+            ready, _, _ = select.select([fd], [], [], self.read_timeout)
+            if fd in ready:
+                in_bytes = self._in_stream_video.stdout.read(frame_size)
+                if len(in_bytes) > 0:
+                    in_frame = (
+                        np
+                        .frombuffer(in_bytes, np.uint8)
+                        .reshape([frame_height, frame_width, 3])
+                    )
+                    self._video_buffer.put(in_frame)
             else:
-                # TODO(miguelaeh): setup a signal to indicate the end of streaming, so we can handle reconnections
-                print('WARNING: got 0 bytes reading video from the input stream. It could be a temporal cut.')
-                if (reconnect_count > 5):
-                    print('15 seconds witohout input data, stopping.')
-                else:
-                    print('Waiting 3 seconds to try again...')
-                    time.sleep(3)
-                    reconnect_count += 1
+                # The connection has not received frames for read_timeout seconds
+                rprint(f'[yellow] No video data received after {self.read_timeout} seconds. Stopping video input process.[yellow]')
+                break
 
     # Read the audio stream and store frames in the internal buffer.
     # Unlike for video, We store raw bytes, becasue we won't transform them
     def _read_stream_audio_bg(self, channels, sample_rate, bit_depth):
         byte_depth = int(bit_depth / 8)
         frame_size = int(channels * byte_depth)
+
         while True:
-            in_bytes = self._in_stream_audio.stdout.read(frame_size)
-            if len(in_bytes) > 0:
-                # TODO(miguelaeh): to process audio we should decode the frame
-                #in_frame = (
-                #    np
-                #    .frombuffer(in_bytes, np.uint8) # NOTE: 16 because of bit-depth
-                #    .reshape([channels, byte_depth])
-                #)
-                #self._audio_buffer.put(in_frame)
-                self._audio_buffer.put(in_bytes)
+            fd = self._in_stream_audio.stdout.fileno()
+            ready, _, _ = select.select([fd], [], [], self.read_timeout)
+            if fd in ready:
+                in_bytes = self._in_stream_audio.stdout.read(frame_size)
+                if len(in_bytes) > 0:
+                    # TODO(miguelaeh): to process audio we should decode the frame
+                    #in_frame = (
+                    #    np
+                    #    .frombuffer(in_bytes, np.uint8) # NOTE: 16 because of bit-depth
+                    #    .reshape([channels, byte_depth])
+                    #)
+                    #self._audio_buffer.put(in_frame)
+                    self._audio_buffer.put(in_bytes)
             else:
-                # TODO(miguelaeh): setup a signal to indicate the end of streaming, so we can handle reconnections
-                print('WARNING: got 0 bytes reading audio from the input stream. It could be a temporal cut.')
-                if (reconnect_count > 5):
-                    print('15 seconds witohout input data, stopping.')
-                else:
-                    print('Waiting 3 seconds to try again...')
-                    time.sleep(3)
-                    reconnect_count += 1
+                # The connection has not received frames for read_timeout seconds
+                rprint(f'[yellow] No audio data received after {self.read_timeout} seconds. Stopping audio input process.[yellow]')
+                break
 
     # Returns input video metadata
     def get_video_metadata(self):
@@ -132,20 +132,20 @@ class InputStream():
     def get_video_buffer(self):
         return self._video_buffer
 
-    def close(self):
-        # Close video resources
-        if self._read_stream_video_process.is_alive():
-            try:
-                self._read_stream_video_process.join(timeout=1)
-            except:
-                print('Failed stopping read stream video thread')
+    def is_stream_active(self):
+        return self._read_stream_audio_process.is_alive() or self._read_stream_video_process.is_alive()
 
-        # TODO(miguelaeh): sometimes closing the stdout gets stuck
+    def __exit__(self):
+        # Perform clean up when the object is no longer needed
+        print('Cleaning video read process')
+        self._read_stream_video_process.terminate()
+        self._read_stream_video_process.close()
+        print('Cleaning video ffmpeg process')
         self._in_stream_video.stdout.close()
-        self._in_stream_video.terminate()
-        try:
-            self._in_stream_video.wait(timeout=10)
-        except:
-            print('Timeout expired while waiting the ffmpeg video pipe to finish. Killing it...')
-            self._in_stream_video.kill()  # Forcefully terminate the process
-            print('Killed.')
+        self._in_stream_video.wait(timeout=10)
+        print('Cleaning audio read process')
+        self._read_stream_audio_process.terminate()
+        self._read_stream_audio_process.close()
+        print('Cleaning audio ffmpeg process')
+        self._in_stream_audio.stdout.close()
+        self._in_stream_audio.wait(timeout=10)

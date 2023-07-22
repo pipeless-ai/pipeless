@@ -66,18 +66,18 @@ class OutputStream():
         # NOTE: audio and video frames are syncing automatically thanks to the original timestamps. Once we modify audio, that won't happen
 
         self._pipe_audio_buffer_thread = multiprocessing.Process(
-            target=self._read_audio,
+            target=self._write_audio,
         )
         self._pipe_audio_buffer_thread.daemon = True  # Ensures the thread ends with the program
         self._pipe_audio_buffer_thread.start()
 
         self._pipe_video_buffer_thread = multiprocessing.Process(
-            target=self._read_video,
+            target=self._write_video,
         )
         self._pipe_video_buffer_thread.daemon = True  # Ensures the thread ends with the program
         self._pipe_video_buffer_thread.start()
 
-    def _read_audio(self):
+    def _write_audio(self):
         audio_pipe_fd = os.open(self._audio_input_pipe_name, os.O_RDWR)
         audio_write_pipe_size = os.fstat(audio_pipe_fd).st_blksize
 
@@ -94,27 +94,28 @@ class OutputStream():
             except BlockingIOError:
                 rprint('[yellow]WARN: Audio pipe blocked.[/yellow] Ignore this warning if it just happens from time to time')
 
-    def _read_video(self):
+    def _write_video(self):
         while True:
-            if self._ffmpeg_process is not None:
-                if not self._video_input_buffer.empty():
-                    video_frame = self._video_input_buffer.get()
-                    self._ffmpeg_process.stdin.write(video_frame.astype(np.uint8).tobytes())
-                else:
-                    # TODO: we need to identify when the video has ended, if not, processing the video faster could lead to premature stop
-                    break
+            if not self._video_input_buffer.empty():
+                video_frame = self._video_input_buffer.get()
+                self._ffmpeg_process.stdin.write(video_frame.astype(np.uint8).tobytes())
+            else:
+                # TODO: we need to identify when the video has ended, if not, processing the video faster could lead to premature stop
+                break
 
     # Release the streams we opened during instantiation
-    def close(self):
+    def __exit__(self):
         print('Cleaning up...')
         os.close(self._audio_pipe_fd)
         os.remove(self._audio_input_pipe_name)
 
         self._ffmpeg_process.stdin.close()
         self._ffmpeg_process.terminate()
-        try:
-            self._ffmpeg_process.wait(timeout=10)
-        except:
-            rprint('[yellow]Timeout expired while waiting the output video pipe to finish.[/yellow] Killing it...')
-            self._ffmpeg_process.kill()  # Forcefully terminate the process
-            print('Killed.')
+        self._ffmpeg_process.close()
+        self._ffmpeg_process.wait(timeout=10)
+
+        self._pipe_audio_buffer_thread.terminate()
+        self._pipe_audio_buffer_thread.close()
+
+        self._pipe_video_buffer_thread.terminate()
+        self._pipe_video_buffer_thread.close()
