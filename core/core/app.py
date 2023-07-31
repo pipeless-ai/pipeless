@@ -53,7 +53,7 @@ class App():
                 # The input stream has stopped and we have read all the frames that were added to the input buffer
                 logger.info("[purple]No more frames to process in the input buffer[/purple]")
                 # Indicate the output stream to process remaining and stop
-                media_pipeline.set_input_finished_flag(True)
+                self.media_pipeline.set_input_finished_flag(True)
                 break
             else:
                 try:
