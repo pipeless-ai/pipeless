@@ -2,6 +2,7 @@ import os
 import sys
 import traceback
 import typing
+import numpy as np
 #from pulsar import Client, MessageId
 
 import gi
@@ -37,6 +38,13 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     # TODO; send info to apache pulsar.
     #       Ideally we should store the frame encoded to save time in write and read from pulsar.
     #       Then the worker would decode to nparray and encode it again before sending it back.
+    caps = sample.get_caps()
+    height = caps.get_structure(0).get_value("height")
+    width = caps.get_structure(0).get_value("width")
+    ndframe = np.ndarray(
+        shape=(height, width, 3), dtype=np.uint8, buffer=info.data
+    )
+    logger.info(ndframe)
 
     # Release resources
     buffer.unmap(info)
@@ -91,14 +99,14 @@ def input(config):
 
     # Set properties for elements
     appsink.set_property("emit-signals", True)
-    #appsink.set_property("max-buffers", 50)
     appsink.connect("new-sample", on_new_sample)
-    # Set format to RGB for the videoconvert element
-    # TODO: some formats like webm do not support RGb conversion, instead, they support BGR. Check on the fly to change format depending on the URI
-    #caps = Gst.Caps.from_string("video/x-raw,format=NV12") # NOTE: Why is this bgr? should be RGB?
-    caps = Gst.Caps.new_any()
-    videoconvert_sinkpad = videoconvert.get_static_pad("sink")
-    videoconvert_sinkpad.set_caps(caps)
+    # Force RGB output in sink
+    # TODO: store the images in queue before decoding to make it faster
+    caps = Gst.Caps.from_string("video/x-raw,format=RGB") # NOTE: Why is this bgr? should be RGB?
+    appsink.set_property("caps", caps)
+
+    # Allow videoconverter to negotiate input and output caps
+    videoconvert.set_property("passthrough", True)
 
     # Add elemets to the pipeline
     pipeline.add(uridecodebin, videoconvert, appsink)
