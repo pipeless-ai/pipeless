@@ -14,3 +14,6 @@ pulsar-client = "^3.2.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pupila = "pupila.main:main"
