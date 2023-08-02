@@ -2,6 +2,7 @@ import os
 
 from lib.input import input
 from lib.logger import logger
+from lib.config import Config
 
 def main ():
     """
@@ -9,21 +10,11 @@ def main ():
     Each component is executed depending on the provided flags
     """
     # TODO: handle flags for input, worker, output
-    # TODO: join config file and env vars (priority to env vars) and build config object to pass to components
-    input_video_uri =  os.environ.get('INPUT_VIDEO_URI')
-    if input_video_uri is None:
-        raise 'Missing input video URI!'
 
-    config = {
-        'input': {
-            'video': {
-                'uri': input_video_uri
-            }
-        },
-        "test_mode": bool(os.environ.get('TEST_MODE', False)),
-    }
+    config_file_path = 'ADD_PATH_HERE!' # TODO
+    config = Config(config_file_path)
 
-    logger.info(f"Reading video from {config['input']['video']['uri']}")
+    logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
 
     input.input(config)
 
