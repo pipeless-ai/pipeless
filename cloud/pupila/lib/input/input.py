@@ -3,7 +3,6 @@ import sys
 import traceback
 import typing
 import numpy as np
-#from pulsar import Client, MessageId
 
 import gi
 gi.require_version('GLib', '2.0')
@@ -13,8 +12,7 @@ gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GObject, GstApp
 
 from ..logger import logger
-
-Gst.init(None)
+from ..connection import PushSocket
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.emit("pull-sample")
@@ -46,6 +44,8 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     )
     logger.info(ndframe)
 
+    s_push = PushSocket()
+
     # Release resources
     buffer.unmap(info)
 
@@ -74,14 +74,16 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
     return True
 
 def input(config):
-    # Initialize the Pulsar client
-    # client = Client("pulsar://localhost:6650")
+    Gst.init(None)
 
     pipeline = Gst.Pipeline.new("pipeline")
 
     # Create elements
-    videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+    # We will force RBG on the sink and videoconvert takes care of 
+    # converting between space colors negotiating caps automatically.
+    # Ref: https://gstreamer.freedesktop.org/documentation/tutorials/basic/handy-elements.html?gi-language=c#videoconvert
     uridecodebin = Gst.ElementFactory.make("uridecodebin3", "uridecodebin")
+    videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
     appsink = Gst.ElementFactory.make("appsink", "appsink")
 
     if not pipeline:
@@ -102,11 +104,8 @@ def input(config):
     appsink.connect("new-sample", on_new_sample)
     # Force RGB output in sink
     # TODO: store the images in queue before decoding to make it faster
-    caps = Gst.Caps.from_string("video/x-raw,format=RGB") # NOTE: Why is this bgr? should be RGB?
+    caps = Gst.Caps.from_string("video/x-raw,format=RGB")
     appsink.set_property("caps", caps)
-
-    # Allow videoconverter to negotiate input and output caps
-    videoconvert.set_property("passthrough", True)
 
     # Add elemets to the pipeline
     pipeline.add(uridecodebin, videoconvert, appsink)
@@ -119,7 +118,7 @@ def input(config):
     videoconvert_sink_pad = videoconvert.get_static_pad("sink")
     # Link dynamic elements (dynamic number of pads)
     # uridecodebin creates pads for each stream found in the uri (ex: video, audio, subtitles)
-    uridecodebin.set_property("uri", config['input']['video']['uri'])
+    uridecodebin.set_property("uri", config.get_input().get_video().get_uri())
     def pad_added_callback(src, pad):
         if not videoconvert_sink_pad.is_linked():
             logger.info('Linking uridecoderbin pad to videoconvert pad')
@@ -155,4 +154,3 @@ def input(config):
         logger.info('Closing pipeline')
         # Clean up and close the Pulsar client
         pipeline.set_state(Gst.State.NULL)
-        #client.close()

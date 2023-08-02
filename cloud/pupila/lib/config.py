@@ -37,7 +37,7 @@ class Address():
     def get_port(self):
         return self._port
     def get_address(self):
-        return f'{self._host};{self._port}'
+        return f'{self._host}:{self._port}'
 
 class Video():
     def __init__(self, video_dict, env_prefix):
