@@ -13,6 +13,7 @@ from gi.repository import Gst, GObject, GstApp
 
 from ..logger import logger
 from ..connection import PushSocket
+from ..config import Config
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.emit("pull-sample")
@@ -73,7 +74,9 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
 
     return True
 
-def input(config):
+def input():
+    # Load config
+    config = Config(None)
     Gst.init(None)
 
     pipeline = Gst.Pipeline.new("pipeline")

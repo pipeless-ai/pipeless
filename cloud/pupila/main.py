@@ -16,7 +16,7 @@ def main ():
 
     logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
 
-    input.input(config)
+    input.input()
 
 if __name__ == "__main__":
     main()
