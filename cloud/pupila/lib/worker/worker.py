@@ -3,11 +3,8 @@ import pynng as nng
 import numpy as np
 
 import gi
-gi.require_version('GLib', '2.0')
 gi.require_version('GObject', '2.0')
-gi.require_version('Gst', '1.0')
-gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GObject, GstApp
+from gi.repository import GObject
 
 from ..connection import InputPullSocket, OutputPushSocket
 from ..logger import logger
@@ -44,7 +41,7 @@ def fetch_and_process():
 def worker():
     try:
         loop = GObject.MainLoop()
-        
+
         r_socket = InputPullSocket()
         r_socket_fd = r_socket.getsockopt(nng.NNG_OPT_RECVFD)
         r_channel = GObject.IOChannel(r_socket_fd)
