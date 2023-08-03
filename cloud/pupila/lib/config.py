@@ -60,6 +60,19 @@ class Input():
     def get_address(self):
         return self._address
 
+class Output():
+    def __init__(self, input_dict):
+        self._video = Video(input_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
+        self._address = Address(input_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
+        self._protocol = self._video.get_uri().split(':')[0]
+
+    def get_video(self):
+        return self._video
+    def get_address(self):
+        return self._address
+    def get_protocol(self):
+        return self._protocol
+
 class Config(metaclass=Singleton):
     def __init__(self, config_file_path):
         # TODO: parse config file path and delete mockup config
