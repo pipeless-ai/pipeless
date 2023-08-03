@@ -10,4 +10,7 @@ RUN install_packages libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
 # Test it by running this command: GST_DEBUG="*:3,GstVaapiPostproc:7,GstGLUploadElement:7" gst-launch-1.0 uridecodebin uri=<path>.mp4 ! glimagesink
 RUN apt-get remove gstreamer1.0-vaapi
 # Gstreamer python bindings
-RUN install_packages python3-gst-1.0
+RUN install_packages python3-gi python3-gst-1.0
+
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
