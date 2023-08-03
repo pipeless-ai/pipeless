@@ -146,6 +146,26 @@ files = [
 ]
 
 [[package]]
+name = "pycairo"
+version = "1.24.0"
+description = "Python interface for cairo"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pycairo-1.24.0-cp310-cp310-win32.whl", hash = "sha256:031f5ef2c80792673f2c54ee285f2a31779a44d7521a27a7f82e4a5ecfafc26e"},
+    {file = "pycairo-1.24.0-cp310-cp310-win_amd64.whl", hash = "sha256:afccac552386ab628e8ae658185fa363e8d15a5afe96d1de43f97027dd78bdd6"},
+    {file = "pycairo-1.24.0-cp311-cp311-win32.whl", hash = "sha256:4631ed794a3376ec314ce47826c3e51940b54695f4ef7d5b3245b203037ae760"},
+    {file = "pycairo-1.24.0-cp311-cp311-win_amd64.whl", hash = "sha256:ed0622a0ccffb873ffe7fee1699d60779f1260fba143390e5366d55f1d1739f5"},
+    {file = "pycairo-1.24.0-cp312-cp312-win32.whl", hash = "sha256:220742f187d3940d695c1af1a0c1646e26dc2199d65b7bafaa527e15c3520fd3"},
+    {file = "pycairo-1.24.0-cp312-cp312-win_amd64.whl", hash = "sha256:3199d6a0538d6482c71efb816bd330515e98bb06f182e23572c77d92be98f536"},
+    {file = "pycairo-1.24.0-cp38-cp38-win32.whl", hash = "sha256:c7c79e748ec849811241d29553184c3ad93c857558dbe9954a49327680b8d356"},
+    {file = "pycairo-1.24.0-cp38-cp38-win_amd64.whl", hash = "sha256:6ad5c3425408ebb0dfaad2cca4a80e7524d7a309305acdb2569638b5cc988fe7"},
+    {file = "pycairo-1.24.0-cp39-cp39-win32.whl", hash = "sha256:c5f6efdd86fe13d36a6b004c64d8e97cde9854d599cf6cca962afb1966fe533d"},
+    {file = "pycairo-1.24.0-cp39-cp39-win_amd64.whl", hash = "sha256:26fe2c32ba24caae524d855f26f3ee1a0c1ea3291da2a19604264ed29f64d834"},
+    {file = "pycairo-1.24.0.tar.gz", hash = "sha256:1444d52f1bb4cc79a4a0c0fe2ccec4bd78ff885ab01ebe1c0f637d8392bcafb6"},
+]
+
+[[package]]
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
@@ -169,6 +189,19 @@ files = [
 
 [package.extras]
 plugins = ["importlib-metadata"]
+
+[[package]]
+name = "pygobject"
+version = "3.44.1"
+description = "Python bindings for GObject Introspection"
+optional = false
+python-versions = ">=3.7, <4"
+files = [
+    {file = "PyGObject-3.44.1.tar.gz", hash = "sha256:665fbe980c91e8b31ad78ed3f66879946948200864002d193f67eccc1d7d5d83"},
+]
+
+[package.dependencies]
+pycairo = ">=1.16,<2.0"
 
 [[package]]
 name = "pynng"
@@ -265,4 +298,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ca5fc4e14c4d361b2fa1fb56d1ce021ee3aaad3f30ce7c3cd47b2768d3a707cd"
+content-hash = "574975d37eb7b8bf1a71a383a17b36d762d3579d1084a182d721f761d7960a34"
