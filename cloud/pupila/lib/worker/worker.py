@@ -30,11 +30,11 @@ def fetch_and_process():
         #       Is ndframe conversion required? If it isn't we can save it
         updated_ndframe = ndframe
         
-        msg.update_data(updated_ndframe)
+        msg.update_data(updated_ndframe.tobytes())
 
         # Forward the message to the output
         s_socket = OutputPushSocket()
-        s_socket.send(msg)
+        s_socket.send(msg.serialize())
     else:
         logger.error(f'Unsupported message type: {msg.type}')
 
