@@ -1,7 +1,4 @@
-import os
-import sys
 import traceback
-import typing
 import numpy as np
 
 import gi
@@ -12,8 +9,9 @@ gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GObject, GstApp
 
 from ..logger import logger
-from ..connection import PushSocket
+from ..connection import InputPushSocket
 from ..config import Config
+from cloud.pupila.lib.messages import RgbImageMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.emit("pull-sample")
@@ -34,18 +32,15 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
         logger.error('Getting multimedia data from the buffer did not success.')
         return Gst.FlowReturn.ERROR
 
-    # TODO; send info to apache pulsar.
-    #       Ideally we should store the frame encoded to save time in write and read from pulsar.
-    #       Then the worker would decode to nparray and encode it again before sending it back.
     caps = sample.get_caps()
+    timestamp = buffer.pts # (pts) presentation timestamp
     height = caps.get_structure(0).get_value("height")
     width = caps.get_structure(0).get_value("width")
-    ndframe = np.ndarray(
-        shape=(height, width, 3), dtype=np.uint8, buffer=info.data
-    )
-    logger.info(ndframe)
+    msg = RgbImageMsg(width, height, info.data, timestamp)
 
-    s_push = PushSocket()
+    # Pass msg to the workers
+    s_push = InputPushSocket()
+    s_push.send(msg)
 
     # Release resources
     buffer.unmap(info)
@@ -106,7 +101,6 @@ def input():
     appsink.set_property("emit-signals", True)
     appsink.connect("new-sample", on_new_sample)
     # Force RGB output in sink
-    # TODO: store the images in queue before decoding to make it faster
     caps = Gst.Caps.from_string("video/x-raw,format=RGB")
     appsink.set_property("caps", caps)
 
@@ -155,5 +149,4 @@ def input():
         loop.quit()
     finally:
         logger.info('Closing pipeline')
-        # Clean up and close the Pulsar client
         pipeline.set_state(Gst.State.NULL)
