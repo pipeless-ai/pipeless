@@ -74,20 +74,9 @@ class Output():
         return self._protocol
 
 class Config(metaclass=Singleton):
-    def __init__(self, config_file_path):
+    def __init__(self, config_dict):
         # TODO: parse config file path and delete mockup config
-        config = {
-            'input': {
-                'video': {
-                    'uri': 'some_hardcoded-uri'
-                },
-                'address': { # address where the input component runs for the nng connections
-                    'host': 'localhost',
-                    'port': 1234
-                },
-            },
-            "test_mode": False,
-        }
+
 
         # We follow a fail by default aproach. If a variable is required, it must be provided. There are no default values.
         # A user can use a default config file and override via env vars the configuration that it needs

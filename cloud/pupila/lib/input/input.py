@@ -98,6 +98,7 @@ def input():
     config = Config(None)
     Gst.init(None)
 
+    logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
     pipeline = Gst.Pipeline.new("pipeline")
 
     # Create elements
