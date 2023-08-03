@@ -36,9 +36,9 @@ class RgbImageMsg(Msg):
     """
     Raw RGB image data and basic information
     """
-    def __init__(self, frame_number, width, height, raw_data):
+    def __init__(self, width, height, raw_data, timestamp):
         self._type = MsgType.RGB_IMAGE
-        self._frame_number = frame_number # to calculate timestamps
+        self._timestamp = timestamp
         self._width = width
         self._height = height
         self._data = raw_data
@@ -46,7 +46,7 @@ class RgbImageMsg(Msg):
     def serialize(self):
         return pickle.dumps({
             "type": self._type,
-            "number": self._frame_number,
+            "timestamp": self._timestamp,
             "width": self._width,
             "height": self._height,
             "data": self._data
@@ -56,8 +56,8 @@ class RgbImageMsg(Msg):
         return self._width
     def get_height(self):
         return self._height
-    def get_frame_number(self):
-        return self._frame_number
+    def get_timestamp(self):
+        return self._timestamp
     
 def load_msg(msg: Msg):
     return pickle.loads(msg)
