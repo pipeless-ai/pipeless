@@ -1,17 +1,21 @@
 import concurrent.futures
+import time
 
-from pupila.lib.input.input import input
-from pupila.lib.output.output import output
-from pupila.lib.worker.worker import worker
-from pupila.lib.logger import logger
-from pupila.lib.config import Config
+from src.pupila.lib.input import input
+from src.pupila.lib.output import output
+from src.pupila.lib.worker import worker
+from src.pupila.lib.logger import logger
+from src.pupila.lib.config import Config
 
 def run_all():
-    executor = concurrent.futures.ThreadPoolExecutor()
-    input = executor.submit(input.input)
-    output = executor.submit(output.output)
-    worker = executor.submit(input.worker)
-    concurrent.futures.wait([input, output, worker])
+    # TODO: Move this into the CLI component
+    executor = concurrent.futures.ProcessPoolExecutor()
+    t_input = executor.submit(input.input)
+    time.sleep(2) # Allow to create sockets
+    t_output = executor.submit(output.output)
+    time.sleep(2) # Allow to create sockets
+    t_worker = executor.submit(worker.worker)
+    concurrent.futures.wait([t_input, t_output, t_worker])
 
 class Pupila():
     """
@@ -19,28 +23,14 @@ class Pupila():
     """
     # TODO: handle flags for input, worker, output
 
-    def __init__(self, config, component):
+    def __init__(self, config, component=None):
         """
         Parameters:
         - config(Config): Configuration provided by the user
         - component(str): Component to initialize
         """
-
-        # TODO: DELETE. this is a Mockup for testing. 
-        # the config will comes from the run command in the constructor.
-        config = {
-            'input': {
-                'video': {
-                    'uri': 'some_hardcoded-uri'
-                },
-                'address': { # address where the input component runs for the nng connections
-                    'host': 'localhost',
-                    'port': 1234
-                },
-            },
-            "test_mode": False,
-        }
-        config = Config(config) # Initialize global configuration
+        # Initialize global configuration
+        Config(config)
 
         if component == 'input':
             input.input()
@@ -51,8 +41,33 @@ class Pupila():
         elif component == 'all':
             run_all()
         else:
-            logger.info('No (or wrong) component provided {component}. Defaulting to all.')
+            logger.warning(f'No (or wrong) component provided: {component}. Defaulting to all.')
             run_all()
-        
+
 if __name__ == "__main__":
-    Pupila()
+    # The config comes from the CLI in usua environments.
+    # Adding this here just for easy of manual testing while developing.
+    config = {
+        "test_mode": False,
+        'input': {
+            'enable': True,
+            'video': {
+                'uri': 'some_hardcoded-uri'
+            },
+            'address': { # address where the input component runs for the nng connections
+                'host': 'localhost',
+                'port': 1234
+            },
+        },
+        "output": {
+            'enable': True,
+            'video': {
+                'uri': 'file:///tmp/my-video.mp4'
+            },
+            'address': { # address where the input component runs for the nng connections
+                'host': 'localhost',
+                'port': 1236
+            },
+        }
+    }
+    Pupila(config, 'all')
