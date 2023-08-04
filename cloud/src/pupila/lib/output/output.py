@@ -57,14 +57,29 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
 
     return True
 
-def create_sink(protocol):
+def create_sink(protocol, location):
     """
     Create the appropiate sink based on the output protocol provided
     """
     if protocol == 'file':
-        return Gst.ElementFactory.make("filesink", "filesink")
+        sink = Gst.ElementFactory.make("filesink", "filesink")
+        sink.set_property("location", location)
+        return sink
+    elif protocol == 'https':
+        sink = Gst.ElementFactory.make("souphttpsink", "souphttpsink")
+        sink.set_property("location", location)
+        return sink
+    elif protocol == 'rtmp':
+        sink = Gst.ElementFactory.make("rtmpsink", "rtmpsink")
+        sink.set_property("location", location)
+        return sink
+    elif protocol == 'rtsp':
+        sink = Gst.ElementFactory.make("rtspclientsink", "rstpclientsink")
+        sink.set_property("location", location)
+        return sink
     else:
         logger.warning(f'Unsupported output protocol {protocol}. Defaulting to autovideosink')
+        # NOTE: the autovideosink output goes directly to the computer video output (screen mostly)
         return Gst.ElementFactory.make("autovideosink", "autovideosink")
 
 def update_caps(pipeline, str_caps):
@@ -120,7 +135,10 @@ def output():
     pipeline_encodebin = Gst.ElementFactory.make("encodebin", "encodebin")
     pipeline_capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
     # Dynamically calculate the output sink to use
-    pipeline_sink = create_sink(config.get_output().get_protocol())
+    pipeline_sink = create_sink(
+        config.get_output().get_protocol(),
+        config.get_output().get_location()
+    )
 
     if not pipeline:
         logger.error('Failed to create output pipeline')
@@ -176,13 +194,6 @@ def output():
     if not pipeline_capsfilter.link(pipeline_sink):
         logger.error("Failed to link capsfilter to sink")
         sys.exit(1)
-
-#    # Request a pad from the encodebin for the videoconvert
-#    videoconvert_pad = pipeline_videoconvert.get_static_pad("src")
-#    encodebin_pad = pipeline_encodebin.get_compatible_pad(videoconvert_pad, None)
-#    if videoconvert_pad.link(encodebin_pad) != Gst.PadLinkReturn.OK:
-#        logger.error("Failed to link videoconvert to encodebin")
-#        sys.exit(1)
 
     loop = GLib.MainLoop()
     # Handle bus events on the main loop
