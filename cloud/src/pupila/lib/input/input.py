@@ -6,12 +6,12 @@ gi.require_version('GLib', '2.0')
 gi.require_version('GObject', '2.0')
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GObject, GstApp
+from gi.repository import Gst, GObject, GstApp, GLib
 
-from cloud.pupila.lib.logger import logger
-from cloud.pupila.lib.connection import InputOutputSocket, InputPushSocket
-from cloud.pupila.lib.config import Config
-from cloud.pupila.lib.messages import RgbImageMsg, StreamMetadataMsg
+from src.pupila.lib.logger import logger
+from src.pupila.lib.connection import InputOutputSocket, InputPushSocket
+from src.pupila.lib.config import Config
+from src.pupila.lib.messages import RgbImageMsg, StreamMetadataMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.emit("pull-sample")
@@ -156,7 +156,7 @@ def input():
         )
     )
 
-    loop = GObject.MainLoop()
+    loop = GLib.MainLoop()
 
     # Handle bus events on the main loop
     bus = pipeline.get_bus()
@@ -182,3 +182,8 @@ def input():
     finally:
         logger.info('Closing pipeline')
         pipeline.set_state(Gst.State.NULL)
+        # Rettreive and close the sockets
+        m_socket = InputOutputSocket('w')
+        m_socket.close()
+        s_push  = InputPushSocket()
+        s_push.close()

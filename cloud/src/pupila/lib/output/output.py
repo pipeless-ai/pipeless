@@ -8,16 +8,16 @@ gi.require_version('GLib', '2.0')
 gi.require_version('GObject', '2.0')
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GObject, GstApp
+from gi.repository import Gst, GObject, GstApp, GLib
 
-from cloud.pupila.lib.connection import InputOutputSocket, OutputPullSocket
-from cloud.pupila.lib.logger import logger
-from cloud.pupila.lib.messages import load_msg, MsgType
-from cloud.pupila.lib.config import Config
+from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
+from src.pupila.lib.logger import logger
+from src.pupila.lib.messages import load_msg, MsgType
+from src.pupila.lib.config import Config
 
 # TODO: create a process to fetch from the bussocket and edit the pipeline when a metadata message arrives
 
-def fetch_and_send(appsrc: GstApp.AppSource):
+def fetch_and_send(appsrc: GstApp.AppSrc):
     # TODO: we may need to use the 'need-data' and 'enough-data' signals to avoid overflowing the appsrc input queue
     r_socket = OutputPullSocket()
     raw_msg = r_socket.recv(1) # 1 second timeout
@@ -36,7 +36,7 @@ def fetch_and_send(appsrc: GstApp.AppSource):
     else:
         logger.error(f'Unsupported message type: {msg.type}')
 
-def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
+def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
     """
     Callback to manage bus messages
     """
@@ -147,7 +147,7 @@ def output():
         logger.error("Failed to link encodebin to sink")
         sys.exit(1)
 
-    loop = GObject.MainLoop()
+    loop = GLib.MainLoop()
     # Handle bus events on the main loop
     pipeline_bus = pipeline.get_bus()
     pipeline_bus.add_signal_watch()
@@ -184,3 +184,8 @@ def output():
     finally:
         logger.info('Closing pipeline')
         pipeline.set_state(Gst.State.NULL)
+        # Retreive and close the sockets
+        m_socket = InputOutputSocket('r')
+        m_socket.close()
+        r_socket = OutputPullSocket()
+        r_socket.close()

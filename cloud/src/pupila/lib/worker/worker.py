@@ -4,11 +4,13 @@ import numpy as np
 
 import gi
 gi.require_version('GObject', '2.0')
-from gi.repository import GObject
+gi.require_version('Gio', '2.0')
+gi.require_version('GLib', '2.0')
+from gi.repository import Gio, GLib
 
-from ..connection import InputPullSocket, OutputPushSocket
-from ..logger import logger
-from ..messages import load_msg, MsgType
+from src.pupila.lib.connection import InputPullSocket, OutputPushSocket
+from src.pupila.lib.logger import logger
+from src.pupila.lib.messages import load_msg, MsgType
 
 # TODO: create a process to fetch from the bussocket and edit the pipeline when a metadata message arrives
 
@@ -40,7 +42,7 @@ def fetch_and_process():
 
 def worker():
     try:
-        loop = GObject.MainLoop()
+        loop = GLib.MainLoop()
 
         r_socket = InputPullSocket()
         r_socket_fd = r_socket.getsockopt(nng.NNG_OPT_RECVFD)
@@ -55,3 +57,8 @@ def worker():
         loop.quit()
     finally:
         logger.info('Worker finished!')
+        # Retreive and close the sockets
+        r_socket = InputPullSocket()
+        r_socket.close()
+        s_socket = OutputPushSocket()
+        s_socket.close()
