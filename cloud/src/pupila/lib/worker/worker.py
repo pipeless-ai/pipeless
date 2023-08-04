@@ -50,7 +50,6 @@ def worker():
     try:
         while True:
             fetch_and_process()
-        # GLib.timeout_add(0, on_socket_readable)
 
     except KeyboardInterrupt:
         pass
