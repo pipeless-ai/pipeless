@@ -1,13 +1,51 @@
+from functools import wraps
 from pynng import Push0, Pull0, Timeout, Pair0
+from pynng.exceptions import Closed as ClosedException
 
 from src.pupila.lib.singleton import Singleton
 from src.pupila.lib.config import Config
 from src.pupila.lib.logger import logger
 
+def send_error_handler(func):
+    """
+    Decorator to handle sending errors.
+    """
+    @wraps(func)
+    def send_handler(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Timeout:
+            logger.warning("Timeout sending message")
+        except ClosedException as e:
+            logger.error('Trying to write to a closed socket')
+            # Forward to ensure resource cleanup
+            raise ClosedException('The socket is closed!', e.errno)
+
+    return send_handler
+
+def recv_error_handler(func):
+    """
+    Decorator to handle reception errors.
+    """
+    @wraps(func)
+    def recv_handler(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+            return result
+        except Timeout:
+            logger.warning("Timeout waiting for message")
+            return None
+        except ClosedException as e:
+            logger.error('Trying to read from a closed socket')
+            # Forward to ensure resource cleanup
+            raise ClosedException('The socket is closed!', e.errno)
+
+    return recv_handler
+
 class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
-    """   
+    """
     def __init__(self, mode, send_timeout=1000, read_timeout=1000):
         """
         Parameters:
@@ -15,7 +53,7 @@ class InputOutputSocket(metaclass=Singleton):
         """
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
-        # Make this connection to run on the provided port+1. 
+        # Make this connection to run on the provided port+1.
         # The provided port is for other type of connection
         port = str(address.get_port() + 1)
         self._addr = f'tcp://{address.get_host()}:{port}'
@@ -28,18 +66,14 @@ class InputOutputSocket(metaclass=Singleton):
         else:
             raise 'Wrong mode for InputOutputSocket'
 
+    @send_error_handler
     def send(self, msg):
-        try:
-            self._socket.send(msg)
-        except Timeout:
-            logger.warning("Timeout sending message")
+        self._socket.send(msg)
+
+    @recv_error_handler
     def recv(self):
-        try:
-            return self._socket.recv()
-        except Timeout:
-            # This function is used in a poll way, log timeouts on debug to avoid noise
-            logger.debug("Timeout receiving metadata from input")
-            return None
+        return self._socket.recv()
+
     def close(self):
         self._socket.close()
 
@@ -54,11 +88,10 @@ class InputPushSocket(metaclass=Singleton):
         self._socket = Push0(listen=self._addr)
         self._socket.send_timeout = timeout
 
+    @send_error_handler
     def send(self, msg):
-        try:
-            self._socket.send(msg)
-        except Timeout:
-            logger.warning("Timeout sending message")
+        self._socket.send(msg)
+
     def close(self):
         self._socket.close()
 
@@ -73,11 +106,10 @@ class OutputPushSocket(metaclass=Singleton):
         self._socket = Push0(listen=self._addr)
         self._socket.send_timeout = timeout
 
+    @send_error_handler
     def send(self, msg):
-        try:
-            self._socket.send(msg)
-        except Timeout:
-            logger.warning("Timeout sending message")
+        self._socket.send(msg)
+
     def close(self):
         self._socket.close()
 
@@ -92,12 +124,10 @@ class InputPullSocket(metaclass=Singleton):
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
 
+    @recv_error_handler
     def recv(self):
-        try:
-            return self._socket.recv()
-        except Timeout:
-            logger.warning("Timeout waiting for new frames")
-            return None
+        return self._socket.recv()
+
     def close(self):
         self._socket.close()
 
@@ -112,11 +142,9 @@ class OutputPullSocket(metaclass=Singleton):
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
 
+    @recv_error_handler
     def recv(self):
-        try:
-            return self._socket.recv()
-        except Timeout:
-            logger.warning("Timeout waiting for new frames")
-            return None
+        return self._socket.recv()
+
     def close(self):
         self._socket.close()

@@ -22,7 +22,7 @@ def fetch_and_process():
         msg = load_msg(raw_msg)
         if msg.type == MsgType.RGB_IMAGE:
             # TODO: we can use pynng recv_msg to get information about which pipe the message comes from, thus distinguish stream sources and route destinations
-            #       Usefull to support several input medias to the same app 
+            #       Usefull to support several input medias to the same app
             height = msg.get_height()
             width = msg.get_wigth()
             data = msg.get_data()
@@ -50,7 +50,6 @@ def worker():
     try:
         while True:
             fetch_and_process()
-
     except KeyboardInterrupt:
         pass
     except Exception:
