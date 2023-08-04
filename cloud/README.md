@@ -4,9 +4,18 @@ An open source framework to easily build and deploy production computer vision a
 
 # Development
 
-We use the following tools:
-* `cmake`: build system
-* `conan`; package manager.
+Start the application by running:
+
+```console
+python -m src.pupila.pupila
+```
+
+It will load a mock configuration (hardcoded) at `src/pupila/pupila.py`.
+That configuraion will only be used when launchin the components with the command above. It is intended to be easily editable for development.
+On the same file, you can change the component to run by changing the string provided to the main class constructor(`input`, `worker`, `output` or `all` -by default-).
+
+In order to debug, you can set the configuration `log_level` to `DEBUG`.
+If you find an error related to GStreamer and no usefull information has been logged, try using the env var `GST_DEBUG=5` to enable GStreamer debug logs.
 
 # Known issues
 
