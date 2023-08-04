@@ -1,8 +1,8 @@
 import os
 import sys
 
-from .singleton import Singleton
-from .logger import logger
+from src.pupila.lib.singleton import Singleton
+from src.pupila.lib.logger import logger
 
 ENV_PREFIX = 'PUPILA'
 
@@ -36,7 +36,7 @@ class Address():
     def get_host(self):
         return self._host
     def get_port(self):
-        return self._port
+        return int(self._port)
     def get_address(self):
         return f'{self._host}:{self._port}'
 
@@ -53,6 +53,7 @@ class Video():
 class Input():
     def __init__(self, input_dict):
         self._video = Video(input_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
+        # Address where the output component is running
         self._address = Address(input_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
 
     def get_video(self):
@@ -61,10 +62,11 @@ class Input():
         return self._address
 
 class Output():
-    def __init__(self, input_dict):
-        self._video = Video(input_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
-        self._address = Address(input_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
+    def __init__(self, output_dict):
+        self._video = Video(output_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
         self._protocol = self._video.get_uri().split(':')[0]
+        # Address where the output component is running
+        self._address = Address(output_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
 
     def get_video(self):
         return self._video
@@ -74,17 +76,21 @@ class Output():
         return self._protocol
 
 class Config(metaclass=Singleton):
-    def __init__(self, config_dict):
+    def __init__(self, config):
         # TODO: parse config file path and delete mockup config
 
 
         # We follow a fail by default aproach. If a variable is required, it must be provided. There are no default values.
         # A user can use a default config file and override via env vars the configuration that it needs
 
-        self._input = Input(config['input'])
+        # TODO: are we using the test_mode config variable?
         self._test_mode = prioritized_config(config, 'test_mode', f'{ENV_PREFIX}_TEST_MODE', type=bool)
+        self._input = Input(config['input'])
+        self._output = Output(config['output'])
 
     def get_input(self):
         return self._input
+    def get_output(self):
+        return self._output
     def is_test_mode(self):
         return self._test_mode
