@@ -46,11 +46,18 @@ class Video():
         # NOTE: When output the URI is not required even if video is enabled.
         #       By default goes to the default video output (screen)
         self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
+        uri_split = self._uri.split(':')
+        self._protocol = uri_split[0]
+        self._location = uri_split[1]
 
     def is_enabled(self):
         return self._enable
     def get_uri(self):
         return self._uri
+    def get_uri_protocol(self):
+        return self._protocol
+    def get_uri_location(self):
+        return self._location
 
 class Input():
     def __init__(self, input_dict):
@@ -69,21 +76,14 @@ class Output():
         When no output video URI is provided, the video is sent to the default
         video output of the computer.
         """
-        self._video = Video(output_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
-        uri_split = self._video.get_uri().split(':')
-        self._protocol = uri_split[0]
-        self._location = uri_split[1]
+        self._video = Video(output_dict['video'], f'{ENV_PREFIX}_OUTPUT_VIDEO')
         # Address where the output component is running
-        self._address = Address(output_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
+        self._address = Address(output_dict['address'], f'{ENV_PREFIX}_OUTPUT_ADDRESS')
 
     def get_video(self):
         return self._video
     def get_address(self):
         return self._address
-    def get_protocol(self):
-        return self._protocol
-    def get_location(self):
-        return self._location
 
 class Config(metaclass=Singleton):
     def __init__(self, config):
