@@ -1,4 +1,5 @@
 import traceback
+import select
 import pynng as nng
 import numpy as np
 
@@ -16,48 +17,49 @@ from src.pupila.lib.messages import load_msg, MsgType
 
 def fetch_and_process():
     r_socket = InputPullSocket()
-    raw_msg = r_socket.recv(1)
-    msg = load_msg(raw_msg)
-    
-    if msg.type == MsgType.RGB_IMAGE:
-        height = msg.get_height()
-        width = msg.get_wigth()
-        data = msg.get_data()
-        ndframe = np.ndarray(
-            shape=(height, width, 3),
-            dtype=np.uint8, buffer=data
-        )
+    raw_msg = r_socket.recv()
+    if raw_msg is not None:
+        msg = load_msg(raw_msg)
+        if msg.type == MsgType.RGB_IMAGE:
+            # TODO: we can use pynng recv_msg to get information about which pipe the message comes from, thus distinguish stream sources and route destinations
+            #       Usefull to support several input medias to the same app 
+            height = msg.get_height()
+            width = msg.get_wigth()
+            data = msg.get_data()
+            ndframe = np.ndarray(
+                shape=(height, width, 3),
+                dtype=np.uint8, buffer=data
+            )
 
-        # TODO: process message with user defined methods
-        #       Is ndframe conversion required? If it isn't we can save it
-        updated_ndframe = ndframe
-        
-        msg.update_data(updated_ndframe.tobytes())
+            # TODO: process message with user defined methods
+            #       Is ndframe conversion required? If it isn't we can save it
+            updated_ndframe = ndframe
 
-        # Forward the message to the output
-        s_socket = OutputPushSocket()
-        s_socket.send(msg.serialize())
-    else:
-        logger.error(f'Unsupported message type: {msg.type}')
+            msg.update_data(updated_ndframe.tobytes())
+
+            # Forward the message to the output
+            s_socket = OutputPushSocket()
+            s_socket.send(msg.serialize())
+        else:
+            logger.error(f'Unsupported message type: {msg.type}')
+            return False # Indicate GLib to not run the function again
+
+    return True # Indicate the GLib timeout to retry on the next interval
 
 def worker():
     try:
-        loop = GLib.MainLoop()
+        while True:
+            fetch_and_process()
+        # GLib.timeout_add(0, on_socket_readable)
 
-        r_socket = InputPullSocket()
-        r_socket_fd = r_socket.getsockopt(nng.NNG_OPT_RECVFD)
-        r_channel = GObject.IOChannel(r_socket_fd)
-        r_channel.add_watch(GObject.IO_IN, fetch_and_process)
-        
-        loop.run()
     except KeyboardInterrupt:
         pass
     except Exception:
         traceback.print_exc()
-        loop.quit()
     finally:
         logger.info('Worker finished!')
         # Retreive and close the sockets
+        logger.debug('Cleaning sockets')
         r_socket = InputPullSocket()
         r_socket.close()
         s_socket = OutputPushSocket()
