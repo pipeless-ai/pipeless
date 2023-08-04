@@ -1,5 +1,6 @@
 import sys
 import traceback
+import numpy as np
 
 import gi
 gi.require_version('GLib', '2.0')
@@ -14,10 +15,10 @@ from src.pupila.lib.config import Config
 from src.pupila.lib.messages import RgbImageMsg, StreamMetadataMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
-    sample = sink.emit("pull-sample")
+    sample = sink.pull_sample()
     if sample is None:
         logger.error('Sample is None!')
-        return Gst.FlowReturn.ERROR
+        return Gst.FlowReturn.ERROR # TODO: We should return a different status if we want to leave the app running forever and being able to recover from flows
 
     logger.debug(f'Sample caps: {sample.get_caps()}')
 
@@ -33,14 +34,21 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
         return Gst.FlowReturn.ERROR
 
     caps = sample.get_caps()
-    timestamp = buffer.pts # (pts) presentation timestamp
-    height = caps.get_structure(0).get_value("height")
     width = caps.get_structure(0).get_value("width")
-    msg = RgbImageMsg(width, height, info.data, timestamp)
+    height = caps.get_structure(0).get_value("height")
+    dts = buffer.dts
+    pts = buffer.pts
+    ndframe = np.ndarray(
+        shape=(height, width, 3),
+        dtype=np.uint8, buffer=info.data
+    )
+
+    msg = RgbImageMsg(width, height, ndframe.tobytes(), dts, pts)
+    s_msg = msg.serialize()
 
     # Pass msg to the workers
     s_push = InputPushSocket()
-    s_push.send(msg.serialize())
+    s_push.send(s_msg)
 
     # Release resources
     buffer.unmap(info)
@@ -54,10 +62,7 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
     the processing, we can catch it and stop the pipeline here.
     """
     mtype = msg.type
-    if mtype == Gst.MessageType.NEW_STREAM:
-        stream_id = msg.get_structure().get_string("stream-id")
-        logger.info(f"New stream detected with ID: {stream_id}")
-    elif mtype == Gst.MessageType.EOS:
+    if mtype == Gst.MessageType.EOS:
         logger.info("End-Of-Stream reached.")
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
@@ -71,7 +76,7 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
 
     return True
 
-def notify_stream_to_output(elem, pad):
+def notify_stream_to_output(pad):
     caps = pad.get_current_caps()
     """
      TODO: if the pad name is always different, we can run simultaneous
@@ -141,7 +146,7 @@ def input():
     # Link dynamic elements (dynamic number of pads)
     # uridecodebin creates pads for each stream found in the uri (ex: video, audio, subtitles)
     uridecodebin.set_property("uri", config.get_input().get_video().get_uri())
-    def pad_added_callback(src, pad):
+    def pad_added_callback(pad):
         if not videoconvert_sink_pad.is_linked():
             logger.info('Linking uridecoderbin pad to videoconvert pad')
             pad.link(videoconvert_sink_pad) # uridecoder -> videoconvert -> appsink
@@ -182,6 +187,7 @@ def input():
     finally:
         logger.info('Closing pipeline')
         pipeline.set_state(Gst.State.NULL)
+        logger.info('Pipeline closed')
         # Rettreive and close the sockets
         m_socket = InputOutputSocket('w')
         m_socket.close()
