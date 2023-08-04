@@ -99,7 +99,7 @@ class OutputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the workers to the output
     """
-    def __init__(self, timeout):
+    def __init__(self, timeout=1000):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
