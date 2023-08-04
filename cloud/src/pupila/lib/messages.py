@@ -1,5 +1,8 @@
 import pickle
 from enum import Enum
+import numpy as np
+
+from src.pupila.lib.logger import logger
 
 class MsgType(Enum):
     METADATA = 1
@@ -15,8 +18,6 @@ class Msg():
         return self._type
     def get_data(self):
         return self._data
-    def update_data(self, data):
-        self._data = data
 
 class StreamMetadataMsg(Msg):
     """
@@ -29,7 +30,8 @@ class StreamMetadataMsg(Msg):
     def serialize(self):
         return pickle.dumps({
             "type": self._type,
-            "data": self._data
+            "data": self._data,
+            "caps": self._caps,
         })
     def get_caps(self):
         return self.caps
@@ -45,17 +47,26 @@ class RgbImageMsg(Msg):
         self._width = width
         self._height = height
         self._data = raw_data
-    
+
     def serialize(self):
+        s_data = self._data
+        if isinstance(self._data, np.ndarray):
+            s_data = self._data.dumps()
         return pickle.dumps({
             "type": self._type,
             "dts": self._dts,
             "pts": self._pts,
             "width": self._width,
             "height": self._height,
-            "data": self._data
+            "data": s_data
         })
-    
+
+    def update_data(self, new_data):
+        if isinstance(new_data, np.ndarray):
+            self._data = self._data.dumps()
+        else:
+            self._data = new_data
+
     def get_width(self):
         return self._width
     def get_height(self):
@@ -65,6 +76,27 @@ class RgbImageMsg(Msg):
     def get_pts(self):
         return self._pts
 
-    
-def load_msg(msg: Msg):
-    return pickle.loads(msg)
+def deserialize(_msg):
+    """
+    Take a serialized message and returns the proper message
+    """
+    msg = pickle.loads(_msg)
+    if msg["type"] == MsgType.RGB_IMAGE:
+        r_data = msg["data"]
+        if isinstance(r_data, bytes):
+            # Ref: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.dumps.html#numpy.ndarray.dumps
+            r_data = pickle.loads(msg["data"])
+            # TODO: are the frames correct? is the ndtype=np.uint8 properly decoded?
+
+        return RgbImageMsg(
+            msg["width"],
+            msg["height"],
+            r_data,
+            msg["dts"],
+            msg["pts"]
+        )
+    elif msg.type == MsgType.METADATA:
+        return StreamMetadataMsg(msg["caps"])
+    else:
+        logger.warning(f'Unknown message type: {msg["type"]}')
+        return None

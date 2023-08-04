@@ -1,7 +1,5 @@
 import sys
 import traceback
-import pynng as nng
-import numpy as np
 
 import gi
 gi.require_version('GLib', '2.0')
@@ -12,7 +10,7 @@ from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
 from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import load_msg, MsgType
+from src.pupila.lib.messages import StreamMetadataMsg, deserialize, RgbImageMsg
 from src.pupila.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc):
@@ -20,13 +18,12 @@ def fetch_and_send(appsrc: GstApp.AppSrc):
     r_socket = OutputPullSocket()
     raw_msg = r_socket.recv()
     if raw_msg is not None:
-        msg = load_msg(raw_msg)
+        msg = deserialize(raw_msg)
 
-        if msg.type == MsgType.RGB_IMAGE:
+        if isinstance(msg, RgbImageMsg):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()
-            buffer = Gst.Buffer.new_allocate(None, len(data), None)
-            buffer.fill(0, data)
+            buffer = Gst.Buffer.new_wrapped(data.tobytes())
             buffer.pts = msg.get_dts()
             buffer.dts = msg.get_pts()
 
@@ -112,8 +109,8 @@ def handle_message(pipeline):
     raw_msg = m_socket.recv()
     if raw_msg is not None:
         try:
-            msg = load_msg(raw_msg)
-            if msg.type == MsgType.METADATA:
+            msg = deserialize(raw_msg)
+            if isinstance(msg, StreamMetadataMsg):
                 caps = msg.get_caps()
                 update_caps(pipeline, caps)
         except Exception:
@@ -136,8 +133,8 @@ def output():
     pipeline_capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
     # Dynamically calculate the output sink to use
     pipeline_sink = create_sink(
-        config.get_output().get_protocol(),
-        config.get_output().get_location()
+        config.get_output().get_video().get_uri_protocol(),
+        config.get_output().get_video().get_uri_location()
     )
 
     if not pipeline:

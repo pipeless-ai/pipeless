@@ -43,7 +43,7 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
         dtype=np.uint8, buffer=info.data
     )
 
-    msg = RgbImageMsg(width, height, ndframe.tobytes(), dts, pts)
+    msg = RgbImageMsg(width, height, ndframe, dts, pts)
     s_msg = msg.serialize()
 
     # Pass msg to the workers
@@ -107,7 +107,7 @@ def input():
     pipeline = Gst.Pipeline.new("pipeline")
 
     # Create elements
-    # We will force RBG on the sink and videoconvert takes care of 
+    # We will force RBG on the sink and videoconvert takes care of
     # converting between space colors negotiating caps automatically.
     # Ref: https://gstreamer.freedesktop.org/documentation/tutorials/basic/handy-elements.html?gi-language=c#videoconvert
     uridecodebin = Gst.ElementFactory.make("uridecodebin3", "uridecodebin")
