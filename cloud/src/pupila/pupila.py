@@ -1,4 +1,5 @@
 import concurrent.futures
+import sys
 import time
 
 from src.pupila.lib.input import input
@@ -70,4 +71,6 @@ if __name__ == "__main__":
             },
         }
     }
-    Pupila(config, 'all')
+
+    component = sys.argv[1]
+    Pupila(config, component)
