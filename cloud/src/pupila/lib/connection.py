@@ -1,6 +1,6 @@
 from functools import wraps
 from pynng import Push0, Pull0, Timeout, Pair0
-from pynng.exceptions import Closed as ClosedException
+from pynng.exceptions import Closed as ClosedException, TryAgain
 
 from src.pupila.lib.singleton import Singleton
 from src.pupila.lib.config import Config
@@ -37,6 +37,10 @@ def recv_error_handler(func):
         except Timeout:
             logger.warning(f"Timeout waiting for message on socket: {socket_name}")
             return None
+        except TryAgain:
+            # For non-blocking calls
+            logger.debug(f"No data to read, try again on: {socket_name}")
+            return None
         except ClosedException as e:
             logger.error(f"Trying to read from a closed socket: {socket_name}")
             # Forward to ensure resource cleanup
@@ -48,7 +52,7 @@ class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
     """
-    def __init__(self, mode, send_timeout=1000, read_timeout=1000):
+    def __init__(self, mode, send_timeout=100, read_timeout=100):
         """
         Parameters:
         - mode: 'w' for the input (write). 'r' for the output (read)
@@ -76,7 +80,7 @@ class InputOutputSocket(metaclass=Singleton):
 
     @recv_error_handler
     def recv(self):
-        return self._socket.recv()
+        return self._socket.recv(block=False)
 
     def close(self):
         self._socket.close()
@@ -88,7 +92,7 @@ class InputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the input to the workers
     """
-    def __init__(self, timeout=1000):
+    def __init__(self, timeout=100):
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -110,7 +114,7 @@ class OutputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the workers to the output
     """
-    def __init__(self, timeout=1000):
+    def __init__(self, timeout=100):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -132,7 +136,7 @@ class InputPullSocket(metaclass=Singleton):
     """
     nng pull socket to fetch messages from the input to the workers
     """
-    def __init__(self, timeout=1000):
+    def __init__(self, timeout=100):
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -142,7 +146,7 @@ class InputPullSocket(metaclass=Singleton):
 
     @recv_error_handler
     def recv(self):
-        return self._socket.recv()
+        return self._socket.recv(block=False)
 
     def close(self):
         self._socket.close()
@@ -154,7 +158,7 @@ class OutputPullSocket(metaclass=Singleton):
     """
     nng pull socket to fetch messages from the workers to the output
     """
-    def __init__(self, timeout=1000):
+    def __init__(self, timeout=100):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -164,7 +168,7 @@ class OutputPullSocket(metaclass=Singleton):
 
     @recv_error_handler
     def recv(self):
-        return self._socket.recv()
+        return self._socket.recv(block=False)
 
     def close(self):
         self._socket.close()
