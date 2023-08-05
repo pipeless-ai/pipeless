@@ -12,14 +12,15 @@ def send_error_handler(func):
     """
     @wraps(func)
     def send_handler(*args, **kwargs):
+        socket_name = args[0].get_socket_name()
         try:
             func(*args, **kwargs)
         except Timeout:
-            logger.warning("Timeout sending message")
+            logger.warning(f"Timeout sending message on socket: {socket_name}")
         except ClosedException as e:
-            logger.error('Trying to write to a closed socket')
+            logger.error(f"Trying to write to a closed socket: {socket_name}")
             # Forward to ensure resource cleanup
-            raise ClosedException('The socket is closed!', e.errno)
+            raise ClosedException(f"The socket {socket_name} is closed!", e.errno)
 
     return send_handler
 
@@ -29,16 +30,17 @@ def recv_error_handler(func):
     """
     @wraps(func)
     def recv_handler(*args, **kwargs):
+        socket_name = args[0].get_socket_name()
         try:
             result = func(*args, **kwargs)
             return result
         except Timeout:
-            logger.warning("Timeout waiting for message")
+            logger.warning(f"Timeout waiting for message on socket: {socket_name}")
             return None
         except ClosedException as e:
-            logger.error('Trying to read from a closed socket')
+            logger.error(f"Trying to read from a closed socket: {socket_name}")
             # Forward to ensure resource cleanup
-            raise ClosedException('The socket is closed!', e.errno)
+            raise ClosedException(f"The socket {socket_name} is closed!", e.errno)
 
     return recv_handler
 
@@ -60,9 +62,11 @@ class InputOutputSocket(metaclass=Singleton):
         if mode == 'w':
             self._socket = Pair0(listen=self._addr)
             self._socket.send_timeout = send_timeout
+            self._name = 'InputOutputSocket-Write'
         elif mode == 'r':
-            self._socket = Pair0(listen=self._addr)
+            self._socket = Pair0(dial=self._addr)
             self._socket.recv_timeout = read_timeout
+            self._name = 'InputOutputSocket-Read'
         else:
             raise 'Wrong mode for InputOutputSocket'
 
@@ -77,6 +81,9 @@ class InputOutputSocket(metaclass=Singleton):
     def close(self):
         self._socket.close()
 
+    def get_socket_name(self):
+        return self._name
+
 class InputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the input to the workers
@@ -87,6 +94,7 @@ class InputPushSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Push0(listen=self._addr)
         self._socket.send_timeout = timeout
+        self._name = 'InputPushSocket'
 
     @send_error_handler
     def send(self, msg):
@@ -94,6 +102,9 @@ class InputPushSocket(metaclass=Singleton):
 
     def close(self):
         self._socket.close()
+
+    def get_socket_name(self):
+        return self._name
 
 class OutputPushSocket(metaclass=Singleton):
     """
@@ -105,6 +116,7 @@ class OutputPushSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Push0(listen=self._addr)
         self._socket.send_timeout = timeout
+        self._name = 'OutputPushSocket'
 
     @send_error_handler
     def send(self, msg):
@@ -112,6 +124,9 @@ class OutputPushSocket(metaclass=Singleton):
 
     def close(self):
         self._socket.close()
+
+    def get_socket_name(self):
+        return self._name
 
 class InputPullSocket(metaclass=Singleton):
     """
@@ -123,6 +138,7 @@ class InputPullSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
+        self._name = 'InputPullSocket'
 
     @recv_error_handler
     def recv(self):
@@ -130,6 +146,9 @@ class InputPullSocket(metaclass=Singleton):
 
     def close(self):
         self._socket.close()
+
+    def get_socket_name(self):
+        return self._name
 
 class OutputPullSocket(metaclass=Singleton):
     """
@@ -141,6 +160,7 @@ class OutputPullSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
+        self._name = 'OutputPullSocket'
 
     @recv_error_handler
     def recv(self):
@@ -148,3 +168,6 @@ class OutputPullSocket(metaclass=Singleton):
 
     def close(self):
         self._socket.close()
+
+    def get_socket_name(self):
+        return self._name
