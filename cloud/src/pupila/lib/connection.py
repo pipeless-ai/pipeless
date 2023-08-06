@@ -1,10 +1,18 @@
 from functools import wraps
+import signal
+import sys
+import time
 from pynng import Push0, Pull0, Timeout, Pair0
-from pynng.exceptions import Closed as ClosedException, TryAgain
+from pynng.exceptions import Closed as ClosedException, TryAgain, ConnectionRefused
 
 from src.pupila.lib.singleton import Singleton
 from src.pupila.lib.config import Config
 from src.pupila.lib.logger import logger
+
+# Handle SIGNINT (ctrl+c) during sockets dialing blocking process
+def exit(signum, frame):
+    sys.exit()
+signal.signal(signal.SIGINT, exit)
 
 def send_error_handler(func):
     """
@@ -68,11 +76,20 @@ class InputOutputSocket(metaclass=Singleton):
         port = str(address.get_port() + 1)
         self._addr = f'tcp://{address.get_host()}:{port}'
         if mode == 'w':
-            self._socket = Pair0(listen=self._addr)
+            self._socket = Pair0()
             self._socket.send_timeout = send_timeout
             self._name = 'InputOutputSocket-Write'
+
+            connected = False
+            while not connected:
+                try:
+                    self._socket.dial(self._addr, block=True)
+                    connected = True
+                except ConnectionRefused:
+                    logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
+                    time.sleep(1)
         elif mode == 'r':
-            self._socket = Pair0(dial=self._addr)
+            self._socket = Pair0(listen=self._addr)
             self._socket.recv_timeout = read_timeout
             self._socket.recv_max_size = 0 # Unlimited receive size
             self._name = 'InputOutputSocket-Read'
@@ -81,11 +98,15 @@ class InputOutputSocket(metaclass=Singleton):
 
     @send_error_handler
     def send(self, msg):
-        self._socket.send(msg, block=False)
+        # Blocking send call. We always want to ensure the messages
+        # from input to output arrive because they change the pipelines
+        self._socket.send(msg)
 
     @recv_error_handler
     def recv(self):
-        return self._socket.recv(block=False)
+        # Blocking send call. We always want to ensure the messages
+        # from input to output arrive because they change the pipelines
+        return self._socket.recv()
 
     def close(self):
         self._socket.close()
@@ -107,6 +128,8 @@ class InputPushSocket(metaclass=Singleton):
 
     @send_error_handler
     def send(self, msg):
+        # Non blocking send.
+        # Don't worry if we miss a message from time to time
         self._socket.send(msg, block=False)
 
     def close(self):
@@ -123,12 +146,23 @@ class OutputPushSocket(metaclass=Singleton):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
-        self._socket = Push0(listen=self._addr)
+        self._socket = Push0()
         self._socket.send_timeout = timeout
         self._name = 'OutputPushSocket'
 
+        connected = False
+        while not connected:
+            try:
+                self._socket.dial(self._addr, block=True)
+                connected = True
+            except ConnectionRefused:
+                logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
+                time.sleep(1)
+
     @send_error_handler
     def send(self, msg):
+        # Non blocking send.
+        # Don't worry if we miss a message from time to time
         self._socket.send(msg, block=False)
 
     def close(self):
@@ -139,19 +173,30 @@ class OutputPushSocket(metaclass=Singleton):
 
 class InputPullSocket(metaclass=Singleton):
     """
-    nng pull socket to fetch messages from the input to the workers
+    nng pull socket to fetch messages from the input in the workers
     """
     def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
         self._addr = f'tcp://{address.get_address()}'
-        self._socket = Pull0(dial=self._addr)
+        self._socket = Pull0()
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
         self._name = 'InputPullSocket'
 
+        connected = False
+        while not connected:
+            try:
+                self._socket.dial(self._addr, block=True)
+                connected = True
+            except ConnectionRefused:
+                logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
+                time.sleep(1)
+
     @recv_error_handler
     def recv(self):
+        # Non blocking receive.
+        # Don't worry if we miss a message from time to time
         return self._socket.recv(block=False)
 
     def close(self):
@@ -162,19 +207,21 @@ class InputPullSocket(metaclass=Singleton):
 
 class OutputPullSocket(metaclass=Singleton):
     """
-    nng pull socket to fetch messages from the workers to the output
+    nng pull socket to fetch messages from the workers in the output
     """
     def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
-        self._socket = Pull0(dial=self._addr)
+        self._socket = Pull0(listen=self._addr)
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
         self._name = 'OutputPullSocket'
 
     @recv_error_handler
     def recv(self):
+        # Non blocking receive.
+        # Don't worry if we miss a message from time to time
         return self._socket.recv(block=False)
 
     def close(self):
