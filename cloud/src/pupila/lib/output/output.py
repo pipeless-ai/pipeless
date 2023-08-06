@@ -18,6 +18,7 @@ def fetch_and_send(appsrc: GstApp.AppSrc):
     r_socket = OutputPullSocket()
     raw_msg = r_socket.recv()
     if raw_msg is not None:
+        logger.debug(f'[purple]New message of {len(raw_msg)} bytes[/purple]')
         msg = deserialize(raw_msg)
 
         if isinstance(msg, RgbImageMsg):
@@ -101,7 +102,7 @@ def update_caps(pipeline, str_caps):
     pipeline.set_state(Gst.State.PLAYING) # Start pipeline
     logger.info('Caps updated to {str_caps}')
 
-def handle_message(pipeline):
+def handle_input_messages(pipeline):
     """
     Handles messages comming from the input component
     """
@@ -212,7 +213,11 @@ def output():
 
         # Run on every cicle of the event loop
         GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc))
-        GLib.timeout_add(0, lambda: handle_message(pipeline))
+        GLib.timeout_add(0, lambda: handle_input_messages(pipeline))
+
+        # Start socket to wait all components connections
+        m_socket = InputOutputSocket('r') # Listener
+        r_socket = OutputPullSocket() # Waits for workers
 
         loop.run()
     except KeyboardInterrupt:

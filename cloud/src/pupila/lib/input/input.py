@@ -189,6 +189,11 @@ def input():
         logger.debug(f'uridecodebin state: {uridecodebin.get_state(5)}')
         logger.debug(f'videoconverter state: {videoconvert.get_state(5)}')
         logger.debug(f'appsink state: {appsink.get_state(5)}')
+
+        # Start socket to wait all components connections
+        s_push  = InputPushSocket() # Listener
+        m_socket = InputOutputSocket('w') # Waits for output
+
         loop.run()
     except KeyboardInterrupt:
         pass
