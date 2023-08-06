@@ -34,7 +34,7 @@ class StreamMetadataMsg(Msg):
             "caps": self._caps,
         })
     def get_caps(self):
-        return self.caps
+        return self._caps
 
 class RgbImageMsg(Msg):
     """
@@ -95,7 +95,7 @@ def deserialize(_msg):
             msg["dts"],
             msg["pts"]
         )
-    elif msg.type == MsgType.METADATA:
+    elif msg["type"] == MsgType.METADATA:
         return StreamMetadataMsg(msg["caps"])
     else:
         logger.warning(f'Unknown message type: {msg["type"]}')
