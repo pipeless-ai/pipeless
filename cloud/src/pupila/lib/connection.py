@@ -17,6 +17,10 @@ def send_error_handler(func):
             func(*args, **kwargs)
         except Timeout:
             logger.warning(f"Timeout sending message on socket: {socket_name}")
+        except TryAgain:
+            # For non-blocking calls
+            logger.debug(f"[bright_yellow]No data written, try again on: {socket_name}[/bright_yellow]")
+            return None
         except ClosedException as e:
             logger.error(f"Trying to write to a closed socket: {socket_name}")
             # Forward to ensure resource cleanup
@@ -39,7 +43,7 @@ def recv_error_handler(func):
             return None
         except TryAgain:
             # For non-blocking calls
-            logger.debug(f"No data to read, try again on: {socket_name}")
+            logger.debug(f"[bright_yellow]No data to read, try again on: {socket_name}[/bright_yellow]")
             return None
         except ClosedException as e:
             logger.error(f"Trying to read from a closed socket: {socket_name}")
@@ -52,7 +56,7 @@ class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
     """
-    def __init__(self, mode, send_timeout=100, read_timeout=100):
+    def __init__(self, mode, send_timeout=500, read_timeout=500):
         """
         Parameters:
         - mode: 'w' for the input (write). 'r' for the output (read)
@@ -70,13 +74,14 @@ class InputOutputSocket(metaclass=Singleton):
         elif mode == 'r':
             self._socket = Pair0(dial=self._addr)
             self._socket.recv_timeout = read_timeout
+            self._socket.recv_max_size = 0 # Unlimited receive size
             self._name = 'InputOutputSocket-Read'
         else:
             raise 'Wrong mode for InputOutputSocket'
 
     @send_error_handler
     def send(self, msg):
-        self._socket.send(msg)
+        self._socket.send(msg, block=False)
 
     @recv_error_handler
     def recv(self):
@@ -92,7 +97,7 @@ class InputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the input to the workers
     """
-    def __init__(self, timeout=100):
+    def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -102,7 +107,7 @@ class InputPushSocket(metaclass=Singleton):
 
     @send_error_handler
     def send(self, msg):
-        self._socket.send(msg)
+        self._socket.send(msg, block=False)
 
     def close(self):
         self._socket.close()
@@ -114,7 +119,7 @@ class OutputPushSocket(metaclass=Singleton):
     """
     nng push socket to push messages from the workers to the output
     """
-    def __init__(self, timeout=100):
+    def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
@@ -124,7 +129,7 @@ class OutputPushSocket(metaclass=Singleton):
 
     @send_error_handler
     def send(self, msg):
-        self._socket.send(msg)
+        self._socket.send(msg, block=False)
 
     def close(self):
         self._socket.close()
@@ -136,12 +141,13 @@ class InputPullSocket(metaclass=Singleton):
     """
     nng pull socket to fetch messages from the input to the workers
     """
-    def __init__(self, timeout=100):
+    def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_input().get_address()
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
+        self._socket.recv_max_size = 0 # Unlimited receive size
         self._name = 'InputPullSocket'
 
     @recv_error_handler
@@ -158,12 +164,13 @@ class OutputPullSocket(metaclass=Singleton):
     """
     nng pull socket to fetch messages from the workers to the output
     """
-    def __init__(self, timeout=100):
+    def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
         address = config.get_output().get_address()
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Pull0(dial=self._addr)
         self._socket.recv_timeout = timeout
+        self._socket.recv_max_size = 0 # Unlimited receive size
         self._name = 'OutputPullSocket'
 
     @recv_error_handler
