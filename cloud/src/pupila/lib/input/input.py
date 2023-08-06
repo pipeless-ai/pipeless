@@ -73,11 +73,13 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
         err, debug = msg.parse_warning()
         logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
         logger.warning(f"Debugging information: {debug if debug else 'none'}")
+    elif mtype == Gst.MessageType.STATE_CHANGED:
+        old_state, new_state, pending_state = msg.parse_state_changed()
+        logger.debug(f'New pipeline state: {new_state}')
 
     return True
 
-def notify_stream_to_output(pad):
-    caps = pad.get_current_caps()
+def on_pad_upstream_event(pad, info, user_data):
     """
      TODO: if the pad name is always different, we can run simultaneous
      pipelines in both input and output by simply creating a create_pipeline
@@ -87,12 +89,21 @@ def notify_stream_to_output(pad):
      How do we distinguish the videos for the output? Right now
      they will both be sent to the same URI
     """
-    logger.info(f'input pad name: {pad.get_name()}')
-    logger.info(f'New pad added to uridecodebin with caps {caps}')
-    if caps:
+    caps = pad.get_current_caps()
+    if caps is not None:
+        # Caps negotiation is complete, notify new stream to output component
+        logger.debug(f'[green]uridecodebin pad "{pad.get_name()}" with caps: {caps}[/green]')
         m_socket = InputOutputSocket('w')
-        m_msg = StreamMetadataMsg(caps)
+        m_msg = StreamMetadataMsg(caps.to_string())
         m_socket.send(m_msg.serialize())
+        # We already got the caps. Remove the probe from the pad
+        return Gst.PadProbeReturn.REMOVE
+
+    return Gst.PadProbeReturn.OK # Leave the probe in place
+
+def handle_caps_change(pad):
+    # Connect an async handler to the pad to be notified when caps are set
+    pad.add_probe(Gst.PadProbeType.EVENT_UPSTREAM, on_pad_upstream_event, pad)
 
 def on_pad_added(element, pad, *callbacks):
     for callback in callbacks:
@@ -157,7 +168,7 @@ def input():
         "pad-added",
         lambda element, pad:
           on_pad_added(
-            element, pad, pad_added_callback, notify_stream_to_output
+            element, pad, pad_added_callback, handle_caps_change
         )
     )
 
