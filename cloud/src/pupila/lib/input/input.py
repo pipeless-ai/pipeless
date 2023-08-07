@@ -12,7 +12,7 @@ from gi.repository import Gst, GObject, GstApp, GLib
 from src.pupila.lib.logger import logger
 from src.pupila.lib.connection import InputOutputSocket, InputPushSocket
 from src.pupila.lib.config import Config
-from src.pupila.lib.messages import RgbImageMsg, StreamMetadataMsg
+from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamMetadataMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.pull_sample()
@@ -63,7 +63,11 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
     """
     mtype = msg.type
     if mtype == Gst.MessageType.EOS:
-        logger.info("End-Of-Stream reached.")
+        logger.info("End of stream reached.")
+        logger.debug('Notifying EOS to output')
+        m_socket = InputOutputSocket('w')
+        m_msg = EndOfStreamMsg()
+        m_socket.send(m_msg.serialize())
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
