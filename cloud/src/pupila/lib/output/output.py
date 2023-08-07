@@ -10,7 +10,7 @@ from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
 from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import StreamMetadataMsg, deserialize, RgbImageMsg
+from src.pupila.lib.messages import EndOfStreamMsg, StreamMetadataMsg, deserialize, RgbImageMsg
 from src.pupila.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc):
@@ -86,12 +86,20 @@ def update_caps(pipeline, str_caps):
     """
     logger.info(f'Updating pipeline caps to {str_caps}')
     logger.debug('Stopping pipeline')
-    pipeline.set_state(Gst.State.NULL) # Stop pipeline
+    # Pause pipeline. NOTE: Setting it to NULL would release
+    # resources and won't start again
+    pipeline.set_state(Gst.State.PAUSED)
 
     caps = Gst.Caps.from_string(str_caps)
     # Update caps on the capsfilter
     capsfilter = pipeline.get_by_name("capsfilter")
     capsfilter.set_property("caps", caps)
+    # Update caps on the appsrc.
+    # TODO: test if sending a new stream with different
+    #       caps requires to re-create the appsrc
+    appsrc = pipeline.get_by_name("appsrc")
+    appsrc.set_property("caps", caps)
+
     # Create a new encoding profile and update the encodebin
     # TODO: if this fails we may need to create a new encodebin, unlink the old one and link the new one in place
     encodebin = pipeline.get_by_name("encodebin")
@@ -99,8 +107,11 @@ def update_caps(pipeline, str_caps):
     encodebin.set_property("profile", profile)
 
     logger.debug('Starting pipeline')
-    pipeline.set_state(Gst.State.PLAYING) # Start pipeline
-    logger.info('Caps updated to {str_caps}')
+    ret = pipeline.set_state(Gst.State.PLAYING) # Start pipeline
+    if ret == Gst.StateChangeReturn.FAILURE:
+        logger.error("Unable to set the pipeline to the playing state.")
+        sys.exit(1)
+    logger.info(f'Caps updated to {str_caps}')
 
 def handle_input_messages(pipeline):
     """
@@ -114,6 +125,11 @@ def handle_input_messages(pipeline):
             if isinstance(msg, StreamMetadataMsg):
                 caps = msg.get_caps()
                 update_caps(pipeline, caps)
+            elif isinstance(msg, EndOfStreamMsg):
+                logger.info('End of stream received')
+                appsrc = pipeline.get_by_name("appsrc")
+                appsrc.end_of_stream()
+
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
@@ -199,11 +215,7 @@ def output():
     pipeline_bus.add_signal_watch()
     pipeline_bus.connect("message", on_bus_message, loop)
 
-    logger.info('Starting pipeline')
-    ret = pipeline.set_state(Gst.State.PLAYING)
-    if ret == Gst.StateChangeReturn.FAILURE:
-        logger.error("Unable to set the pipeline to the playing state.")
-        sys.exit(1)
+    # NOTE: The pipeline will be started once a new stream is notified
 
     try:
         logger.debug(f'appsrc state: {pipeline_appsrc}')

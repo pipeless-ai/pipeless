@@ -11,8 +11,6 @@ from src.pupila.lib.connection import InputPullSocket, OutputPushSocket
 from src.pupila.lib.logger import logger
 from src.pupila.lib.messages import RgbImageMsg, deserialize
 
-# TODO: create a process to fetch from the bussocket and edit the pipeline when a metadata message arrives
-
 def fetch_and_process():
     r_socket = InputPullSocket()
     raw_msg = r_socket.recv()
