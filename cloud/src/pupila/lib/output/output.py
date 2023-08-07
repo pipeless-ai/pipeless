@@ -215,9 +215,9 @@ def output():
         GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc))
         GLib.timeout_add(0, lambda: handle_input_messages(pipeline))
 
-        # Start socket to wait all components connections
-        m_socket = InputOutputSocket('r') # Listener
-        r_socket = OutputPullSocket() # Waits for workers
+        # Start socket listeners
+        m_socket = InputOutputSocket('r')
+        r_socket = OutputPullSocket()
 
         loop.run()
     except KeyboardInterrupt:

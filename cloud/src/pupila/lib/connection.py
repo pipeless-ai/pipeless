@@ -64,7 +64,7 @@ class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
     """
-    def __init__(self, mode, send_timeout=500, read_timeout=500):
+    def __init__(self, mode, send_timeout=1000, read_timeout=1000):
         """
         Parameters:
         - mode: 'w' for the input (write). 'r' for the output (read)
