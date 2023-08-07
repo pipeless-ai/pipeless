@@ -104,9 +104,8 @@ class InputOutputSocket(metaclass=Singleton):
 
     @recv_error_handler
     def recv(self):
-        # Blocking send call. We always want to ensure the messages
-        # from input to output arrive because they change the pipelines
-        return self._socket.recv()
+        # We can't block on receptions because limits the throughput
+        return self._socket.recv(block=False)
 
     def close(self):
         self._socket.close()
@@ -124,6 +123,7 @@ class InputPushSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Push0(listen=self._addr)
         self._socket.send_timeout = timeout
+        self._socket.send_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'InputPushSocket'
 
     @send_error_handler
@@ -148,6 +148,7 @@ class OutputPushSocket(metaclass=Singleton):
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Push0()
         self._socket.send_timeout = timeout
+        self._socket.send_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'OutputPushSocket'
 
         connected = False
@@ -182,6 +183,7 @@ class InputPullSocket(metaclass=Singleton):
         self._socket = Pull0()
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
+        self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'InputPullSocket'
 
         connected = False
@@ -216,6 +218,7 @@ class OutputPullSocket(metaclass=Singleton):
         self._socket = Pull0(listen=self._addr)
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
+        self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'OutputPullSocket'
 
     @recv_error_handler
