@@ -7,6 +7,7 @@ from src.pupila.lib.logger import logger
 class MsgType(Enum):
     METADATA = 1
     RGB_IMAGE = 2
+    EOS = 3 # End of streams
 
 class Msg():
     """
@@ -21,20 +22,29 @@ class Msg():
 
 class StreamMetadataMsg(Msg):
     """
-    Indicates the format of a stream
+    Indicates the format of a stream. Usually sent as the start of a stream
     """
     def __init__(self, capabilitites):
         self._type = MsgType.METADATA
-        self._data = "" # No data since is just metadata
         self._caps  = capabilitites
     def serialize(self):
         return pickle.dumps({
             "type": self._type,
-            "data": self._data,
             "caps": self._caps,
         })
     def get_caps(self):
         return self._caps
+
+class EndOfStreamMsg(Msg):
+    """
+    Indicates that the stream that was being sent ended
+    """
+    def __init__(self):
+        self._type = MsgType.EOS
+    def serialize(self):
+        return pickle.dumps({
+            "type": self._type,
+        })
 
 class RgbImageMsg(Msg):
     """
@@ -97,6 +107,8 @@ def deserialize(_msg):
         )
     elif msg["type"] == MsgType.METADATA:
         return StreamMetadataMsg(msg["caps"])
+    elif msg["type"] == MsgType.EOS:
+        return EndOfStreamMsg()
     else:
         logger.warning(f'Unknown message type: {msg["type"]}')
         return None
