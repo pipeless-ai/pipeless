@@ -8,6 +8,7 @@ class MsgType(Enum):
     METADATA = 1
     RGB_IMAGE = 2
     EOS = 3 # End of streams
+    TAGS = 4
 
 class Msg():
     """
@@ -34,6 +35,21 @@ class StreamMetadataMsg(Msg):
         })
     def get_caps(self):
         return self._caps
+
+class StreamTagsMsg(Msg):
+    """
+    Contains the tags used to describe media metadata
+    """
+    def __init__(self, tags: str):
+        self._type = MsgType.TAGS
+        self._tags  = tags
+    def serialize(self):
+        return pickle.dumps({
+            "type": self._type,
+            "tags": self._tags,
+        })
+    def get_tags(self):
+        return self._tags
 
 class EndOfStreamMsg(Msg):
     """
@@ -109,6 +125,8 @@ def deserialize(_msg):
         return StreamMetadataMsg(msg["caps"])
     elif msg["type"] == MsgType.EOS:
         return EndOfStreamMsg()
+    elif msg["type"] == MsgType.TAGS:
+        return StreamTagsMsg(msg["tags"])
     else:
         logger.warning(f'Unknown message type: {msg["type"]}')
         return None
