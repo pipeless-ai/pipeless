@@ -26,8 +26,8 @@ def fetch_and_send(appsrc: GstApp.AppSrc):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()
             buffer = Gst.Buffer.new_wrapped(data.tobytes())
-            buffer.pts = msg.get_dts()
-            buffer.dts = msg.get_pts()
+            buffer.pts = msg.get_pts()
+            buffer.dts = msg.get_dts()
             buffer.duration = msg.get_duration()
 
             # Send the frame
@@ -184,7 +184,6 @@ def handle_input_messages(pipeline):
                 #      executing appsrc end_of_stream
                 appsrc = pipeline.get_by_name("appsrc")
                 appsrc.end_of_stream()
-
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
