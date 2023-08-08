@@ -1,3 +1,4 @@
+import re
 import sys
 import traceback
 
@@ -10,7 +11,7 @@ from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
 from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import EndOfStreamMsg, StreamMetadataMsg, deserialize, RgbImageMsg
+from src.pupila.lib.messages import EndOfStreamMsg, StreamMetadataMsg, StreamTagsMsg, deserialize, RgbImageMsg
 from src.pupila.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc):
@@ -43,7 +44,7 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
     """
     mtype = msg.type
     if mtype == Gst.MessageType.EOS:
-        logger.info("End-Of-Stream reached.")
+        logger.info("End of stream reached.")
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
@@ -61,19 +62,19 @@ def create_sink(protocol, location):
     Create the appropiate sink based on the output protocol provided
     """
     if protocol == 'file':
-        sink = Gst.ElementFactory.make("filesink", "filesink")
+        sink = Gst.ElementFactory.make("filesink", "sink")
         sink.set_property("location", location)
         return sink
     elif protocol == 'https':
-        sink = Gst.ElementFactory.make("souphttpsink", "souphttpsink")
+        sink = Gst.ElementFactory.make("souphttpsink", "sink")
         sink.set_property("location", location)
         return sink
     elif protocol == 'rtmp':
-        sink = Gst.ElementFactory.make("rtmpsink", "rtmpsink")
+        sink = Gst.ElementFactory.make("rtmpsink", "sink")
         sink.set_property("location", location)
         return sink
     elif protocol == 'rtsp':
-        sink = Gst.ElementFactory.make("rtspclientsink", "rstpclientsink")
+        sink = Gst.ElementFactory.make("rtspclientsink", "sink")
         sink.set_property("location", location)
         return sink
     else:
@@ -83,7 +84,8 @@ def create_sink(protocol, location):
 
 def update_caps(pipeline, str_caps):
     """
-    Update the pipeline caps dynamically
+    Update the pipeline caps dynamically.
+    We update the caps when a new stream arrives
     """
     logger.info(f'Updating pipeline caps to {str_caps}')
     logger.debug('Stopping pipeline')
@@ -114,6 +116,53 @@ def update_caps(pipeline, str_caps):
         sys.exit(1)
     logger.info(f'Caps updated to {str_caps}')
 
+# TODO: delete when the issue with get_property("tags") is fixed
+# Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
+current_tags = None
+
+def update_tags(pipeline, new_tags):
+    """
+    Adds a buffer to the appsrc containing the video tags
+    """
+    logger.info(f'New tags received: {new_tags}. Updating pipeline')
+    taginject = pipeline.get_by_name('taginject')
+    new_tags_list = Gst.TagList.new_from_string(new_tags)
+    # TODO: fetch the tags from the tainjgect component directly
+    # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
+    #
+    # current_tags = taginject.get_property("tags")
+    global current_tags
+    if current_tags is not None:
+        current_tags_list = Gst.TagList.new_from_string(current_tags)
+        merged_tags = Gst.TagList.merge(
+            new_tags_list,
+            current_tags_list,
+            Gst.TagMergeMode.KEEP_ALL
+        )
+    else:
+        merged_tags = new_tags_list
+
+    logger.info(f'Updating tags to {merged_tags.to_string()}')
+    current_tags = merged_tags.to_string() # Update the new tags for later iterations
+    # We need to iterate and parse the tags manually because taginject
+    #  doesn't work with a direct taglist.to_string()
+    tags_array = []
+    def taglist_iterator(list, tag, value):
+        nonlocal tags_array
+        if tag == 'taglist':
+            # Remove taglist from the string
+            return
+        n_tag_values = list.get_tag_size(tag)
+        if n_tag_values > 1: logger.warning(f'Some values will be lost for tag: {tag}')
+        tag_value = list.get_value_index(tag, 0) # A tag can have several values
+        if isinstance(tag_value, str):
+            tag_value = f'"{tag_value}"'
+        tags_array.append(f'{tag}={tag_value}')
+
+    merged_tags.foreach(taglist_iterator, None)
+    sanitized_tags_string = ','.join(tags_array)
+    taginject.set_property("tags", sanitized_tags_string)
+
 def handle_input_messages(pipeline):
     """
     Handles messages comming from the input component
@@ -126,15 +175,20 @@ def handle_input_messages(pipeline):
             if isinstance(msg, StreamMetadataMsg):
                 caps = msg.get_caps()
                 update_caps(pipeline, caps)
+            elif isinstance(msg, StreamTagsMsg):
+                tags = msg.get_tags()
+                update_tags(pipeline, tags)
             elif isinstance(msg, EndOfStreamMsg):
                 logger.info('End of stream received')
+                # TODO: we should finish processing the current stream before
+                #      executing appsrc end_of_stream
                 appsrc = pipeline.get_by_name("appsrc")
                 appsrc.end_of_stream()
 
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
-            return False # Indicate GLib to not run the function again
+            sys.exit()
 
     return True # Indicate the GLib timeout to retry on the next interval
 
@@ -146,6 +200,7 @@ def output():
     # Build decode pipeline
     pipeline = Gst.Pipeline.new("pipeline")
     pipeline_appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
+    pipeline_taginject = Gst.ElementFactory.make("taginject", "taginject")
     pipeline_videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
     pipeline_encodebin = Gst.ElementFactory.make("encodebin", "encodebin")
     pipeline_capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
@@ -160,6 +215,9 @@ def output():
         sys.exit(1)
     if not pipeline_appsrc:
         logger.error('Failed to create output pipeline appsrc')
+        sys.exit(1)
+    if not pipeline_taginject:
+        logger.error('Failed to create output pipeline taginject')
         sys.exit(1)
     if not pipeline_videoconvert:
         logger.error('Failed to create output pipeline videoconvert')
@@ -177,6 +235,7 @@ def output():
     pipeline_appsrc.set_property("is-live", True)
     pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
     pipeline_appsrc.set_property("format", Gst.Format.TIME)
+    pipeline_appsrc.set_property("max-bytes", 10000000) # 10 Megabytes of size
 
     # Set initial default caps. Will be overriden when a stream arrives
     default_caps = 'video/x-raw,format=I420,width=1920,height=1080,framerate=30/1'
@@ -186,11 +245,14 @@ def output():
     # TODO: if we use EncodingVideoProfile, what happens to audio?
     #       Can we process audio only? There is EncodingAudioProfile.
     #       Should we use EncodingContainerProfile instead?
+    # TODO: this is wrong becasue can't be updated. We need to do in update caps
+    #       we need to unlink and create a new component
     profile = GstPbutils.EncodingVideoProfile.new(caps, None, None, 0)
     pipeline_encodebin.set_property("profile", profile)
 
     pipeline.add(
         pipeline_appsrc,
+        pipeline_taginject,
         pipeline_videoconvert,
         pipeline_encodebin,
         pipeline_capsfilter,
@@ -198,8 +260,11 @@ def output():
     )
 
     # Link elements
-    if not pipeline_appsrc.link(pipeline_videoconvert):
-        logger.error("Failed to link appsrc to videoconvert")
+    if not pipeline_appsrc.link(pipeline_taginject):
+        logger.error("Failed to link appsrc to taginject")
+        sys.exit(1)
+    if not pipeline_taginject.link(pipeline_videoconvert):
+        logger.error("Failed to link taginject to videoconvert")
         sys.exit(1)
     if not pipeline_videoconvert.link(pipeline_encodebin):
         logger.error("Failed to link videoconvert to encodebin")
