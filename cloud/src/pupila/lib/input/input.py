@@ -12,7 +12,7 @@ from gi.repository import Gst, GObject, GstApp, GLib
 from src.pupila.lib.logger import logger
 from src.pupila.lib.connection import InputOutputSocket, InputPushSocket
 from src.pupila.lib.config import Config
-from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamMetadataMsg
+from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamMetadataMsg, StreamTagsMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.pull_sample()
@@ -80,6 +80,12 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
     elif mtype == Gst.MessageType.STATE_CHANGED:
         old_state, new_state, pending_state = msg.parse_state_changed()
         logger.debug(f'New pipeline state: {new_state}')
+    elif mtype == Gst.MessageType.TAG:
+        tags = msg.parse_tag().to_string()
+        logger.info(f'Tags parsed: {tags}')
+        t_socket = InputOutputSocket('w')
+        t_msg = StreamTagsMsg(tags)
+        t_socket.send(t_msg.serialize())
 
     return True
 
