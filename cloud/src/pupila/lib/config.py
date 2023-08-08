@@ -12,9 +12,6 @@ def get_from_path(config, path):
     for key in keys:
         if isinstance(value, dict) and key in value:
             value = value[key]
-        else:
-            logger.warning(f'Missing {key} on the provided configuration. When reading {path}.')
-            return None
 
     return value
 
@@ -42,7 +39,7 @@ class Address():
 
 class Video():
     def __init__(self, video_dict, env_prefix):
-        self._enable = prioritized_config(video_dict, 'enable', f'{env_prefix}_ENABLE', type=bool)
+        self._enable = prioritized_config(video_dict, 'enable', f'{env_prefix}_ENABLE', type=bool, required=True)
         # NOTE: When output the URI is not required even if video is enabled.
         #       By default goes to the default video output (screen)
         self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
@@ -93,6 +90,11 @@ class Config(metaclass=Singleton):
         # We follow a fail by default aproach. If a variable is required, it must be provided. There are no default values.
         # A user can use a default config file and override via env vars the configuration that it needs
 
+        self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL')
+        if not self._log_level == 'INFO' and not self._log_level == 'DEBUG' and not self._log_level == 'WARN':
+            logger.warning('Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
+            self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
+
         # TODO: are we using the test_mode config variable?
         self._test_mode = prioritized_config(config, 'test_mode', f'{ENV_PREFIX}_TEST_MODE', type=bool)
         self._input = Input(config['input'])
@@ -104,3 +106,5 @@ class Config(metaclass=Singleton):
         return self._output
     def is_test_mode(self):
         return self._test_mode
+    def get_log_level(self):
+        return self._log_level

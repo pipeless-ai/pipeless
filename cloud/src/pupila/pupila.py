@@ -5,7 +5,7 @@ import time
 from src.pupila.lib.input import input
 from src.pupila.lib.output import output
 from src.pupila.lib.worker import worker
-from src.pupila.lib.logger import logger
+from src.pupila.lib.logger import logger, update_logger_level
 from src.pupila.lib.config import Config
 
 def run_all():
@@ -24,14 +24,16 @@ class Pupila():
     """
     # TODO: handle flags for input, worker, output
 
-    def __init__(self, config, component=None):
+    def __init__(self, _config, component=None):
         """
         Parameters:
         - config(Config): Configuration provided by the user
         - component(str): Component to initialize
         """
         # Initialize global configuration
-        Config(config)
+        config = Config(_config)
+
+        update_logger_level(config.get_log_level())
 
         if component == 'input':
             input.input()
@@ -61,8 +63,8 @@ if __name__ == "__main__":
             },
         },
         "output": {
-            'enable': True,
             'video': {
+                'enable': True,
                 'uri': 'file:///tmp/my-video.mp4'
             },
             'address': { # address where the input component runs for the nng connections
