@@ -66,10 +66,11 @@ class RgbImageMsg(Msg):
     """
     Raw RGB image data and basic information
     """
-    def __init__(self, width, height, raw_data, dts, pts):
+    def __init__(self, width, height, raw_data, dts, pts, duration):
         self._type = MsgType.RGB_IMAGE
         self._dts = dts
         self._pts = pts
+        self._duration = duration
         self._width = width
         self._height = height
         self._data = raw_data
@@ -82,6 +83,7 @@ class RgbImageMsg(Msg):
             "type": self._type,
             "dts": self._dts,
             "pts": self._pts,
+            "duration": self._duration,
             "width": self._width,
             "height": self._height,
             "data": s_data
@@ -101,6 +103,8 @@ class RgbImageMsg(Msg):
         return self._dts
     def get_pts(self):
         return self._pts
+    def get_duration(self):
+        return self._duration
 
 def deserialize(_msg):
     """
@@ -119,7 +123,8 @@ def deserialize(_msg):
             msg["height"],
             r_data,
             msg["dts"],
-            msg["pts"]
+            msg["pts"],
+            msg["duration"],
         )
     elif msg["type"] == MsgType.METADATA:
         return StreamMetadataMsg(msg["caps"])

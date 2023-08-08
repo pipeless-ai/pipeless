@@ -38,12 +38,13 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     height = caps.get_structure(0).get_value("height")
     dts = buffer.dts
     pts = buffer.pts
+    duration = buffer.duration
     ndframe = np.ndarray(
         shape=(height, width, 3),
         dtype=np.uint8, buffer=info.data
     )
 
-    msg = RgbImageMsg(width, height, ndframe, dts, pts)
+    msg = RgbImageMsg(width, height, ndframe, dts, pts, duration)
     s_msg = msg.serialize()
 
     # Pass msg to the workers

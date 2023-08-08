@@ -27,6 +27,7 @@ def fetch_and_send(appsrc: GstApp.AppSrc):
             buffer = Gst.Buffer.new_wrapped(data.tobytes())
             buffer.pts = msg.get_dts()
             buffer.dts = msg.get_pts()
+            buffer.duration = msg.get_duration()
 
             # Send the frame
             appsrc.emit("push-buffer", buffer)
@@ -175,6 +176,7 @@ def output():
 
     pipeline_appsrc.set_property("is-live", True)
     pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
+    pipeline_appsrc.set_property("format", Gst.Format.TIME)
 
     # Set initial default caps. Will be overriden when a stream arrives
     default_caps = 'video/x-raw,format=I420,width=1920,height=1080,framerate=30/1'
