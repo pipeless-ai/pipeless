@@ -2,13 +2,19 @@
 
 An open source framework to easily build and deploy production computer vision and multimedia applications in minutes.
 
+# Requirements
+
+* **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`
+
 # Development
 
 Start the application by running:
 
 ```console
-python -m src.pupila.pupila
+python -m src.pupila.pupila <component>
 ```
+
+`<component>` can be `input`, `worker`, `output`, `all` (default)
 
 It will load a mock configuration (hardcoded) at `src/pupila/pupila.py`.
 That configuraion will only be used when launchin the components with the command above. It is intended to be easily editable for development.

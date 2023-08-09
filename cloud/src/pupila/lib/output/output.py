@@ -1,4 +1,3 @@
-import re
 import sys
 import traceback
 
@@ -82,39 +81,54 @@ def create_sink(protocol, location):
         # NOTE: the autovideosink output goes directly to the computer video output (screen mostly)
         return Gst.ElementFactory.make("autovideosink", "autovideosink")
 
-def update_caps(pipeline, str_caps):
+def get_processing_bin(protocol, location):
     """
-    Update the pipeline caps dynamically.
-    We update the caps when a new stream arrives
+    Depending on the output protocol and the destination (location)
+    we create the required processing pipeline to convert colorspaces,
+    encode and mux the video.
+    Note the output component will always receive x-raw RGB, so we just
+    worry about what we have to produce for each destination
     """
-    logger.info(f'Updating pipeline caps to {str_caps}')
-    logger.debug('Stopping pipeline')
-    # Pause pipeline. NOTE: Setting it to NULL would release
-    # resources and won't start again
-    pipeline.set_state(Gst.State.PAUSED)
+    if protocol == 'file':
+        """
+        The pipeline will also depend on the file extension
+        """
+        if location.endswith('.mp4'):
+            bin = Gst.Bin.new("video-bin")
+            videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+            capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
+            encoder = Gst.ElementFactory.make("x264enc", "encoder")
+            muxer = Gst.ElementFactory.make("mp4mux", "muxer")
+            bin.add(videoconvert, capsfilter, encoder, muxer)
 
-    caps = Gst.Caps.from_string(str_caps)
-    # Update caps on the capsfilter
-    capsfilter = pipeline.get_by_name("capsfilter")
-    capsfilter.set_property("caps", caps)
-    # Update caps on the appsrc.
-    # TODO: test if sending a new stream with different
-    #       caps requires to re-create the appsrc
-    appsrc = pipeline.get_by_name("appsrc")
-    appsrc.set_property("caps", caps)
+            capsfilter.set_property("caps", Gst.Caps.from_string("video/x-raw,format=I420"))
 
-    # Create a new encoding profile and update the encodebin
-    # TODO: if this fails we may need to create a new encodebin, unlink the old one and link the new one in place
-    encodebin = pipeline.get_by_name("encodebin")
-    profile = GstPbutils.EncodingVideoProfile.new(caps, None, None, 0)
-    encodebin.set_property("profile", profile)
+            if not videoconvert.link(capsfilter):
+                logger.error("Error lining videoconvert to capsfilter")
+                sys.exit(1)
+            if not capsfilter.link(encoder):
+                logger.error("Error linking capsfilter to encoder")
+                sys.exit(1)
+            if not encoder.link(muxer):
+                logger.error("Error linking encoder to muxer")
+                sys.exit(1)
 
-    logger.debug('Starting pipeline')
-    ret = pipeline.set_state(Gst.State.PLAYING) # Start pipeline
-    if ret == Gst.StateChangeReturn.FAILURE:
-        logger.error("Unable to set the pipeline to the playing state.")
-        sys.exit(1)
-    logger.info(f'Caps updated to {str_caps}')
+            # Create a ghost pads to be able to plug other components
+            ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
+            bin.add_pad(ghostpad_src)
+            ghostpad_sink = Gst.GhostPad.new("sink", videoconvert.get_static_pad("sink"))
+            bin.add_pad(ghostpad_sink)
+            return bin
+        else:
+            logger.error('Unsupported file type. Try with a different extension.')
+    elif protocol == "rtmp":
+        #"videoconvert ! x264enc ! flvmux streamable=true name=mux ! rtmpsink location={file_name}"
+        logger.error('Not implemented')
+    else:
+        # TODO: create pipeline for autovideosink (local view)
+        logger.error("Unsupported output protocol")
+
+    return None
 
 # TODO: delete when the issue with get_property("tags") is fixed
 # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
@@ -174,7 +188,9 @@ def handle_input_messages(pipeline):
             msg = deserialize(raw_msg)
             if isinstance(msg, StreamMetadataMsg):
                 caps = msg.get_caps()
-                update_caps(pipeline, caps)
+                # We don't really care about input caps changes
+                # we just worry about the output formats
+                pass
             elif isinstance(msg, StreamTagsMsg):
                 tags = msg.get_tags()
                 update_tags(pipeline, tags)
@@ -195,19 +211,14 @@ def output():
     Gst.init(None)
 
     config = Config(None)
-
     # Build decode pipeline
     pipeline = Gst.Pipeline.new("pipeline")
     pipeline_appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
     pipeline_taginject = Gst.ElementFactory.make("taginject", "taginject")
-    pipeline_videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
-    pipeline_encodebin = Gst.ElementFactory.make("encodebin", "encodebin")
-    pipeline_capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
     # Dynamically calculate the output sink to use
-    pipeline_sink = create_sink(
-        config.get_output().get_video().get_uri_protocol(),
-        config.get_output().get_video().get_uri_location()
-    )
+    out_protocol = config.get_output().get_video().get_uri_protocol()
+    out_location = config.get_output().get_video().get_uri_location()
+    pipeline_sink = create_sink(out_protocol, out_location)
 
     if not pipeline:
         logger.error('Failed to create output pipeline')
@@ -218,15 +229,6 @@ def output():
     if not pipeline_taginject:
         logger.error('Failed to create output pipeline taginject')
         sys.exit(1)
-    if not pipeline_videoconvert:
-        logger.error('Failed to create output pipeline videoconvert')
-        sys.exit(1)
-    if not pipeline_encodebin:
-        logger.error('Failed to create output pipeline encodebin')
-        sys.exit(1)
-    if not pipeline_capsfilter:
-        logger.error('Failed to create output pipeline capsfilter')
-        sys.exit(1)
     if not pipeline_sink:
         logger.error("Failed to create output sink.")
         sys.exit(1)
@@ -234,45 +236,26 @@ def output():
     pipeline_appsrc.set_property("is-live", True)
     pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
     pipeline_appsrc.set_property("format", Gst.Format.TIME)
-    pipeline_appsrc.set_property("max-bytes", 10000000) # 10 Megabytes of size
-
-    # Set initial default caps. Will be overriden when a stream arrives
-    default_caps = 'video/x-raw,format=I420,width=1920,height=1080,framerate=30/1'
-    caps = Gst.Caps.from_string(default_caps)
-    pipeline_capsfilter.set_property("caps", caps)
-
-    # TODO: if we use EncodingVideoProfile, what happens to audio?
-    #       Can we process audio only? There is EncodingAudioProfile.
-    #       Should we use EncodingContainerProfile instead?
-    # TODO: this is wrong becasue can't be updated. We need to do in update caps
-    #       we need to unlink and create a new component
-    profile = GstPbutils.EncodingVideoProfile.new(caps, None, None, 0)
-    pipeline_encodebin.set_property("profile", profile)
+    pipeline_appsrc.set_property("max-bytes", 1000000000) # 10 Megabytes of queue size
+    input_caps = Gst.Caps.from_string("video/x-raw,format=RGB,width=1920,height=1080,framerate=30/1")
+    pipeline_appsrc.set_property("caps", input_caps)
 
     pipeline.add(
         pipeline_appsrc,
         pipeline_taginject,
-        pipeline_videoconvert,
-        pipeline_encodebin,
-        pipeline_capsfilter,
         pipeline_sink
     )
+    processing_bin = get_processing_bin(out_protocol, out_location)
+    pipeline.add(processing_bin)
 
-    # Link elements
-    if not pipeline_appsrc.link(pipeline_taginject):
-        logger.error("Failed to link appsrc to taginject")
+    if not pipeline_appsrc.link(processing_bin):
+        logger.error("Error linking appsrc to the processing bin")
         sys.exit(1)
-    if not pipeline_taginject.link(pipeline_videoconvert):
-        logger.error("Failed to link taginject to videoconvert")
+    if not processing_bin.link(pipeline_taginject):
+        logger.error("Error linking processing bin to sink")
         sys.exit(1)
-    if not pipeline_videoconvert.link(pipeline_encodebin):
-        logger.error("Failed to link videoconvert to encodebin")
-        sys.exit(1)
-    if not pipeline_encodebin.link(pipeline_capsfilter):
-        logger.error("Failed to link encodebin to capsfilter")
-        sys.exit(1)
-    if not pipeline_capsfilter.link(pipeline_sink):
-        logger.error("Failed to link capsfilter to sink")
+    if not pipeline_taginject.link(pipeline_sink):
+        logger.error("Failed to link taginject to sink")
         sys.exit(1)
 
     loop = GLib.MainLoop()
@@ -281,13 +264,14 @@ def output():
     pipeline_bus.add_signal_watch()
     pipeline_bus.connect("message", on_bus_message, loop)
 
-    # NOTE: The pipeline will be started once a new stream is notified
+    ret = pipeline.set_state(Gst.State.PLAYING) # Start pipeline
+    if ret == Gst.StateChangeReturn.FAILURE:
+        logger.error("Unable to set the pipeline to the playing state.")
+        sys.exit(1)
 
     try:
-        logger.debug(f'appsrc state: {pipeline_appsrc}')
-        logger.debug(f'videoconverter state: {pipeline_videoconvert.get_state(5)}')
-        logger.debug(f'decodebin state: {pipeline_encodebin.get_state(5)}')
-        logger.debug(f'appsink state: {pipeline_sink.get_state(5)}')
+        logger.info(f'appsrc state: {pipeline_appsrc.get_state(5)}')
+        logger.info(f'appsink state: {pipeline_sink.get_state(5)}')
 
         # Run on every cicle of the event loop
         GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc))
