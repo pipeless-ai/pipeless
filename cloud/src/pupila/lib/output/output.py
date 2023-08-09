@@ -13,7 +13,7 @@ from src.pupila.lib.logger import logger
 from src.pupila.lib.messages import EndOfStreamMsg, StreamMetadataMsg, StreamTagsMsg, deserialize, RgbImageMsg
 from src.pupila.lib.config import Config
 
-def fetch_and_send(appsrc: GstApp.AppSrc):
+def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
     # TODO: we may need to use the 'need-data' and 'enough-data' signals to avoid overflowing the appsrc input queue
     r_socket = OutputPullSocket()
     raw_msg = r_socket.recv()
@@ -25,9 +25,10 @@ def fetch_and_send(appsrc: GstApp.AppSrc):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()
             buffer = Gst.Buffer.new_wrapped(data.tobytes())
-            buffer.pts = msg.get_pts()
-            buffer.dts = msg.get_dts()
-            buffer.duration = msg.get_duration()
+            if copy_timestamps:
+                buffer.pts = msg.get_pts()
+                buffer.dts = msg.get_dts()
+                buffer.duration = msg.get_duration()
 
             # Send the frame
             appsrc.emit("push-buffer", buffer)
@@ -76,6 +77,8 @@ def create_sink(protocol, location):
         sink = Gst.ElementFactory.make("rtspclientsink", "sink")
         sink.set_property("location", location)
         return sink
+    elif protocol == 'local':
+        return Gst.ElementFactory.make("autovideosink", "autovideosink")
     else:
         logger.warning(f'Unsupported output protocol {protocol}. Defaulting to autovideosink')
         # NOTE: the autovideosink output goes directly to the computer video output (screen mostly)
@@ -89,12 +92,12 @@ def get_processing_bin(protocol, location):
     Note the output component will always receive x-raw RGB, so we just
     worry about what we have to produce for each destination
     """
+    bin = Gst.Bin.new("video-bin")
     if protocol == 'file':
         """
         The pipeline will also depend on the file extension
         """
         if location.endswith('.mp4'):
-            bin = Gst.Bin.new("video-bin")
             videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
             capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
             encoder = Gst.ElementFactory.make("x264enc", "encoder")
@@ -113,22 +116,38 @@ def get_processing_bin(protocol, location):
                 logger.error("Error linking encoder to muxer")
                 sys.exit(1)
 
-            # Create a ghost pads to be able to plug other components
-            ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
-            bin.add_pad(ghostpad_src)
+            # Create ghost pads to be able to plug other components
             ghostpad_sink = Gst.GhostPad.new("sink", videoconvert.get_static_pad("sink"))
             bin.add_pad(ghostpad_sink)
-            return bin
+            ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
+            bin.add_pad(ghostpad_src)
         else:
             logger.error('Unsupported file type. Try with a different extension.')
     elif protocol == "rtmp":
         #"videoconvert ! x264enc ! flvmux streamable=true name=mux ! rtmpsink location={file_name}"
         logger.error('Not implemented')
-    else:
-        # TODO: create pipeline for autovideosink (local view)
-        logger.error("Unsupported output protocol")
+    elif protocol == 'local':
+        queue1 = Gst.ElementFactory.make("queue", "queue1")
+        videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+        queue2 = Gst.ElementFactory.make("queue", "queue2")
+        bin.add(queue1, videoconvert, queue2)
 
-    return None
+        if not queue1.link(videoconvert):
+            logger.error("Error linking queue1 to videoconvert")
+            sys.exit(1)
+        if not videoconvert.link(queue2):
+            logger.error("Error linking videoconvert to queue2")
+            sys.exit(1)
+
+        ghostpad_sink = Gst.GhostPad.new("sink", queue1.get_static_pad("sink"))
+        bin.add_pad(ghostpad_sink)
+        ghostpad_src = Gst.GhostPad.new("src", queue2.get_static_pad("src"))
+        bin.add_pad(ghostpad_src)
+    else:
+        logger.error("Unsupported output protocol")
+        sys.exit(1)
+
+    return bin
 
 # TODO: delete when the issue with get_property("tags") is fixed
 # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
@@ -273,8 +292,9 @@ def output():
         logger.info(f'appsrc state: {pipeline_appsrc.get_state(5)}')
         logger.info(f'appsink state: {pipeline_sink.get_state(5)}')
 
+        copy_timestamps = not out_protocol == 'local'
         # Run on every cicle of the event loop
-        GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc))
+        GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc, copy_timestamps))
         GLib.timeout_add(0, lambda: handle_input_messages(pipeline))
 
         # Start socket listeners
