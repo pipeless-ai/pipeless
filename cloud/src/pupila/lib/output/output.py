@@ -101,8 +101,9 @@ def get_processing_bin(protocol, location):
             videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
             capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
             encoder = Gst.ElementFactory.make("x264enc", "encoder")
+            taginject = Gst.ElementFactory.make("taginject", "taginject")
             muxer = Gst.ElementFactory.make("mp4mux", "muxer")
-            bin.add(videoconvert, capsfilter, encoder, muxer)
+            bin.add(videoconvert, capsfilter, encoder, taginject, muxer)
 
             capsfilter.set_property("caps", Gst.Caps.from_string("video/x-raw,format=I420"))
 
@@ -112,8 +113,11 @@ def get_processing_bin(protocol, location):
             if not capsfilter.link(encoder):
                 logger.error("Error linking capsfilter to encoder")
                 sys.exit(1)
-            if not encoder.link(muxer):
-                logger.error("Error linking encoder to muxer")
+            if not encoder.link(taginject):
+                logger.error("Failed to link encoder to taginject")
+                sys.exit(1)
+            if not taginject.link(muxer):
+                logger.error("Error linking taginject to muxer")
                 sys.exit(1)
 
             # Create ghost pads to be able to plug other components
@@ -158,43 +162,48 @@ def update_tags(pipeline, new_tags):
     Adds a buffer to the appsrc containing the video tags
     """
     logger.info(f'New tags received: {new_tags}. Updating pipeline')
+    # NOTE: we expect an element called 'taginject' on the pipeline
     taginject = pipeline.get_by_name('taginject')
-    new_tags_list = Gst.TagList.new_from_string(new_tags)
-    # TODO: fetch the tags from the tainjgect component directly
-    # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
-    #
-    # current_tags = taginject.get_property("tags")
-    global current_tags
-    if current_tags is not None:
-        current_tags_list = Gst.TagList.new_from_string(current_tags)
-        merged_tags = Gst.TagList.merge(
-            new_tags_list,
-            current_tags_list,
-            Gst.TagMergeMode.KEEP_ALL
-        )
+    if not taginject:
+        logger.warning("No taginject element found, video tags won't be injected")
     else:
-        merged_tags = new_tags_list
+        new_tags_list = Gst.TagList.new_from_string(new_tags)
+        # TODO: fetch the tags from the tainjgect component directly
+        # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
+        #
+        # current_tags = taginject.get_property("tags")
+        global current_tags
+        merged_tags = None
+        if current_tags is not None:
+            current_tags_list = Gst.TagList.new_from_string(current_tags)
+            merged_tags = new_tags_list.merge(
+                current_tags_list,
+                Gst.TagMergeMode.KEEP
+            )
+        else:
+            merged_tags = new_tags_list
 
-    logger.info(f'Updating tags to {merged_tags.to_string()}')
-    current_tags = merged_tags.to_string() # Update the new tags for later iterations
-    # We need to iterate and parse the tags manually because taginject
-    #  doesn't work with a direct taglist.to_string()
-    tags_array = []
-    def taglist_iterator(list, tag, value):
-        nonlocal tags_array
-        if tag == 'taglist':
-            # Remove taglist from the string
-            return
-        n_tag_values = list.get_tag_size(tag)
-        if n_tag_values > 1: logger.warning(f'Some values will be lost for tag: {tag}')
-        tag_value = list.get_value_index(tag, 0) # A tag can have several values
-        if isinstance(tag_value, str):
-            tag_value = f'"{tag_value}"'
-        tags_array.append(f'{tag}={tag_value}')
+        logger.info(f'Updating tags to {merged_tags.to_string()}')
+        current_tags = merged_tags.to_string() # Update the new tags for later iterations
+        # We need to iterate and parse the tags manually because taginject
+        #  doesn't work with a direct taglist.to_string()
+        tags_array = []
+        def taglist_iterator(list, tag, value):
+            nonlocal tags_array
+            if tag == 'taglist':
+                # Remove taglist from the string
+                return
+            n_tag_values = list.get_tag_size(tag)
+            if n_tag_values > 1: logger.warning(f'Some values will be lost for tag: {tag}')
+            tag_value = list.get_value_index(tag, 0) # A tag can have several values
+            if isinstance(tag_value, str):
+                tag_value = f'"{tag_value}"'
+            tags_array.append(f'{tag}={tag_value}')
 
-    merged_tags.foreach(taglist_iterator, None)
-    sanitized_tags_string = ','.join(tags_array)
-    taginject.set_property("tags", sanitized_tags_string)
+        merged_tags.foreach(taglist_iterator, None)
+        sanitized_tags_string = ','.join(tags_array)
+        logger.error(sanitized_tags_string)
+        taginject.set_property("tags", sanitized_tags_string)
 
 def handle_input_messages(pipeline):
     """
@@ -233,7 +242,6 @@ def output():
     # Build decode pipeline
     pipeline = Gst.Pipeline.new("pipeline")
     pipeline_appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
-    pipeline_taginject = Gst.ElementFactory.make("taginject", "taginject")
     # Dynamically calculate the output sink to use
     out_protocol = config.get_output().get_video().get_uri_protocol()
     out_location = config.get_output().get_video().get_uri_location()
@@ -244,9 +252,6 @@ def output():
         sys.exit(1)
     if not pipeline_appsrc:
         logger.error('Failed to create output pipeline appsrc')
-        sys.exit(1)
-    if not pipeline_taginject:
-        logger.error('Failed to create output pipeline taginject')
         sys.exit(1)
     if not pipeline_sink:
         logger.error("Failed to create output sink.")
@@ -261,7 +266,6 @@ def output():
 
     pipeline.add(
         pipeline_appsrc,
-        pipeline_taginject,
         pipeline_sink
     )
     processing_bin = get_processing_bin(out_protocol, out_location)
@@ -270,11 +274,8 @@ def output():
     if not pipeline_appsrc.link(processing_bin):
         logger.error("Error linking appsrc to the processing bin")
         sys.exit(1)
-    if not processing_bin.link(pipeline_taginject):
+    if not processing_bin.link(pipeline_sink):
         logger.error("Error linking processing bin to sink")
-        sys.exit(1)
-    if not pipeline_taginject.link(pipeline_sink):
-        logger.error("Failed to link taginject to sink")
         sys.exit(1)
 
     loop = GLib.MainLoop()
