@@ -9,10 +9,10 @@ gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GObject, GstApp, GLib
 
-from src.pupila.lib.logger import logger
-from src.pupila.lib.connection import InputOutputSocket, InputPushSocket
-from src.pupila.lib.config import Config
-from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
+from pupila.lib.logger import logger
+from pupila.lib.connection import InputOutputSocket, InputPushSocket
+from pupila.lib.config import Config
+from pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.pull_sample()

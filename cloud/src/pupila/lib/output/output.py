@@ -8,10 +8,10 @@ gi.require_version('GstApp', '1.0')
 gi.require_version('GstPbutils', '1.0')
 from gi.repository import Gst, GstApp, GLib, GstPbutils
 
-from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
-from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
-from src.pupila.lib.config import Config
+from pupila.lib.connection import InputOutputSocket, OutputPullSocket
+from pupila.lib.logger import logger
+from pupila.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
+from pupila.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
     # TODO: we may need to use the 'need-data' and 'enough-data' signals to avoid overflowing the appsrc input queue
@@ -242,7 +242,7 @@ def handle_input_messages(pipeline):
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
-            sys.exit()
+            sys.exit(1)
 
     return True # Indicate the GLib timeout to retry on the next interval
 

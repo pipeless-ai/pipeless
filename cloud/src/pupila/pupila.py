@@ -2,11 +2,11 @@ import concurrent.futures
 import sys
 import time
 
-from src.pupila.lib.input import input
-from src.pupila.lib.output import output
-from src.pupila.lib.worker import worker
-from src.pupila.lib.logger import logger, update_logger_level
-from src.pupila.lib.config import Config
+from pupila.lib.input import input
+from pupila.lib.output import output
+from pupila.lib.worker import worker
+from pupila.lib.logger import logger, update_logger_level
+from pupila.lib.config import Config
 
 def run_all():
     # TODO: Move this into the CLI component
@@ -23,8 +23,6 @@ class Pupila():
     """
     Main class of the framework
     """
-    # TODO: handle flags for input, worker, output
-
     def __init__(self, _config, component=None):
         """
         Parameters:
@@ -52,7 +50,6 @@ if __name__ == "__main__":
     # The config comes from the CLI in usua environments.
     # Adding this here just for easy of manual testing while developing.
     config = {
-        "test_mode": False,
         'input': {
             'enable': True,
             'video': {

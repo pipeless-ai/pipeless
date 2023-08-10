@@ -4,7 +4,7 @@ An open source framework to easily build and deploy production computer vision a
 
 # Requirements
 
-* **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`
+* **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 # Development
 
@@ -36,4 +36,8 @@ TypeError: Gst.Bin.add() takes exactly 2 arguments (4 given)
 GST_DEBUG="*:3,GstVaapiPostproc:7,GstGLUploadElement:7" gst-launch-1.0 uridecodebin uri=<path>.mp4 ! glimagesink
 ```
 
-If you find errors or warnings on the output related to hardware acceleration it may be due to a GStreamer bug. Remove the `gstreamer1.0-vaapi` package and it shuold work.
+If you find errors or warnings on the output related to hardware acceleration it may be due to a GStreamer bug. Remove the `gstreamer1.0-vaapi` package and it should work:
+
+```console
+apt-get remove gstreamer1.0-vaapi
+```

@@ -7,9 +7,9 @@ gi.require_version('Gio', '2.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gio, GLib
 
-from src.pupila.lib.connection import InputPullSocket, OutputPushSocket
-from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import RgbImageMsg, deserialize
+from pupila.lib.connection import InputPullSocket, OutputPushSocket
+from pupila.lib.logger import logger
+from pupila.lib.messages import RgbImageMsg, deserialize
 
 def fetch_and_process():
     r_socket = InputPullSocket()

@@ -5,9 +5,9 @@ import time
 from pynng import Push0, Pull0, Timeout, Pair0
 from pynng.exceptions import Closed as ClosedException, TryAgain, ConnectionRefused
 
-from src.pupila.lib.singleton import Singleton
-from src.pupila.lib.config import Config
-from src.pupila.lib.logger import logger
+from pupila.lib.singleton import Singleton
+from pupila.lib.config import Config
+from pupila.lib.logger import logger
 
 # Handle SIGNINT (ctrl+c) during sockets dialing blocking process
 def exit(signum, frame):
