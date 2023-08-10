@@ -5,7 +5,7 @@ import numpy as np
 from src.pupila.lib.logger import logger
 
 class MsgType(Enum):
-    METADATA = 1
+    CAPABILITIES = 1
     RGB_IMAGE = 2
     EOS = 3 # End of streams
     TAGS = 4
@@ -21,12 +21,12 @@ class Msg():
     def get_data(self):
         return self._data
 
-class StreamMetadataMsg(Msg):
+class StreamCapsMsg(Msg):
     """
     Indicates the format of a stream. Usually sent as the start of a stream
     """
     def __init__(self, capabilitites):
-        self._type = MsgType.METADATA
+        self._type = MsgType.CAPABILITIES
         self._caps  = capabilitites
     def serialize(self):
         return pickle.dumps({
@@ -126,8 +126,8 @@ def deserialize(_msg):
             msg["pts"],
             msg["duration"],
         )
-    elif msg["type"] == MsgType.METADATA:
-        return StreamMetadataMsg(msg["caps"])
+    elif msg["type"] == MsgType.CAPABILITIES:
+        return StreamCapsMsg(msg["caps"])
     elif msg["type"] == MsgType.EOS:
         return EndOfStreamMsg()
     elif msg["type"] == MsgType.TAGS:

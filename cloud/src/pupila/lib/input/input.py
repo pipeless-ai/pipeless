@@ -12,7 +12,7 @@ from gi.repository import Gst, GObject, GstApp, GLib
 from src.pupila.lib.logger import logger
 from src.pupila.lib.connection import InputOutputSocket, InputPushSocket
 from src.pupila.lib.config import Config
-from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamMetadataMsg, StreamTagsMsg
+from src.pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
 
 def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     sample = sink.pull_sample()
@@ -105,7 +105,7 @@ def on_pad_upstream_event(pad, info, user_data):
         # Caps negotiation is complete, notify new stream to output component
         logger.debug(f'[green]uridecodebin pad "{pad.get_name()}" with caps: {caps}[/green]')
         m_socket = InputOutputSocket('w')
-        m_msg = StreamMetadataMsg(caps.to_string())
+        m_msg = StreamCapsMsg(caps.to_string())
         m_socket.send(m_msg.serialize())
         # We already got the caps. Remove the probe from the pad
         return Gst.PadProbeReturn.REMOVE

@@ -10,7 +10,7 @@ from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from src.pupila.lib.connection import InputOutputSocket, OutputPullSocket
 from src.pupila.lib.logger import logger
-from src.pupila.lib.messages import EndOfStreamMsg, StreamMetadataMsg, StreamTagsMsg, deserialize, RgbImageMsg
+from src.pupila.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
 from src.pupila.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
@@ -225,7 +225,7 @@ def handle_input_messages(pipeline):
     if raw_msg is not None:
         try:
             msg = deserialize(raw_msg)
-            if isinstance(msg, StreamMetadataMsg):
+            if isinstance(msg, StreamCapsMsg):
                 caps = msg.get_caps()
                 # We don't really care about input caps changes
                 # we just worry about the output formats
