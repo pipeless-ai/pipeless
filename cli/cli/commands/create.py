@@ -15,34 +15,30 @@ def create_project(name: str):
     project_template = base_dir + '/templates/default'
     try:
         shutil.copytree(project_template, name) # Also creates the directory
-        print("Directory copied successfully!")
     except Exception as e:
         rprint(f"[red bold]An error occurred setting up the project template:[/red bold] {str(e)}")
 
     # TODO: all config should be possible to override form CLI options
     default_config = {
-        "log_level": "INFO", # INFO, DEBUG, ERROR, WARNING
-        "input": {
-            "video": {
-                "url": 'my_mp4_file.mp4',
-                "type": 'mp4',
+        'input': {
+            'video': {
+                'enable': True,
+                'uri': 'some_hardcoded-uri'
             },
-            # TODO: should we support input audio only?
+            'address': { # address where the input component runs for the nng connections
+                'host': 'localhost',
+                'port': 1234
+            },
         },
         "output": {
-            "video": {
-                "enabled": True, # TODO: if enabled==False, process audio only
-                "url": 'my_mp4_output.mp4',
-                "type": "mp4",
+            'video': {
+                'enable': True,
+                'uri': 'file:///tmp/my-video.mp4'
             },
-            "audio": {
-                # TODO: either enabled = True only (audio goes with video) or enabled = True + custom output (audio is split from video)
-                "enabled": False,
+            'address': { # address where the input component runs for the nng connections
+                'host': 'localhost',
+                'port': 1236
             },
-            "data":{
-                # TODO: support exporting data to other platforms
-                "enabled": False,
-            }
         }
     }
 
