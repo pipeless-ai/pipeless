@@ -153,6 +153,15 @@ def get_processing_bin(protocol, location):
 
     return bin
 
+def update_encoder_property(pipeline, prop, value):
+    # NOTE: we expect an element called encoder
+    encoder = pipeline.get_by_name('encoder')
+    if not encoder:
+        logger.warning("No encoder found, properties won't be updated")
+    else:
+        logger.info(f'Updating bitrate on encoder to {value}')
+        encoder.set_property(prop, value)
+
 # TODO: delete when the issue with get_property("tags") is fixed
 # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
 current_tags = None
@@ -188,7 +197,7 @@ def update_tags(pipeline, new_tags):
         # We need to iterate and parse the tags manually because taginject
         #  doesn't work with a direct taglist.to_string()
         tags_array = []
-        def taglist_iterator(list, tag, value):
+        def taglist_iterator(list, tag, _):
             nonlocal tags_array
             if tag == 'taglist':
                 # Remove taglist from the string
@@ -199,10 +208,12 @@ def update_tags(pipeline, new_tags):
             if isinstance(tag_value, str):
                 tag_value = f'"{tag_value}"'
             tags_array.append(f'{tag}={tag_value}')
+            if tag == 'bitrate':
+                # Update the encoder bitrate
+                update_encoder_property(pipeline, 'bitrate', tag_value)
 
         merged_tags.foreach(taglist_iterator, None)
         sanitized_tags_string = ','.join(tags_array)
-        logger.error(sanitized_tags_string)
         taginject.set_property("tags", sanitized_tags_string)
 
 def handle_input_messages(pipeline):
@@ -260,7 +271,7 @@ def output():
     pipeline_appsrc.set_property("is-live", True)
     pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
     pipeline_appsrc.set_property("format", Gst.Format.TIME)
-    pipeline_appsrc.set_property("max-bytes", 1000000000) # 10 Megabytes of queue size
+    pipeline_appsrc.set_property("max-bytes", 1000000000) # 1 Gb of queue size
     input_caps = Gst.Caps.from_string("video/x-raw,format=RGB,width=1920,height=1080,framerate=30/1")
     pipeline_appsrc.set_property("caps", input_caps)
 
