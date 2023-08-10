@@ -11,11 +11,12 @@ from src.pupila.lib.config import Config
 def run_all():
     # TODO: Move this into the CLI component
     executor = concurrent.futures.ProcessPoolExecutor()
-    t_input = executor.submit(input.input)
-    time.sleep(2) # Allow to create sockets
     t_output = executor.submit(output.output)
-    time.sleep(2) # Allow to create sockets
+    time.sleep(1) # Allow to create sockets
     t_worker = executor.submit(worker.worker)
+    time.sleep(1) # Allow to create sockets
+    t_input = executor.submit(input.input)
+
     concurrent.futures.wait([t_input, t_output, t_worker])
 
 class Pupila():
