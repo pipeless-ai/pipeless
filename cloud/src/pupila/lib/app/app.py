@@ -1,6 +1,6 @@
 from pupila.lib.timer import timer
 
-class App():
+class PupilaApp():
     """
     Base class to handle an App workflow
     """
@@ -35,20 +35,3 @@ class App():
     def __after(self):
         if callable(self.after):
             self.after(self.ctx)
-
-    # To be implemented by the user
-    @abstractmethod
-    def before(ctx):
-        pass
-    @abstractmethod
-    def pre_process(frame, ctx):
-        pass
-    @abstractmethod
-    def process(frame, ctx):
-        pass
-    @abstractmethod
-    def post_process(frame, ctx):
-        pass
-    @abstractmethod
-    def after(ctx):
-        pass
