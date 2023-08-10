@@ -14,7 +14,6 @@ def run_app(component: str):
     rprint(f"[yellow]Running project...[/yellow]")
 
     exec_dir = os.getcwd()
-    apps_dir = os.path.join(exec_dir, 'apps')
     config_file_path = os.path.join(exec_dir, 'config.yaml')
 
     rprint('Loading config.yaml...')
@@ -27,7 +26,7 @@ def run_app(component: str):
     #       use a standard name: app.py
     app_filename = 'app.py'
     app_name = app_filename[:-3]  # Remove the ".py" extension
-    app_path = os.path.join(apps_dir, app_filename)
+    app_path = os.path.join(exec_dir, app_filename)
 
     # Load the module
     spec = importlib.util.spec_from_file_location(app_name, app_path)
