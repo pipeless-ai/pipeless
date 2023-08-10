@@ -43,9 +43,18 @@ class Video():
         # NOTE: When output the URI is not required even if video is enabled.
         #       By default goes to the default video output (screen)
         self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
-        uri_split = self._uri.split(':')
-        self._protocol = uri_split[0]
-        self._location = uri_split[1]
+        if self._uri == 'local':
+            # To reproduce videos locally on the screen
+            self._protocol = 'local'
+            self._location = 'screen'
+        else:
+            try:
+                uri_split = self._uri.split(':')
+                self._protocol = uri_split[0]
+                self._location = uri_split[1]
+            except:
+                logger.error(f'Wrong video URI!')
+                sys.exit(1)
 
     def is_enabled(self):
         return self._enable
