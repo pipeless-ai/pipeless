@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "retina-cli"
+name = "pupila-cli"
 version = "0.1.0"
-description = "CLI component of the retina computer vision framework"
+description = "CLI component of the pupila computer vision framework"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
 license = "MIT"
 readme = "README.md"
@@ -17,4 +17,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-retina-cli = "cli.main:app"
+pupila-cli = "cli.main:app"

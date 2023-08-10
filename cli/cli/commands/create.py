@@ -1,5 +1,4 @@
 import os
-
 import typer
 from rich import print as rprint
 import yaml

@@ -1,4 +1,4 @@
-# CLI component of the Retina computer vision platform.
+# CLI component of the Pupila computer vision platform.
 
 # Adding python packages:
 
