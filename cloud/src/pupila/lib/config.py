@@ -1,28 +1,22 @@
 import os
 import sys
 
-from src.pupila.lib.singleton import Singleton
-from src.pupila.lib.logger import logger
+from pupila.lib.singleton import Singleton
+from pupila.lib.logger import logger
 
 ENV_PREFIX = 'PUPILA'
 
-def get_from_path(config, path):
-    keys = path.split('.')
-    value = config
-    for key in keys:
-        if isinstance(value, dict) and key in value:
-            value = value[key]
-
-    return value
-
-def prioritized_config(config, path, env_var_name, type=str, required=False):
-    value = get_from_path(config, path)
-
-    value = type(os.environ.get(env_var_name, value))
-
-    if required and value == None:
-        logger.error(f'{env_var_name} or {path} config option is required!')
-        sys.exit(1)
+def prioritized_config(config, path, env_var_name, convert_to=str, required=False):
+    value = os.environ.get(env_var_name, None)
+    if value is None:
+        try:
+            value = config[path]
+        except KeyError:
+            if required:
+                logger.error(f'{env_var_name} env var or {path} in config file option is required!')
+                sys.exit(1)
+    else:
+        value = convert_to(value)
 
     return value
 
@@ -39,7 +33,7 @@ class Address():
 
 class Video():
     def __init__(self, video_dict, env_prefix):
-        self._enable = prioritized_config(video_dict, 'enable', f'{env_prefix}_ENABLE', type=bool, required=True)
+        self._enable = prioritized_config(video_dict, 'enable', f'{env_prefix}_ENABLE', convert_to=bool, required=True)
         # NOTE: When output the URI is not required even if video is enabled.
         #       By default goes to the default video output (screen)
         self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
@@ -99,13 +93,11 @@ class Config(metaclass=Singleton):
         # We follow a fail by default aproach. If a variable is required, it must be provided. There are no default values.
         # A user can use a default config file and override via env vars the configuration that it needs
 
-        self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL')
+        self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL', required=True)
         if not self._log_level == 'INFO' and not self._log_level == 'DEBUG' and not self._log_level == 'WARN':
-            logger.warning('Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
+            logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
-        # TODO: are we using the test_mode config variable?
-        self._test_mode = prioritized_config(config, 'test_mode', f'{ENV_PREFIX}_TEST_MODE', type=bool)
         self._input = Input(config['input'])
         self._output = Output(config['output'])
 
@@ -113,7 +105,5 @@ class Config(metaclass=Singleton):
         return self._input
     def get_output(self):
         return self._output
-    def is_test_mode(self):
-        return self._test_mode
     def get_log_level(self):
         return self._log_level
