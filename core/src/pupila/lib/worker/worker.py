@@ -46,7 +46,7 @@ def fetch_and_process(user_app):
             logger.error(f'Unsupported message type: {msg.type}')
             sys.exit(1)
 
-        return True # Continue the current worker execution
+    return True # Continue the current worker execution
 
 def load_user_module(path):
     """
