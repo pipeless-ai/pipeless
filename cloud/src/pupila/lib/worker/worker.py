@@ -1,3 +1,5 @@
+import importlib
+import sys
 import traceback
 import numpy as np
 
@@ -42,7 +44,25 @@ def fetch_and_process():
 
     return True # Indicate the GLib timeout to retry on the next interval
 
-def worker():
+def load_user_module(path):
+    """
+    Load the user app module from the path.
+    Returns an instance of the user defined App class
+    """
+    spec = importlib.util.spec_from_file_location('user_app', path)
+    user_app_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(user_app_module)
+    UserApp = getattr(user_app_module, 'App')
+    user_app = UserApp()
+    return user_app
+
+def worker(user_module_path):
+    if not user_module_path:
+        logger.error('Missing app .py file path')
+        sys.exit(1)
+
+    user_app = load_user_module(user_module_path)
+
     try:
         while True:
             fetch_and_process()

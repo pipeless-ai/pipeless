@@ -8,22 +8,20 @@ from pupila.lib.worker import worker
 from pupila.lib.logger import logger, update_logger_level
 from pupila.lib.config import Config
 
-def run_all():
-    # TODO: Move this into the CLI component
+def run_all(user_app_class):
     executor = concurrent.futures.ProcessPoolExecutor()
     t_output = executor.submit(output.output)
     time.sleep(1) # Allow to create sockets
-    t_worker = executor.submit(worker.worker)
+    t_worker = executor.submit(worker.worker, user_app_class)
     time.sleep(1) # Allow to create sockets
     t_input = executor.submit(input.input)
-
-    concurrent.futures.wait([t_input, t_output, t_worker])
+    concurrent.futures.wait([t_output, t_worker, t_input])
 
 class Pupila():
     """
     Main class of the framework
     """
-    def __init__(self, _config, component=None):
+    def __init__(self, _config, component=None, user_app_module = None):
         """
         Parameters:
         - config(Config): Configuration provided by the user
@@ -34,25 +32,27 @@ class Pupila():
 
         update_logger_level(config.get_log_level())
 
+        logger.info(f'Running component: {component}')
+
         if component == 'input':
             input.input()
         elif component == 'output':
             output.output()
         elif component == 'worker':
-            worker.worker()
+            worker.worker(user_app_module)
         elif component == 'all':
-            run_all()
+            run_all(user_app_module)
         else:
             logger.warning(f'No (or wrong) component provided: {component}. Defaulting to all.')
-            run_all()
+            run_all(user_app_module)
 
 if __name__ == "__main__":
     # The config comes from the CLI in usua environments.
     # Adding this here just for easy of manual testing while developing.
     config = {
         'input': {
-            'enable': True,
             'video': {
+                'enable': True,
                 'uri': 'some_hardcoded-uri'
             },
             'address': { # address where the input component runs for the nng connections
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     }
 
     component = sys.argv[1]
-    Pupila(config, component)
+    Pupila(config, component, None)

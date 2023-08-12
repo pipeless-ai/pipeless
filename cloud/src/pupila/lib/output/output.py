@@ -103,7 +103,8 @@ def get_processing_bin(protocol, location):
             encoder = Gst.ElementFactory.make("x264enc", "encoder")
             taginject = Gst.ElementFactory.make("taginject", "taginject")
             muxer = Gst.ElementFactory.make("mp4mux", "muxer")
-            bin.add(videoconvert, capsfilter, encoder, taginject, muxer)
+            for elem in [videoconvert, capsfilter, encoder, taginject, muxer]:
+                bin.add(elem)
 
             capsfilter.set_property("caps", Gst.Caps.from_string("video/x-raw,format=I420"))
 
@@ -134,7 +135,7 @@ def get_processing_bin(protocol, location):
         queue1 = Gst.ElementFactory.make("queue", "queue1")
         videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         queue2 = Gst.ElementFactory.make("queue", "queue2")
-        bin.add(queue1, videoconvert, queue2)
+        for elem in [queue1, videoconvert, queue2]: bin.add(elem)
 
         if not queue1.link(videoconvert):
             logger.error("Error linking queue1 to videoconvert")
@@ -275,10 +276,8 @@ def output():
     input_caps = Gst.Caps.from_string("video/x-raw,format=RGB,width=1920,height=1080,framerate=30/1")
     pipeline_appsrc.set_property("caps", input_caps)
 
-    pipeline.add(
-        pipeline_appsrc,
-        pipeline_sink
-    )
+    pipeline.add(pipeline_appsrc)
+    pipeline.add(pipeline_sink)
     processing_bin = get_processing_bin(out_protocol, out_location)
     pipeline.add(processing_bin)
 

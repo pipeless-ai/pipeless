@@ -157,7 +157,7 @@ def input():
     appsink.set_property("caps", caps)
 
     # Add elemets to the pipeline
-    pipeline.add(uridecodebin, videoconvert, appsink)
+    for elem in [uridecodebin, videoconvert, appsink]: pipeline.add(elem)
 
     # Link static elements (fixed number of pads): uridecoder (linked later) -> videoconvert -> appsink
     if not videoconvert.link(appsink):
