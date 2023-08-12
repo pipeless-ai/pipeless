@@ -132,6 +132,11 @@ class InputPushSocket(metaclass=Singleton):
         # Don't worry if we miss a message from time to time
         self._socket.send(msg, block=False)
 
+    @send_error_handler
+    def ensure_send(self, msg):
+        # Blocking send, we must be sure the message is sent
+        self._socket.send(msg)
+
     def close(self):
         self._socket.close()
 
