@@ -22,20 +22,7 @@ def run_app(component: str):
     config_file.close()
     rprint('[green]Config loaded[/green]')
 
-    # NOTE: We used to search for the .py files, however moved to
-    #       use a standard name: app.py
     app_filename = 'app.py'
-    app_name = app_filename[:-3]  # Remove the ".py" extension
     app_path = os.path.join(exec_dir, app_filename)
 
-    # Load the module
-    spec = importlib.util.spec_from_file_location(app_name, app_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    # The app main class must be called like the app file
-    if hasattr(module, app_name.capitalize()):
-        app_class = getattr(module, app_name.capitalize())
-        # Instantiate the app
-        app_instance = app_class()
-        Pupila(config, component)
+    Pupila(config, component, app_path)
