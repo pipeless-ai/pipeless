@@ -11,6 +11,7 @@ packages = [{include = "cli"}]
 python = "^3.10"
 typer = {version = "^0.9.0", extras = ["all"]}
 pyyaml = "^6.0.1"
+pupila = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core"]
