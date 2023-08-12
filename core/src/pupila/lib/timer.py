@@ -1,6 +1,6 @@
 from functools import wraps
 import time
-from .logger import logger
+from pupila.lib.logger import logger
 
 def timer(func):
     """

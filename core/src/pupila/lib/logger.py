@@ -11,7 +11,7 @@ def create_logger(level):
     logger = logging.getLogger("rich")
     return logger
 
-logger = create_logger('INFO')
+logger = create_logger('DEBUG')
 
 def update_logger_level(level):
     logger.setLevel(level)
