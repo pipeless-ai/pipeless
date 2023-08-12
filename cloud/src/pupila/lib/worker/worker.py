@@ -3,12 +3,6 @@ import sys
 import traceback
 import numpy as np
 
-import gi
-gi.require_version('GObject', '2.0')
-gi.require_version('Gio', '2.0')
-gi.require_version('GLib', '2.0')
-from gi.repository import Gio, GLib
-
 from pupila.lib.connection import InputPullSocket, OutputPushSocket
 from pupila.lib.logger import logger
 from pupila.lib.messages import RgbImageMsg, deserialize
