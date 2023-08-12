@@ -72,5 +72,16 @@ if __name__ == "__main__":
         }
     }
 
+    if len(sys.argv) < 2:
+        logger.error('Missing parameter: component')
+        sys.exit(1)
+
+    user_module_path = None
     component = sys.argv[1]
-    Pupila(config, component, None)
+    if component == 'worker':
+        if len(sys.argv) < 3:
+            logger.error('Missing parameter: user module path')
+            sys.exit(1)
+        user_module_path = sys.argv[2]
+
+    Pupila(config, component, user_module_path)
