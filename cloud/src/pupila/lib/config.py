@@ -100,6 +100,7 @@ class Config(metaclass=Singleton):
 
         self._input = Input(config['input'])
         self._output = Output(config['output'])
+        self._n_workers = prioritized_config(config, 'n_workers', f'{ENV_PREFIX}_N_WORKERS', convert_to=int, required=True)
 
     def get_input(self):
         return self._input
@@ -107,3 +108,5 @@ class Config(metaclass=Singleton):
         return self._output
     def get_log_level(self):
         return self._log_level
+    def get_n_workers(self):
+        return self._n_workers

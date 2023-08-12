@@ -18,8 +18,10 @@ def create_project(name: str):
     except Exception as e:
         rprint(f"[red bold]An error occurred setting up the project template:[/red bold] {str(e)}")
 
-    # TODO: all config should be possible to override form CLI options
+    # TODO: should be able to override default config via CLI options
     default_config = {
+        'log_level': 'INFO',
+        'n_workers': 1,
         'input': {
             'video': {
                 'enable': True,

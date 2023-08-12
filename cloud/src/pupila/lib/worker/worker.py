@@ -5,9 +5,14 @@ import numpy as np
 
 from pupila.lib.connection import InputPullSocket, OutputPushSocket
 from pupila.lib.logger import logger
-from pupila.lib.messages import RgbImageMsg, deserialize
+from pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
 
-def fetch_and_process():
+def fetch_and_process(user_app):
+    """
+    Processes messages comming from the input
+    Returns whether the current worker iteration should continue
+    After a worker iteration the user app instance is reset
+    """
     r_socket = InputPullSocket()
     raw_msg = r_socket.recv()
     if raw_msg is not None:
@@ -23,20 +28,25 @@ def fetch_and_process():
                 dtype=np.uint8, buffer=data
             )
 
-            # TODO: process message with user defined methods
-            #       Is ndframe conversion required? If it isn't we can save it
+            # Execute frame processing
             updated_ndframe = ndframe
+            updated_ndframe = user_app._PupilaApp__pre_process(updated_ndframe)
+            updated_ndframe = user_app._PupilaApp__process(updated_ndframe)
+            updated_ndframe = user_app._PupilaApp__post_process(updated_ndframe)
 
             msg.update_data(updated_ndframe)
 
             # Forward the message to the output
             s_socket = OutputPushSocket()
             s_socket.send(msg.serialize())
+        elif isinstance(msg, EndOfStreamMsg):
+            logger.info('Worker iteration finished. About to reset')
+            return False # Reset worker
         else:
             logger.error(f'Unsupported message type: {msg.type}')
-            return False # Indicate GLib to not run the function again
+            sys.exit(1)
 
-    return True # Indicate the GLib timeout to retry on the next interval
+        return True # Continue the current worker execution
 
 def load_user_module(path):
     """
@@ -55,11 +65,15 @@ def worker(user_module_path):
         logger.error('Missing app .py file path')
         sys.exit(1)
 
-    user_app = load_user_module(user_module_path)
-
     try:
         while True:
-            fetch_and_process()
+            # Infinite worker loop
+            continue_worker = True
+            user_app = load_user_module(user_module_path)
+            user_app._PupilaApp__before()
+            while continue_worker:
+                continue_worker = fetch_and_process(user_app)
+            user_app._PupilaApp__after()
     except KeyboardInterrupt:
         pass
     except Exception:

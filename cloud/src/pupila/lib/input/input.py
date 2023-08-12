@@ -67,8 +67,16 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
         logger.info("End of stream reached.")
         logger.debug('Notifying EOS to output')
         m_socket = InputOutputSocket('w')
+        w_socket = InputPushSocket()
         m_msg = EndOfStreamMsg()
-        m_socket.send(m_msg.serialize())
+        m_msg = m_msg.serialize()
+        m_socket.send(m_msg) # Notify output
+        config = Config(None)
+        for _ in range(config.get_n_workers()):
+            # the socket is round robin, send to all workers
+            # TODO: a broadcast socket for this is better for scaling
+            #       by saving the n_workers config option
+            w_socket.send(m_msg)
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
