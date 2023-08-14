@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     user_module_path = None
     component = sys.argv[1]
-    if component == 'worker':
+    if component == 'worker' or component == 'all':
         if len(sys.argv) < 3:
             logger.error('Missing parameter: user module path')
             sys.exit(1)
