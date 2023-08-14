@@ -2,12 +2,8 @@
 
 A framework to build and deploy multimodal perception applications in minutes.
 
-Just focus on your use case, let Pupila handle the rest.
-
-<p align="center">
 [![GitHub release](https://img.shields.io/github/release/migueaeh/pupila.svg)](https://github.com/miguelaeh/pupila/releases)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
-</p>
 
 # Requirements ☝️
 
