@@ -77,7 +77,7 @@ def create_sink(protocol, location):
         sink = Gst.ElementFactory.make("rtspclientsink", "sink")
         sink.set_property("location", location)
         return sink
-    elif protocol == 'local':
+    elif protocol == 'screen':
         return Gst.ElementFactory.make("autovideosink", "autovideosink")
     else:
         logger.warning(f'Unsupported output protocol {protocol}. Defaulting to autovideosink')
@@ -131,7 +131,7 @@ def get_processing_bin(protocol, location):
     elif protocol == "rtmp":
         #"videoconvert ! x264enc ! flvmux streamable=true name=mux ! rtmpsink location={file_name}"
         logger.error('Not implemented')
-    elif protocol == 'local':
+    elif protocol == 'screen':
         queue1 = Gst.ElementFactory.make("queue", "queue1")
         videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         queue2 = Gst.ElementFactory.make("queue", "queue2")
@@ -303,7 +303,7 @@ def output():
         logger.info(f'appsrc state: {pipeline_appsrc.get_state(5)}')
         logger.info(f'appsink state: {pipeline_sink.get_state(5)}')
 
-        copy_timestamps = not out_protocol == 'local'
+        copy_timestamps = not out_protocol == 'screen'
         # Run on every cicle of the event loop
         GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc, copy_timestamps))
         GLib.timeout_add(0, lambda: handle_input_messages(pipeline))

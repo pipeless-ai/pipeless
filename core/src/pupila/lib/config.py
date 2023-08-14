@@ -37,9 +37,9 @@ class Video():
         # NOTE: When output the URI is not required even if video is enabled.
         #       By default goes to the default video output (screen)
         self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
-        if self._uri == 'local':
-            # To reproduce videos locally on the screen
-            self._protocol = 'local'
+        if self._uri == 'screen':
+            # To reproduce videos locally directly on the screen
+            self._protocol = 'screen'
             self._location = 'screen'
         else:
             try:
