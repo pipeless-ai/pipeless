@@ -73,18 +73,18 @@ You can also define your own variables within the `App` class, however, note tha
 
 To configure your app you can use either env vars or the config file (`config.yaml`).
 
-| Option | Description | Value(s)/Type |
+| Option | Description | Value(s)/Type | Env Var |
 | ------ | ----------- | -------- |
-| `log_level` | Level of the logging|  `DEBUG`, `INFO`, `WARN`, `ERROR` |
-| `n_workers` | Number of workers deployed | int |
-| `input.address.host` | Host where the input component is running | `localhost` (string) |
-| `input.address.port` | Port of the input component process | `1234` (int) |
-| `input.video.enable` | Whether to enable to video input | `true` (boolean) |
-| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
-| `output.address.host` | Host where the output component is running | `localhost` (string) |
-| `output.address.port` | Port of the output component process | `1234` (int) |
-| `output.video.enable` | Whether to enable to video output | `true` (boolean) |
-| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
+| `log_level` | Level of the logging|  `DEBUG`, `INFO`, `WARN`, `ERROR` | `PUPILA_LOG_LEVEL` |
+| `n_workers` | Number of workers deployed | int | `PUPILA_N_WORKERS` |
+| `input.address.host` | Host where the input component is running | `localhost` (string) | `PUPILA_INPUT_ADDRESS_HOST` |
+| `input.address.port` | Port of the input component process | `1234` (int) | `PUPILA_INPUT_ADDRESS_PORT` |
+| `input.video.enable` | Whether to enable to video input | `true` (boolean) | `PUPILA_INPUT_VIDEO_ENABLE` |
+| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PUPILA_INPUT_VIDEO_URI` |
+| `output.address.host` | Host where the output component is running | `localhost` (string) | `PUPILA_OUTPUT_ADDRESS_HOST` |
+| `output.address.port` | Port of the output component process | `1234` (int) | `PUPILA_OUTPUT_ADDRESS_PORT` |
+| `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PUPILA_OUTPUT_VIDEO_ENABLE` |
+| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PUPILA_OUTPUT_VIDEO_URI` |
 
 ## Run your app
 
