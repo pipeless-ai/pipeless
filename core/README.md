@@ -1,43 +1,28 @@
-# Pupila
+# Pupila Core
 
-An open source framework to easily build and deploy production computer vision and multimedia applications in minutes.
+The Pupila core is split into several components:
 
-# Requirements
+* `input`: Receives the media streams, demux and decode the streams.
+* `worker`: Receives raw media frames, either audio or video frames, and processes them according to the user provided app
+* `output`: Receives the processed raw media frames, encodes and mux them into the proper container format for the output protocol provided by the user
+
+# System Dependencies
 
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 # Development
 
-Start the application by running:
+To test your changes run the following command from the `src` directory:
 
 ```console
-python -m src.pupila.pupila <component>
+python -m pupila.pupila <component> [app_path]
 ```
 
-`<component>` can be `input`, `worker`, `output`, `all` (default)
+* `<component>` can be `input`, `worker`, `output`, `all` (default)
+* `app_path` is required for `worker` component and must be the path to the `app.py` (including `app.py`)
 
-It will load a mock configuration (hardcoded) at `src/pupila/pupila.py`.
-That configuraion will only be used when launchin the components with the command above. It is intended to be easily editable for development.
-On the same file, you can change the component to run by passing it as argument: `input`, `worker`, `output` or `all` (default).
+For simplicity, it will load a mock configuration (hardcoded) at `src/pupila/pupila.py` that you can edit for your use case.
+The hardcoded configuration will only be used when launching the components with the command above, it won't affect if testing with the CLI.
 
 In order to debug, you can set the configuration `log_level` to `DEBUG`.
-If you find an error related to GStreamer and no usefull information has been logged, try using the env var `GST_DEBUG=5` to enable GStreamer debug logs.
-
-# Known issues
-
-* The `poetry` environment is not able to recognise the GStreamer overrides producing errors like the following:
-```
-TypeError: Gst.Bin.add() takes exactly 2 arguments (4 given)
-```
-
-* If the pipeline doesn't start and there is not apparent error even on the debug logs run the following command changing `<path>` by your file path:
-
-```console
-GST_DEBUG="*:3,GstVaapiPostproc:7,GstGLUploadElement:7" gst-launch-1.0 uridecodebin uri=<path>.mp4 ! glimagesink
-```
-
-If you find errors or warnings on the output related to hardware acceleration it may be due to a GStreamer bug. Remove the `gstreamer1.0-vaapi` package and it should work:
-
-```console
-apt-get remove gstreamer1.0-vaapi
-```
+If you find an error related to GStreamer and no usefull information has been logged, try using the env var `GST_DEBUG=5` to enable GStreamer debug logs. Refer to this [page](https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=python) for more information about GStreamer debugging.
