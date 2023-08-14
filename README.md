@@ -1,22 +1,28 @@
 # Pupila
 
-A framework to build and deploy computer multimodal perception applications in minutes.
+A framework to build and deploy multimodal perception applications in minutes.
 
-Just focus on your models (or take a pre-trained one), Pupila handles all the multimedia side.
+Just focus on your use case, let Pupila handle the rest.
 
-# Requirements
+<p align="center">
+[![GitHub release](https://img.shields.io/github/release/migueaeh/pupila.svg)](https://github.com/miguelaeh/pupila/releases)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
+</p>
 
+# Requirements ☝️
+
+* Python (tested with version `3.10.12`)
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 You can use the provided Docker image which contains an already working environment
 
-# Installation
+# Installation 🛠️
 
 ```console
 pip install pupila-cli
 ```
 
-# Usage
+# Getting Started 🚀
 
 ## Create a new project
 
@@ -78,11 +84,11 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `input.address.host` | Host where the input component is running | `localhost` (string) |
 | `input.address.port` | Port of the input component process | `1234` (int) |
 | `input.video.enable` | Whether to enable to video input | `true` (boolean) |
-| `input.video.uri`    | Uri of the input video to process. Must include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
+| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
 | `output.address.host` | Host where the output component is running | `localhost` (string) |
 | `output.address.port` | Port of the output component process | `1234` (int) |
 | `output.video.enable` | Whether to enable to video output | `true` (boolean) |
-| `output.video.uri`    | Uri where to send the processed output video. Must include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
+| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string |
 
 ## Run your app
 
@@ -106,24 +112,27 @@ Pupila has been designed for easy local execution but more important, to easily 
 
 Each component runs with independence of the others.
 
-# Current state
+# Current state 📌
 
 Pupila is in an alpha state. Below you can find the fields currently supported as well as the formats and protocols.
 
 * Computer vision / video processing
 
-| Input Protocol | Input Format  |
-| -------------- | ------------- |
-| `file`, `http`, `rtmp`, `rtsp` | `mp4` |
+For the input media we support almost any protocol and format (with several codecs). If you need a format that is not supported we appreacite the opening of a feature request or pull request.
+
+Supported input protocols: `file`, `http(s)`, `rtmp`, `rtsp`, `rtp`, `tcp`, `udp`, `ftp`, ...
+Supported input formats: `mp4`, `webm`, `mkv`, ... (several codecs supported for all of them)
+
+The following table describes the supported output protocols and formats. New output protocols and formats are added constantly.
 
 | Output Protocol | Output Format
-| ------------- | ------------- | ------------------------------------------- |
-| `screen`      | `raw` (Directly shown on the device screen) |
-| `file`        | `mp4`         |
+| --------------- | ------------- |
+| `screen`        | `raw` (Directly shown on the device screen) |
+| `file`          | `mp4`         |
 
 * Audio recognition / audio processing (in progress)
 
-# Known issues
+# Known issues 🐞
 
 * If the pipeline doesn't start and there is not apparent error even on the debug logs run the following command changing `<path>` by your file path:
 
