@@ -10,28 +10,28 @@ class PupilaApp():
 
     @timer
     def __before(self):
-        if callable(self.before):
+        if hasattr(self, 'before') and callable(self.before):
             self.before(self.ctx)
 
     @timer
     def __pre_process(self, frame):
-        if callable(self.pre_process):
+        if hasattr(self, 'pre_process') and callable(self.pre_process):
             return self.pre_process(frame, self.ctx)
         return frame
 
     @timer
     def __process(self, frame):
-        if callable(self.process):
+        if hasattr(self, 'process') and callable(self.process):
             return self.process(frame, self.ctx)
         return frame
 
     @timer
     def __post_process(self, frame):
-        if callable(self.post_process):
+        if hasattr(self, 'post_process') and callable(self.post_process):
             return self.post_process(frame, self.ctx)
         return frame
 
     @timer
     def __after(self):
-        if callable(self.after):
+        if hasattr(self, 'after') and callable(self.after):
             self.after(self.ctx)
