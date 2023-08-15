@@ -91,7 +91,7 @@ class RgbImageMsg(Msg):
 
     def update_data(self, new_data):
         if isinstance(new_data, np.ndarray):
-            self._data = self._data.dumps()
+            self._data = new_data.dumps()
         else:
             self._data = new_data
 
