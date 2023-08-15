@@ -1,0 +1,16 @@
+log_level: INFO
+n_workers: 1
+input:
+  address:
+    host: localhost
+    port: 1234
+  video:
+    enable: true
+    uri: 'file:///home/example/path/pipeless/examples/cats/cats.mp4'
+output:
+  address:
+    host: localhost
+    port: 1236
+  video:
+    enable: true
+    uri: file:///home/example/path/pipeless/examples/cats/cats-output.mp4
