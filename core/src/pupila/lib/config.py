@@ -47,7 +47,7 @@ class Video():
                 self._protocol = uri_split[0]
                 self._location = uri_split[1]
             except:
-                logger.error(f'Wrong video URI!')
+                logger.error(f'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc')
                 sys.exit(1)
 
     def is_enabled(self):

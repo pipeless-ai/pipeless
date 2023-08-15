@@ -38,25 +38,6 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
 
     return True # Indicate the GLib timeout to retry on the next interval
 
-def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
-    """
-    Callback to manage bus messages
-    """
-    mtype = msg.type
-    if mtype == Gst.MessageType.EOS:
-        logger.info("End of stream reached.")
-    elif mtype == Gst.MessageType.ERROR:
-        err, debug = msg.parse_error()
-        logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
-        logger.error(f"Debugging information: {debug if debug else 'none'}")
-        loop.quit()
-    elif mtype == Gst.MessageType.WARNING:
-        err, debug = msg.parse_warning()
-        logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
-        logger.warning(f"Debugging information: {debug if debug else 'none'}")
-
-    return True
-
 def create_sink(protocol, location):
     """
     Create the appropiate sink based on the output protocol provided
@@ -163,11 +144,24 @@ def update_encoder_property(pipeline, prop, value):
         logger.info(f'Updating bitrate on encoder to {value}')
         encoder.set_property(prop, value)
 
-# TODO: delete when the issue with get_property("tags") is fixed
-# Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
-current_tags = None
+def merge_tags(old_tags: str, new_tags: str) -> str:
+    """
+    Receives two tags list as string and returns a Gst.TagList
+    with the merged tags
+    """
+    new_tags_list = Gst.TagList.new_from_string(new_tags)
+    if old_tags is not None:
+        old_tags_list = Gst.TagList.new_from_string(old_tags)
+        merged_tags = new_tags_list.merge(
+            old_tags_list,
+            Gst.TagMergeMode.KEEP
+        )
+    else:
+        merged_tags = new_tags_list
 
-def update_tags(pipeline, new_tags):
+    return merged_tags.to_string()
+
+def update_tags(pipeline, new_tags: str):
     """
     Adds a buffer to the appsrc containing the video tags
     """
@@ -177,26 +171,9 @@ def update_tags(pipeline, new_tags):
     if not taginject:
         logger.warning("No taginject element found, video tags won't be injected")
     else:
-        new_tags_list = Gst.TagList.new_from_string(new_tags)
-        # TODO: fetch the tags from the tainjgect component directly
-        # Ref: https://gitlab.freedesktop.org/gstreamer/gst-plugins-base/-/issues/1003
-        #
-        # current_tags = taginject.get_property("tags")
-        global current_tags
-        merged_tags = None
-        if current_tags is not None:
-            current_tags_list = Gst.TagList.new_from_string(current_tags)
-            merged_tags = new_tags_list.merge(
-                current_tags_list,
-                Gst.TagMergeMode.KEEP
-            )
-        else:
-            merged_tags = new_tags_list
-
-        logger.info(f'Updating tags to {merged_tags.to_string()}')
-        current_tags = merged_tags.to_string() # Update the new tags for later iterations
+        logger.info(f'Updating tags to {new_tags}')
         # We need to iterate and parse the tags manually because taginject
-        #  doesn't work with a direct taglist.to_string()
+        # doesn't support a direct taglist.to_string()
         tags_array = []
         def taglist_iterator(list, tag, _):
             nonlocal tags_array
@@ -206,6 +183,9 @@ def update_tags(pipeline, new_tags):
             n_tag_values = list.get_tag_size(tag)
             if n_tag_values > 1: logger.warning(f'Some values will be lost for tag: {tag}')
             tag_value = list.get_value_index(tag, 0) # A tag can have several values
+            if tag == 'datetime':
+                # Convert Gst.DateTime to string
+                tag_value = tag_value.to_iso8601_string()
             if isinstance(tag_value, str):
                 tag_value = f'"{tag_value}"'
             tags_array.append(f'{tag}={tag_value}')
@@ -213,11 +193,132 @@ def update_tags(pipeline, new_tags):
                 # Update the encoder bitrate
                 update_encoder_property(pipeline, 'bitrate', tag_value)
 
-        merged_tags.foreach(taglist_iterator, None)
+        Gst.TagList.new_from_string(new_tags).foreach(taglist_iterator, None)
         sanitized_tags_string = ','.join(tags_array)
         taginject.set_property("tags", sanitized_tags_string)
 
-def handle_input_messages(pipeline):
+class Output:
+    def __init__(self):
+        self.__pipeline : Gst.Pipeline = None
+        self.__loop : GLib.MainLoop = None
+        self.__tags : str = None
+
+    def new_pipeline(self, caps):
+        """
+        Creates a pipeline for the given capbilities and starts it
+        """
+        config = Config(None)
+        pipeline = Gst.Pipeline.new("pipeline")
+        pipeline_appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
+        # Dynamically calculate the output sink to use
+        out_protocol = config.get_output().get_video().get_uri_protocol()
+        out_location = config.get_output().get_video().get_uri_location()
+        pipeline_sink = create_sink(out_protocol, out_location)
+
+        if not pipeline:
+            logger.error('Failed to create output pipeline')
+            sys.exit(1)
+        if not pipeline_appsrc:
+            logger.error('Failed to create output pipeline appsrc')
+            sys.exit(1)
+        if not pipeline_sink:
+            logger.error("Failed to create output sink.")
+            sys.exit(1)
+
+        pipeline_appsrc.set_property("is-live", True)
+        pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
+        pipeline_appsrc.set_property("format", Gst.Format.TIME)
+        pipeline_appsrc.set_property("max-bytes", 1000000000) # 1 Gb of queue size
+
+        # We output the size and framerate from the original video.
+        # However, the output always receives raw RGB from the input
+        original_caps = Gst.Caps.from_string(caps)
+        caps_structure = original_caps.get_structure(0) # There is usually just one structure on the caps
+        caps_width = caps_structure.get_value('width')
+        caps_height = caps_structure.get_value('height')
+        caps_framerate = caps_structure.get_fraction('framerate')
+        caps_framerate_str = f"{caps_framerate.value_numerator}/{caps_framerate.value_denominator}"
+        input_caps = Gst.Caps.from_string(f"video/x-raw,format=RGB,width={caps_width},height={caps_height},framerate={caps_framerate_str}")
+        pipeline_appsrc.set_property("caps", input_caps)
+
+        pipeline.add(pipeline_appsrc)
+        pipeline.add(pipeline_sink)
+        processing_bin = get_processing_bin(out_protocol, out_location)
+        pipeline.add(processing_bin)
+
+        if not pipeline_appsrc.link(processing_bin):
+            logger.error("Error linking appsrc to the processing bin")
+            sys.exit(1)
+        if not processing_bin.link(pipeline_sink):
+            logger.error("Error linking processing bin to sink")
+            sys.exit(1)
+
+        # Handle bus events on the main loop
+        pipeline_bus = pipeline.get_bus()
+        pipeline_bus.add_signal_watch()
+
+        pipeline_bus.connect("message", on_bus_message, self)
+
+        ret = pipeline.set_state(Gst.State.PLAYING) # Start pipeline
+        if ret == Gst.StateChangeReturn.FAILURE:
+            logger.error("Unable to set the pipeline to the playing state.")
+            sys.exit(1)
+
+        copy_timestamps = not out_protocol == 'screen'
+        # Run on every cicle of the event loop
+        self.__glib_fetch_and_send_timeout = GLib.timeout_add(
+            0, lambda: fetch_and_send(pipeline_appsrc, copy_timestamps)
+        )
+
+        self.__pipeline = pipeline
+
+        if self.__tags is not None:
+            # The input may have sent the tags before the pipeline is created,
+            # (we create the pipeline when the input sends the caps).
+            update_tags(self.__pipeline, self.__tags)
+
+    def get_pipeline(self):
+        return self.__pipeline
+
+    def remove_pipeline(self):
+        self.__pipeline.set_state(Gst.State.NULL)
+        self.__pipeline = None
+        # Stop fetching and processing frames
+        GLib.source_remove(self.__glib_fetch_and_send_timeout)
+
+    def set_mainloop(self, loop: GLib.MainLoop):
+        self.__loop = loop
+    def get_mainloop(self):
+        return self.__loop
+
+    def add_tags(self, tags: str):
+        self.__tags = merge_tags(self.__tags, tags)
+        logger.info(f'Output tags updated to: {self.__tags}')
+        if self.__pipeline is not None:
+            # Update the tags of the pipeline every time we receive new ones
+            update_tags(self.__pipeline, self.__tags)
+
+def on_bus_message(bus: Gst.Bus, msg: Gst.Message, output: Output):
+    """
+    Callback to manage bus messages
+    """
+    mtype = msg.type
+    if mtype == Gst.MessageType.EOS:
+        logger.info("End of stream reached.")
+        output.remove_pipeline()
+    elif mtype == Gst.MessageType.ERROR:
+        err, debug = msg.parse_error()
+        logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
+        logger.error(f"Debugging information: {debug if debug else 'none'}")
+        output.get_mainloop().quit()
+    elif mtype == Gst.MessageType.WARNING:
+        err, debug = msg.parse_warning()
+        logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
+        logger.warning(f"Debugging information: {debug if debug else 'none'}")
+
+    return True
+
+def handle_input_messages(output: Output):
     """
     Handles messages comming from the input component
     """
@@ -228,18 +329,19 @@ def handle_input_messages(pipeline):
             msg = deserialize(raw_msg)
             if isinstance(msg, StreamCapsMsg):
                 caps = msg.get_caps()
-                # We don't really care about input caps changes
-                # we just worry about the output formats
-                pass
+                # When new caps arrive, we create a new pipeline,
+                # This handles changes on frame dimensions between streams
+                logger.info(f'Creating new pipeline for caps: {caps}')
+                output.new_pipeline(caps)
             elif isinstance(msg, StreamTagsMsg):
                 tags = msg.get_tags()
-                update_tags(pipeline, tags)
+                output.add_tags(tags)
             elif isinstance(msg, EndOfStreamMsg):
-                logger.info('End of stream received')
-                # TODO: we should finish processing the current stream before
-                #      executing appsrc end_of_stream
-                appsrc = pipeline.get_by_name("appsrc")
-                appsrc.end_of_stream()
+                logger.info('End of stream received. Processing remaining frames from queue...')
+                # TODO: we should finish to process the frames on the socket queue before
+                #      executing appsrc.end_of_stream() to avoid lossing them
+                appsrc = output.get_pipeline().get_by_name("appsrc")
+                appsrc.end_of_stream() # will be handled on the pipeline bus
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
@@ -250,64 +352,13 @@ def handle_input_messages(pipeline):
 def output():
     Gst.init(None)
 
-    config = Config(None)
-    # Build decode pipeline
-    pipeline = Gst.Pipeline.new("pipeline")
-    pipeline_appsrc = Gst.ElementFactory.make("appsrc", "appsrc")
-    # Dynamically calculate the output sink to use
-    out_protocol = config.get_output().get_video().get_uri_protocol()
-    out_location = config.get_output().get_video().get_uri_location()
-    pipeline_sink = create_sink(out_protocol, out_location)
-
-    if not pipeline:
-        logger.error('Failed to create output pipeline')
-        sys.exit(1)
-    if not pipeline_appsrc:
-        logger.error('Failed to create output pipeline appsrc')
-        sys.exit(1)
-    if not pipeline_sink:
-        logger.error("Failed to create output sink.")
-        sys.exit(1)
-
-    pipeline_appsrc.set_property("is-live", True)
-    pipeline_appsrc.set_property("do-timestamp", False) # the buffers already wear timestamps
-    pipeline_appsrc.set_property("format", Gst.Format.TIME)
-    pipeline_appsrc.set_property("max-bytes", 1000000000) # 1 Gb of queue size
-    input_caps = Gst.Caps.from_string("video/x-raw,format=RGB,width=1920,height=1080,framerate=30/1")
-    pipeline_appsrc.set_property("caps", input_caps)
-
-    pipeline.add(pipeline_appsrc)
-    pipeline.add(pipeline_sink)
-    processing_bin = get_processing_bin(out_protocol, out_location)
-    pipeline.add(processing_bin)
-
-    if not pipeline_appsrc.link(processing_bin):
-        logger.error("Error linking appsrc to the processing bin")
-        sys.exit(1)
-    if not processing_bin.link(pipeline_sink):
-        logger.error("Error linking processing bin to sink")
-        sys.exit(1)
-
+    output = Output()
     loop = GLib.MainLoop()
-    # Handle bus events on the main loop
-    pipeline_bus = pipeline.get_bus()
-    pipeline_bus.add_signal_watch()
-    pipeline_bus.connect("message", on_bus_message, loop)
+    output.set_mainloop(loop)
 
-    ret = pipeline.set_state(Gst.State.PLAYING) # Start pipeline
-    if ret == Gst.StateChangeReturn.FAILURE:
-        logger.error("Unable to set the pipeline to the playing state.")
-        sys.exit(1)
+    GLib.timeout_add(0, lambda: handle_input_messages(output))
 
     try:
-        logger.info(f'appsrc state: {pipeline_appsrc.get_state(5)}')
-        logger.info(f'appsink state: {pipeline_sink.get_state(5)}')
-
-        copy_timestamps = not out_protocol == 'screen'
-        # Run on every cicle of the event loop
-        GLib.timeout_add(0, lambda: fetch_and_send(pipeline_appsrc, copy_timestamps))
-        GLib.timeout_add(0, lambda: handle_input_messages(pipeline))
-
         # Start socket listeners
         m_socket = InputOutputSocket('r')
         r_socket = OutputPullSocket()
@@ -320,7 +371,6 @@ def output():
         loop.quit()
     finally:
         logger.info('Closing pipeline')
-        pipeline.set_state(Gst.State.NULL)
         # Retreive and close the sockets
         m_socket = InputOutputSocket('r')
         m_socket.close()
