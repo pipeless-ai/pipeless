@@ -7,7 +7,7 @@ A framework to build and deploy multimodal perception apps in minutes without wo
 
 https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35c069a78590
 
-## Index
+## Index 📚
 
 - [Requirements](#requirements-%EF%B8%8F)
 - [Installation](#installation-%EF%B8%8F)
