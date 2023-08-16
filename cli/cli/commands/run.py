@@ -2,7 +2,7 @@ from rich import print as rprint
 import yaml
 import os
 import importlib.util
-from pupila.pupila import Pupila
+from pipeless.pipeless import Pipeless
 
 def run_app(component: str):
     """
@@ -25,4 +25,4 @@ def run_app(component: str):
     app_filename = 'app.py'
     app_path = os.path.join(exec_dir, app_filename)
 
-    Pupila(config, component, app_path)
+    Pipeless(config, component, app_path)

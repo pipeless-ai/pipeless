@@ -1,8 +1,8 @@
-from pupila.lib.app.app import PupilaApp
-from pupila.lib.logger import logger
+from pipeless.lib.app.app import PipelessApp
+from pipeless.lib.logger import logger
 import cv2
 
-class App(PupilaApp):
+class App(PipelessApp):
     def before(self, ctx):
         # Load the model before processing any frame
         xml_data = cv2.CascadeClassifier('cats.xml')

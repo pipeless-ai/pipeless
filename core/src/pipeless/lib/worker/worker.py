@@ -3,9 +3,9 @@ import sys
 import traceback
 import numpy as np
 
-from pupila.lib.connection import InputPullSocket, OutputPushSocket
-from pupila.lib.logger import logger
-from pupila.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
+from pipeless.lib.connection import InputPullSocket, OutputPushSocket
+from pipeless.lib.logger import logger
+from pipeless.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
 
 def fetch_and_process(user_app):
     """
@@ -30,9 +30,9 @@ def fetch_and_process(user_app):
 
             # Execute frame processing
             updated_ndframe = ndframe
-            updated_ndframe = user_app._PupilaApp__pre_process(updated_ndframe)
-            updated_ndframe = user_app._PupilaApp__process(updated_ndframe)
-            updated_ndframe = user_app._PupilaApp__post_process(updated_ndframe)
+            updated_ndframe = user_app._PipelessApp__pre_process(updated_ndframe)
+            updated_ndframe = user_app._PipelessApp__process(updated_ndframe)
+            updated_ndframe = user_app._PipelessApp__post_process(updated_ndframe)
 
             msg.update_data(updated_ndframe)
 
@@ -70,10 +70,10 @@ def worker(user_module_path):
             # Infinite worker loop
             continue_worker = True
             user_app = load_user_module(user_module_path)
-            user_app._PupilaApp__before()
+            user_app._PipelessApp__before()
             while continue_worker:
                 continue_worker = fetch_and_process(user_app)
-            user_app._PupilaApp__after()
+            user_app._PipelessApp__after()
     except KeyboardInterrupt:
         pass
     except Exception:

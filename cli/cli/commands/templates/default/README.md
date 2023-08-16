@@ -1,6 +1,6 @@
 # App project directory
 
-An app is a special class that is loaded by the pupila framework.
+An app is a special class that is loaded by the pipeless framework.
 
 You can see an app as an image processing pipeline. It has some stages (see below) and takes an RGB image to return an RGB image. It could be the same input image, a modified image, or even a totally new image.
 

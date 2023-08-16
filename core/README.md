@@ -1,6 +1,6 @@
-# Pupila Core
+# Pipeless Core
 
-The Pupila core is split into several components:
+The Pipeless core is split into several components:
 
 * `input`: Receives the media streams, demux and decode the streams.
 * `worker`: Receives raw media frames, either audio or video frames, and processes them according to the user provided app
@@ -15,13 +15,13 @@ The Pupila core is split into several components:
 To test your changes run the following command from the `src` directory:
 
 ```console
-python -m pupila.pupila <component> [app_path]
+python -m pipeless.pipeless <component> [app_path]
 ```
 
 * `<component>` can be `input`, `worker`, `output`, `all` (default)
 * `app_path` is required for `worker` component and must be the path to the `app.py` (including `app.py`)
 
-For simplicity, it will load a mock configuration (hardcoded) at `src/pupila/pupila.py` that you can edit for your use case.
+For simplicity, it will load a mock configuration (hardcoded) at `src/pipeless/pipeless.py` that you can edit for your use case.
 The hardcoded configuration will only be used when launching the components with the command above, it won't affect if testing with the CLI.
 
 In order to debug, you can set the configuration `log_level` to `DEBUG`.

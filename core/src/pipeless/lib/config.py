@@ -1,10 +1,10 @@
 import os
 import sys
 
-from pupila.lib.singleton import Singleton
-from pupila.lib.logger import logger
+from pipeless.lib.singleton import Singleton
+from pipeless.lib.logger import logger
 
-ENV_PREFIX = 'PUPILA'
+ENV_PREFIX = 'PIPELESS'
 
 def prioritized_config(config, path, env_var_name, convert_to=str, required=False):
     value = os.environ.get(env_var_name, None)

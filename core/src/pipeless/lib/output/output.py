@@ -8,10 +8,10 @@ gi.require_version('GstApp', '1.0')
 gi.require_version('GstPbutils', '1.0')
 from gi.repository import Gst, GstApp, GLib, GstPbutils
 
-from pupila.lib.connection import InputOutputSocket, OutputPullSocket
-from pupila.lib.logger import logger
-from pupila.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
-from pupila.lib.config import Config
+from pipeless.lib.connection import InputOutputSocket, OutputPullSocket
+from pipeless.lib.logger import logger
+from pipeless.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
+from pipeless.lib.config import Config
 
 def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
     # TODO: we may need to use the 'need-data' and 'enough-data' signals to avoid overflowing the appsrc input queue

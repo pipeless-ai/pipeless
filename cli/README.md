@@ -1,4 +1,4 @@
-# Pupila CLI
+# Pipeless CLI
 
 This directory contains the CLI component of the framework.
 

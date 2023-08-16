@@ -1,9 +1,9 @@
 [tool.poetry]
-name = "pupila-cli"
+name = "pipeless-cli"
 version = "0.1.0"
-description = "CLI component of the pupila computer vision framework"
+description = "CLI component of the pipeless framework"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
-license = "MIT"
+license = "Apache 2.0"
 readme = "README.md"
 packages = [{include = "cli"}]
 
@@ -11,11 +11,11 @@ packages = [{include = "cli"}]
 python = "^3.10"
 typer = {version = "^0.9.0", extras = ["all"]}
 pyyaml = "^6.0.1"
-pupila = "^0.1.0"
+pipeless = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-pupila-cli = "cli.main:app"
+pipeless = "cli.main:app"

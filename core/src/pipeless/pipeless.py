@@ -2,11 +2,11 @@ import concurrent.futures
 import sys
 import time
 
-from pupila.lib.input import input
-from pupila.lib.output import output
-from pupila.lib.worker import worker
-from pupila.lib.logger import logger, update_logger_level
-from pupila.lib.config import Config
+from pipeless.lib.input import input
+from pipeless.lib.output import output
+from pipeless.lib.worker import worker
+from pipeless.lib.logger import logger, update_logger_level
+from pipeless.lib.config import Config
 
 def run_all(user_app_class):
     executor = concurrent.futures.ProcessPoolExecutor()
@@ -17,7 +17,7 @@ def run_all(user_app_class):
     t_input = executor.submit(input.input)
     concurrent.futures.wait([t_output, t_worker, t_input])
 
-class Pupila():
+class Pipeless():
     """
     Main class of the framework
     """
@@ -84,4 +84,4 @@ if __name__ == "__main__":
             sys.exit(1)
         user_module_path = sys.argv[2]
 
-    Pupila(config, component, user_module_path)
+    Pipeless(config, component, user_module_path)

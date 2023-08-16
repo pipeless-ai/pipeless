@@ -1,6 +1,6 @@
-from pupila.lib.timer import timer
+from pipeless.lib.timer import timer
 
-class PupilaApp():
+class PipelessApp():
     """
     Base class to handle an App workflow
     """

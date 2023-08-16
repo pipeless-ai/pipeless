@@ -1,6 +1,6 @@
-from pupila.lib.app.app import PupilaApp
+from pipeless.lib.app.app import PipelessApp
 
-class App(PupilaApp):
+class App(PipelessApp):
     """
     Main application class.
 
