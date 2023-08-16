@@ -5,22 +5,44 @@ A framework to build and deploy multimodal perception apps in minutes without wo
 [![GitHub release](https://img.shields.io/github/release/migueaeh/pipeless.svg)](https://github.com/miguelaeh/pipeless/releases)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
-# Requirements ☝️
+<video controls>
+    <source src="examples/cats/cats-output.mp4" type="video/mp4">
+    `video` tag not supported. Refer to `examples/cats/cats-output.mp4` to see the example
+</video>
+
+## Index
+- [Requirements](#requirements-☝️)
+- [Installation](#installation-🛠️)
+- [Getting started](#getting-started-🚀)
+   - [Create a Project](#create-a-project)
+   - [Project Structure](#project-structure)
+   - [Media Processing](#media-processing)
+   - [Run Your App](#run-your-app)
+   - [Configuration](#configuration)
+- [Current State](#current-state-📌)
+- [Troubleshooting](#troubleshooting-🐞)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Requirements ☝️
 
 * Python (tested with version `3.10.12`)
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 You can use the provided Docker image which contains an already working environment
 
-# Installation 🛠️
+## Installation 🛠️
 
 ```console
 pip install pipeless
 ```
 
-# Getting Started 🚀
+## Getting Started 🚀
 
-## Create a new project
+We recommend reading the getting starting guide at least one, however, you can also go directly to the examples directory.
+
+### Create a Project
 
 Run the following command:
 
@@ -30,7 +52,7 @@ pipeless create project <project-name>
 
 By default, the above command will use an empty project template. You need to implement some functionality on it.
 
-## Project structure
+### Project structure
 
 The `create project` command will create a directory under your project name with the following files:
 
@@ -38,11 +60,11 @@ The `create project` command will create a directory under your project name wit
 
 * `config.yaml`: contains the configuration of the framework components. You can also override all configuration options via env vars starting with `PIPELESS_` followed by the config option name in capital letters.
 
-## Media Processing
+### Media Processing
 
 The processing steps are defined as methods of the `App` class. There are several processing stages that you can override:
 
-* Initial and final stages
+#### Initial and final stages
 
 These are represented by methods that are executed just once per stream.
 
@@ -51,7 +73,7 @@ They are tipically used when your app requires to execute some code before start
 - `before`: contains code that is executed before processing any content from a stream
 - `after`: contains code that is executed after the processing of a whole stream.
 
-* Processing stages
+#### Processing stages
 
 These are the stages that actually modify/learn/process the media streams. All of them receive a frame and **must** return a frame. The frames can be of any type(audio, video, text, metadata, ...).
 
@@ -61,7 +83,7 @@ These are the stages that actually modify/learn/process the media streams. All o
 
 These stages have been mainly defined for a proper logical code structure, there are no significant differences on how the code is executed on them.
 
-* Context
+#### Context
 
 You app can maintain its own internal state. This is useful when you need to pass information between stages.
 
@@ -69,24 +91,7 @@ By default, an internal context is created and can be accessed via the `ctx` var
 
 You can also define your own variables within the `App` class, however, note that if you override the constructor the context won't be initialized properly.
 
-## Configuration
-
-To configure your app you can use either env vars or the config file (`config.yaml`).
-
-| Option | Description | Value(s)/Type | Env Var |
-| ------ | ----------- | -------- |
-| `log_level` | Level of the logging|  `DEBUG`, `INFO`, `WARN`, `ERROR` | `PIPELESS_LOG_LEVEL` |
-| `n_workers` | Number of workers deployed | int | `PIPELESS_N_WORKERS` |
-| `input.address.host` | Host where the input component is running | `localhost` (string) | `PIPELESS_INPUT_ADDRESS_HOST` |
-| `input.address.port` | Port of the input component process | `1234` (int) | `PIPELESS_INPUT_ADDRESS_PORT` |
-| `input.video.enable` | Whether to enable to video input | `true` (boolean) | `PIPELESS_INPUT_VIDEO_ENABLE` |
-| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_INPUT_VIDEO_URI` |
-| `output.address.host` | Host where the output component is running | `localhost` (string) | `PIPELESS_OUTPUT_ADDRESS_HOST` |
-| `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
-| `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
-| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
-
-## Run your app
+### Run Your App
 
 To test your app execute the following from your app directory:
 
@@ -98,7 +103,7 @@ pipeless run <component>
 
 When running your application locally, simply use `all` and everything will run automatically on the proper order.
 
-### Core Components
+#### Core Components
 
 Pipeless has been designed for easy local execution but more important, to easily deploy to the cloud. Thus, it is split in 3 main components:
 
@@ -108,7 +113,24 @@ Pipeless has been designed for easy local execution but more important, to easil
 
 Each component runs with independence of the others.
 
-# Current state 📌
+### Configuration
+
+To configure your app you can use either env vars or the config file (`config.yaml`).
+
+| Option | Description | Value(s)/Type | Env Var |
+| ------ | ----------- | ------------- | ------- |
+| `log_level` | Level of the logging|  `DEBUG`, `INFO`, `WARN`, `ERROR` | `PIPELESS_LOG_LEVEL` |
+| `n_workers` | Number of workers deployed | int | `PIPELESS_N_WORKERS` |
+| `input.address.host` | Host where the input component is running | `localhost` (string) | `PIPELESS_INPUT_ADDRESS_HOST` |
+| `input.address.port` | Port of the input component process | `1234` (int) | `PIPELESS_INPUT_ADDRESS_PORT` |
+| `input.video.enable` | Whether to enable to video input | `true` (boolean) | `PIPELESS_INPUT_VIDEO_ENABLE` |
+| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_INPUT_VIDEO_URI` |
+| `output.address.host` | Host where the output component is running | `localhost` (string) | `PIPELESS_OUTPUT_ADDRESS_HOST` |
+| `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
+| `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
+| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
+
+## Current state 📌
 
 Pipeless is in an alpha state. Below you can find the fields currently supported as well as the formats and protocols.
 
@@ -128,7 +150,7 @@ The following table describes the supported output protocols and formats. New ou
 
 * Audio recognition / audio processing (in progress)
 
-# Known issues 🐞
+## Troubleshooting 🐞
 
 * If the pipeline doesn't start and there is not apparent error even on the debug logs run the following command changing `<path>` by your file path:
 
@@ -141,3 +163,33 @@ If you find errors or warnings on the output related to hardware acceleration it
 ```console
 apt-get remove gstreamer1.0-vaapi
 ```
+
+## Examples 🌟
+
+We provide some working applications under the `examples` directory, so you can easily run and play with them.
+
+- [Cats face recognition](examples/cats)
+
+## Contributing 🤝
+
+Thanks for your interest in contributing! Contributions are welcome and encouraged. While we're working on creating detailed contributing guidelines, here are a few general steps to get started:
+
+1. Fork this repository.
+2. Create a new branch: `git checkout -b feature-branch`.
+3. Make your changes and commit them: `git commit -m 'Add new feature'`.
+4. Push your changes to your fork: `git push origin feature-branch`.
+5. Open a pull request describing your changes.
+
+We appreciate your help in making this project better!
+
+Please note that for major changes or new features, it's a good idea to discuss them in an issue first so we can coordinate efforts.
+
+## License 📄
+
+This project is licensed under the [Apache License 2.0](LICENSE).
+
+### Apache License 2.0 Summary
+
+The Apache License 2.0 is a permissive open-source license that allows you to use, modify, and distribute this software for personal or commercial purposes. It comes with certain obligations, including providing attribution to the original authors and including the original license text in your distributions.
+
+For the full license text, please refer to the [Apache License 2.0](LICENSE).
