@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10.12'
-      - name: Run image
+      - name: Get poetry
         uses: abatilo/actions-poetry@v2.1.6
         with:
           poetry-version: '1.5.1'
@@ -21,16 +21,16 @@ jobs:
         run: |
           cd core
           poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --build
+          poetry publish --repository https://test.pypi.org/legacy/ --build
   publish-cli:
     needs: publish-core # The CLI depends on the core
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10.12'
-      - name: Run image
+      - name: Get Poetry
         uses: abatilo/actions-poetry@v2.1.6
         with:
           poetry-version: '1.5.1'
@@ -40,4 +40,4 @@ jobs:
         run: |
           cd cli
           poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --build
+          poetry publish --repository https://test.pypi.org/legacy/ --build
