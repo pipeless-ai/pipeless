@@ -5,6 +5,8 @@ A framework to build and deploy multimodal perception apps in minutes without wo
 [![GitHub release](https://img.shields.io/github/release/migueaeh/pipeless.svg)](https://github.com/miguelaeh/pipeless/releases)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
+https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35c069a78590
+
 ## Index
 
 - [Requirements](#requirements-%EF%B8%8F)
