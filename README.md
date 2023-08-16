@@ -30,15 +30,17 @@ https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35
 
 ## Installation 🛠️
 
-The following command will install the `pipeless` CLI into your system. It will also install the `core` module as dependency.
+The following command installs the `pipeless` CLI into your system. It also installs the `core` module as dependency.
 
 ```console
-pip install pipeless-cli
+pip install pipeless pipeless-cli
 ```
+
+> IMPORTANT: Please note it is `pipeless-cli`. If you install `pipeless` instead of `pipeless-cli` you will install only the core component.
 
 ## Getting Started 🚀
 
-We recommend reading the getting starting guide at least one, however, you can also go directly to the examples directory.
+We recommend reading the getting starting guide, however, you can also go directly to the (examples)[examples] directory.
 
 ### Create a Project
 
