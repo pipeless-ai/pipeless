@@ -1,4 +1,4 @@
-from pipeless.lib.app.app import PipelessApp
+from pipeless_ai.lib.app.app import PipelessApp
 
 class App(PipelessApp):
     """

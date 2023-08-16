@@ -1,5 +1,5 @@
-from pipeless.lib.app.app import PipelessApp
-from pipeless.lib.logger import logger
+from pipeless_ai.lib.app.app import PipelessApp
+from pipeless_ai.lib.logger import logger
 import cv2
 
 class App(PipelessApp):

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pipeless-ai"
-version = "0.1.0"
+version = "0.1.1"
 description = "A framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
 license = "Apache-2.0"
@@ -9,7 +9,6 @@ homepage = "https://pipeless.ai"
 repository = "https://github.com/miguelaeh/pipeless"
 documentation = "https://github.com/miguelaeh/pipeless"
 keywords = ["multimedia", "framework", "artificial-intelligence", "pipeline", "developer-tools"]
-packages = [{include = "src/pipeless"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

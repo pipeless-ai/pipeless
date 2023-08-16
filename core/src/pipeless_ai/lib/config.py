@@ -1,8 +1,8 @@
 import os
 import sys
 
-from pipeless.lib.singleton import Singleton
-from pipeless.lib.logger import logger
+from pipeless_ai.lib.singleton import Singleton
+from pipeless_ai.lib.logger import logger
 
 ENV_PREFIX = 'PIPELESS'
 

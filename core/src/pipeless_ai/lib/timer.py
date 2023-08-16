@@ -1,6 +1,6 @@
 from functools import wraps
 import time
-from pipeless.lib.logger import logger
+from pipeless_ai.lib.logger import logger
 
 def timer(func):
     """

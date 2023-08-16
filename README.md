@@ -42,6 +42,8 @@ Test the installation with:
 pipeless --help
 ```
 
+> NOTE: you may need to reload your shell for the new command to be available
+
 ## Getting Started 🚀
 
 We recommend reading the getting starting guide, however, you can also go directly to the (examples)[examples] directory.

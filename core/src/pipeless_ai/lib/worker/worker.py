@@ -3,9 +3,9 @@ import sys
 import traceback
 import numpy as np
 
-from pipeless.lib.connection import InputPullSocket, OutputPushSocket
-from pipeless.lib.logger import logger
-from pipeless.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
+from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket
+from pipeless_ai.lib.logger import logger
+from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
 
 def fetch_and_process(user_app):
     """

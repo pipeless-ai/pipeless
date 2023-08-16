@@ -1,4 +1,4 @@
-from pipeless.lib.timer import timer
+from pipeless_ai.lib.timer import timer
 
 class PipelessApp():
     """

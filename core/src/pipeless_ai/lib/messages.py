@@ -2,7 +2,7 @@ import pickle
 from enum import Enum
 import numpy as np
 
-from pipeless.lib.logger import logger
+from pipeless_ai.lib.logger import logger
 
 class MsgType(Enum):
     CAPABILITIES = 1

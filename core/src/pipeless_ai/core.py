@@ -2,11 +2,11 @@ import concurrent.futures
 import sys
 import time
 
-from pipeless.lib.input import input
-from pipeless.lib.output import output
-from pipeless.lib.worker import worker
-from pipeless.lib.logger import logger, update_logger_level
-from pipeless.lib.config import Config
+from pipeless_ai.lib.input import input
+from pipeless_ai.lib.output import output
+from pipeless_ai.lib.worker import worker
+from pipeless_ai.lib.logger import logger, update_logger_level
+from pipeless_ai.lib.config import Config
 
 def run_all(user_app_class):
     executor = concurrent.futures.ProcessPoolExecutor()
