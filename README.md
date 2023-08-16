@@ -5,32 +5,26 @@ A framework to build and deploy multimodal perception apps in minutes without wo
 [![GitHub release](https://img.shields.io/github/release/migueaeh/pipeless.svg)](https://github.com/miguelaeh/pipeless/releases)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
-<video controls>
-    <source src="examples/cats/cats-output.mp4" type="video/mp4">
-    `video` tag not supported. Refer to `examples/cats/cats-output.mp4` to see the example
-</video>
-
 ## Index
-- [Requirements](#requirements-☝️)
-- [Installation](#installation-🛠️)
-- [Getting started](#getting-started-🚀)
+
+- [Requirements](#requirements-%EF%B8%8F)
+- [Installation](#installation-%EF%B8%8F)
+- [Getting started](#getting-started-)
    - [Create a Project](#create-a-project)
    - [Project Structure](#project-structure)
    - [Media Processing](#media-processing)
    - [Run Your App](#run-your-app)
    - [Configuration](#configuration)
-- [Current State](#current-state-📌)
-- [Troubleshooting](#troubleshooting-🐞)
-- [Examples](#examples)
-- [Contributing](#contributing)
-- [License](#license)
+- [Current State](#current-state-)
+- [Troubleshooting](#troubleshooting-)
+- [Examples](#examples-)
+- [Contributing](#contributing-)
+- [License](#license-)
 
 ## Requirements ☝️
 
 * Python (tested with version `3.10.12`)
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
-
-You can use the provided Docker image which contains an already working environment
 
 ## Installation 🛠️
 
