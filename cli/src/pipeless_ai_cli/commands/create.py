@@ -25,7 +25,7 @@ def create_project(name: str):
         'input': {
             'video': {
                 'enable': True,
-                'uri': 'some_hardcoded-uri'
+                'uri': 'file:///home/your/path'
             },
             'address': { # address where the input component runs for the nng connections
                 'host': 'localhost',
@@ -35,7 +35,7 @@ def create_project(name: str):
         "output": {
             'video': {
                 'enable': True,
-                'uri': 'file:///tmp/my-video.mp4'
+                'uri': 'file:///home/your/path'
             },
             'address': { # address where the input component runs for the nng connections
                 'host': 'localhost',

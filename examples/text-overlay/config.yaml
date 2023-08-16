@@ -1,0 +1,16 @@
+input:
+  address:
+    host: localhost
+    port: 1234
+  video:
+    enable: true
+    uri: file:///home/example/path/book-video.mp4
+log_level: INFO
+n_workers: 1
+output:
+  address:
+    host: localhost
+    port: 1236
+  video:
+    enable: true
+    uri: screen

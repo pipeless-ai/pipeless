@@ -1,7 +1,6 @@
 from rich import print as rprint
 import yaml
 import os
-import importlib.util
 from pipeless_ai.core import Pipeless
 
 def run_app(component: str):

@@ -176,6 +176,7 @@ apt-get remove gstreamer1.0-vaapi
 
 We provide some working applications under the `examples` directory, so you can easily run and play with them.
 
+- [Text Overlay](examples/text-overlay)
 - [Cats face recognition](examples/cats)
 
 ## Contributing 🤝
