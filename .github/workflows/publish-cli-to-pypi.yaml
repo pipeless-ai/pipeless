@@ -1,0 +1,25 @@
+name: Python package
+on:
+  push:
+    tags:
+      - "cli-v*.*.*"
+jobs:
+  publish-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.12'
+      - name: Get Poetry
+        uses: abatilo/actions-poetry@v2.1.6
+        with:
+          poetry-version: '1.5.1'
+      - name: Publish
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          cd cli
+          poetry config repositories.pypi https://upload.pypi.org/legacy/
+          poetry config pypi-token.pypi $PYPI_TOKEN
+          poetry publish --repository pypi --build
