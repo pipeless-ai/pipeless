@@ -30,13 +30,17 @@ https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35
 
 ## Installation 🛠️
 
-The following command installs the `pipeless` CLI into your system. It also installs the `core` module as dependency.
+The following command installs the core (`pipeless-ai`) and the CLI (`pipeless-ai-cli`) into your system.
 
 ```console
 pip install pipeless-ai pipeless-ai-cli
 ```
 
-> IMPORTANT: Please note it is `pipeless-cli`. If you install `pipeless` instead of `pipeless-cli` you will install only the core component.
+Test the installation with:
+
+```console
+pipeless --help
+```
 
 ## Getting Started 🚀
 
@@ -128,13 +132,13 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `output.address.host` | Host where the output component is running | `localhost` (string) | `PIPELESS_OUTPUT_ADDRESS_HOST` |
 | `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
 | `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
-| `output.video.uri`    | Uri where to send the processed output video. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
+| `output.video.uri`    | `screen` to see video directly on the device screen, or the uri where to send the processed output video. The URI **must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
 
 ## Current state 📌
 
 Pipeless is in an alpha state. Below you can find the fields currently supported as well as the formats and protocols.
 
-* Computer vision / video processing
+### Computer vision / video processing
 
 For the input media we support almost any protocol and format (with several codecs). If you need a format that is not supported we appreacite the opening of a feature request or pull request.
 
@@ -148,7 +152,9 @@ The following table describes the supported output protocols and formats. New ou
 | `screen`        | `raw` (Directly shown on the device screen) |
 | `file`          | `mp4`         |
 
-* Audio recognition / audio processing (in progress)
+### Audio recognition / audio processing
+
+Audio processing is being implemented, however, not yet ready.
 
 ## Troubleshooting 🐞
 
