@@ -20,8 +20,9 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           cd core
-          poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --repository https://test.pypi.org/legacy/ --build
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi $PYPI_TOKEN
+          poetry publish --repository test-pypi --build
   publish-cli:
     needs: publish-core # The CLI depends on the core
     runs-on: ubuntu-latest
@@ -39,5 +40,6 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           cd cli
-          poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --repository https://test.pypi.org/legacy/ --build
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi $PYPI_TOKEN
+          poetry publish --repository test-pypi --build
