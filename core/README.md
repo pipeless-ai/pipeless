@@ -1,5 +1,8 @@
 # Pipeless Core
 
+Pipeless is a framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines.
+Pipeless Core is the core component of the framework.
+
 The Pipeless core is split into several components:
 
 * `input`: Receives the media streams, demux and decode the streams.
@@ -13,6 +16,12 @@ The Pipeless core is split into several components:
 ## Python dependencies
 
 * Poetry: find the installation instructions [here](https://python-poetry.org/docs/#installation)
+
+## Installation
+
+```console
+pip install pipeless
+```
 
 ## Development
 
@@ -39,6 +48,6 @@ In order to test your changes, start the virtualenv:
 poetry shell
 ```
 
-Then go to the `core` directory and run `poetry install` to install the `pipeless` core. After that, do to the `cli` directory and run `poetry install` again to install the `pipeless-cli` component.
+Then go to the `core` directory and run `poetry install` to install the `pipeless-core` module. After that, go to the `cli` directory and run `poetry install` again to install the `pipeless` (CLI) component.
 
 With that, you should be able to run `pipeless run` with your changes.

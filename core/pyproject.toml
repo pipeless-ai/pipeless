@@ -3,7 +3,7 @@ name = "pipeless"
 version = "0.1.0"
 description = "A framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
-license = "Apache 2.0"
+license = "Apache-2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]

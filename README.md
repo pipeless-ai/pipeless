@@ -30,8 +30,10 @@ https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35
 
 ## Installation 🛠️
 
+The following command will install the `pipeless` CLI into your system. It will also install the `core` module as dependency.
+
 ```console
-pip install pipeless
+pip install pipeless-cli
 ```
 
 ## Getting Started 🚀
