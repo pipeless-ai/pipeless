@@ -46,7 +46,7 @@ pipeless --help
 
 ## Getting Started 🚀
 
-We recommend reading the getting starting guide, however, you can also go directly to the (examples)[examples] directory.
+We recommend reading the getting starting guide, however, you can also go directly to the [examples](examples) directory.
 
 ### Create a Project
 
