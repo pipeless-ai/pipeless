@@ -2,10 +2,9 @@
 
 A framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines.
 
-[![GitHub release](https://img.shields.io/github/release/migueaeh/pipeless.svg)](https://github.com/miguelaeh/pipeless/releases)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
-https://github.com/miguelaeh/pipeless/assets/36923089/56498c7b-485c-41d3-9346-35c069a78590
+https://github.com/miguelaeh/pipeless/raw/core-v0.1.1-alpha/examples/cats/cats-output.mp4
 
 ## Index 📚
 
