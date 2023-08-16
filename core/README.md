@@ -20,7 +20,7 @@ The Pipeless core is split into several components:
 ## Installation
 
 ```console
-pip install pipeless
+pip install pipeless-ai
 ```
 
 ## Development

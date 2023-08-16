@@ -8,7 +8,7 @@ Pipeless CLI is the CLI component of the framework.
 Run the following command:
 
 ```console
-pip install pipeless-cli
+pip install pipeless-ai-cli
 ```
 
 ## Usage
