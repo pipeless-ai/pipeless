@@ -4,15 +4,13 @@ A framework to build and deploy multimodal perception apps in minutes without wo
 
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
-Build things like this
+Build things like
 
 https://github.com/miguelaeh/pipeless/assets/36923089/53012dea-5b82-44e4-9120-db90b9f11765
 
 With 6 lines of code
 
 ![Cats recognition code](assets/cats-code.png)
-
-
 
 ## Index 📚
 
