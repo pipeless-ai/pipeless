@@ -9,7 +9,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GObject, GstApp, GLib
 
-from pipeless_ai.lib.logger import logger
+from pipeless_ai.lib.logger import logger, update_logger_component
 from pipeless_ai.lib.connection import InputOutputSocket, InputPushSocket
 from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
@@ -134,6 +134,8 @@ def input():
     config = Config(None)
     Gst.init(None)
 
+    update_logger_component('INPUT')
+
     logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
     pipeline = Gst.Pipeline.new("pipeline")
 
@@ -202,7 +204,7 @@ def input():
     logger.info('Starting pipeline')
     ret = pipeline.set_state(Gst.State.PLAYING)
     if ret == Gst.StateChangeReturn.FAILURE:
-        logger.error("Unable to set the pipeline to the playing state.")
+        logger.error("[red]Unable to set the pipeline to the playing state.[/red]")
         sys.exit(1)
 
     try:

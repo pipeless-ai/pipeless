@@ -9,7 +9,7 @@ gi.require_version('GstPbutils', '1.0')
 from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from pipeless_ai.lib.connection import InputOutputSocket, OutputPullSocket
-from pipeless_ai.lib.logger import logger
+from pipeless_ai.lib.logger import logger, update_logger_component
 from pipeless_ai.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
 from pipeless_ai.lib.config import Config
 
@@ -351,6 +351,7 @@ def handle_input_messages(output: Output):
 
 def output():
     Gst.init(None)
+    update_logger_component('OUTPUT')
 
     output = Output()
     loop = GLib.MainLoop()
