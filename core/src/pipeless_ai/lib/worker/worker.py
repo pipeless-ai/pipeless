@@ -17,6 +17,7 @@ def fetch_and_process(user_app):
     raw_msg = r_socket.recv()
     if raw_msg is not None:
         msg = deserialize(raw_msg)
+        s_socket = OutputPushSocket()
         if isinstance(msg, RgbImageMsg):
             # TODO: we can use pynng recv_msg to get information about which pipe the message comes from, thus distinguish stream sources and route destinations
             #       Usefull to support several input medias to the same app
@@ -37,10 +38,10 @@ def fetch_and_process(user_app):
             msg.update_data(updated_ndframe)
 
             # Forward the message to the output
-            s_socket = OutputPushSocket()
             s_socket.send(msg.serialize())
         elif isinstance(msg, EndOfStreamMsg):
-            logger.info('Worker iteration finished. About to reset')
+            logger.info('Worker iteration finished. Notifying output. About to reset worker')
+            s_socket.send(raw_msg) # Forward the message to the output
             return False # Reset worker
         else:
             logger.error(f'Unsupported message type: {msg.type}')

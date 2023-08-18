@@ -65,12 +65,9 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
     mtype = msg.type
     if mtype == Gst.MessageType.EOS:
         logger.info("End of stream reached.")
-        m_socket = InputOutputSocket('w')
         w_socket = InputPushSocket()
         m_msg = EndOfStreamMsg()
         m_msg = m_msg.serialize()
-        logger.debug('Notifying EOS to output')
-        m_socket.send(m_msg) # Notify output
         config = Config(None)
         for _ in range(config.get_n_workers()):
             # The socket is round robin, send to all workers
