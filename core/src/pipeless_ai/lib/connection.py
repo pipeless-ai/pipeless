@@ -2,12 +2,16 @@ from functools import wraps
 import signal
 import sys
 import time
+import pynng
 from pynng import Push0, Pull0, Timeout, Pair0
 from pynng.exceptions import Closed as ClosedException, TryAgain, ConnectionRefused
 
 from pipeless_ai.lib.singleton import Singleton
 from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.logger import logger
+
+# Hack. Override pynng default logger to use our custom one.
+pynng.nng.logger = logger
 
 # Handle SIGNINT (ctrl+c) during sockets dialing blocking process
 def exit(signum, frame):
