@@ -32,6 +32,11 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
 
             # Send the frame
             appsrc.emit("push-buffer", buffer)
+        elif isinstance(msg, EndOfStreamMsg):
+            # NOTE: when deploying more than one worker, only the first message will be handled.
+            #       There will be a transient period of some frames that could be lost in that case.
+            appsrc.end_of_stream()
+            return False # Indicate GLib to not run the function again
         else:
             logger.error(f'Unsupported message type: {msg.type}')
             return False # Indicate GLib to not run the function again
@@ -336,12 +341,6 @@ def handle_input_messages(output: Output):
             elif isinstance(msg, StreamTagsMsg):
                 tags = msg.get_tags()
                 output.add_tags(tags)
-            elif isinstance(msg, EndOfStreamMsg):
-                logger.info('End of stream received. Processing remaining frames from queue...')
-                # TODO: we should finish to process the frames on the socket queue before
-                #      executing appsrc.end_of_stream() to avoid lossing them
-                appsrc = output.get_pipeline().get_by_name("appsrc")
-                appsrc.end_of_stream() # will be handled on the pipeline bus
         except Exception:
             logger.error('Stopping message handler:')
             traceback.print_exc()
