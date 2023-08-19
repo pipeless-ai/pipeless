@@ -4,10 +4,9 @@ import numpy as np
 
 import gi
 gi.require_version('GLib', '2.0')
-gi.require_version('GObject', '2.0')
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-from gi.repository import Gst, GObject, GstApp, GLib
+from gi.repository import Gst, GstApp, GLib
 
 from pipeless_ai.lib.logger import logger, update_logger_component
 from pipeless_ai.lib.connection import InputOutputSocket, InputPushSocket
@@ -56,7 +55,7 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
 
     return Gst.FlowReturn.OK
 
-def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GObject.MainLoop):
+def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
     """
     Callback to manage bus messages
     For example, when we receive a new-sample and return an error from
