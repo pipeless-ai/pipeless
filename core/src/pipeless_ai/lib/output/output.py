@@ -288,8 +288,6 @@ class Output:
     def remove_pipeline(self):
         self.__pipeline.set_state(Gst.State.NULL)
         self.__pipeline = None
-        # Stop fetching and processing frames
-        GLib.source_remove(self.__glib_fetch_and_send_timeout)
 
     def set_mainloop(self, loop: GLib.MainLoop):
         self.__loop = loop
