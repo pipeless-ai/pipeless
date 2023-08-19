@@ -48,6 +48,13 @@ In order to test your changes, start the virtualenv:
 poetry shell
 ```
 
-Then go to the `core` directory and run `poetry install` to install the `pipeless-core` module. After that, go to the `cli` directory and run `poetry install` again to install the `pipeless` (CLI) component.
+After that, go to the `cli` directory and run `poetry install` to install the `pipeless-ai-cli` (CLI) component.
+Then go to the `core` directory and run `poetry install` to install the `pipeless-ai` module. This will override the upstream dependency from the CLi componet to use your local one.
+
+Verify you environment by ensuring the pipeless modules are pointing to your local directories instead of the PyPi public modules:
+
+```console
+pip list | grep pipeless
+```
 
 With that, you should be able to run `pipeless run` with your changes.
