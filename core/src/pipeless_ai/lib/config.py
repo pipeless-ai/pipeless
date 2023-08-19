@@ -87,12 +87,7 @@ class Output():
 
 class Config(metaclass=Singleton):
     def __init__(self, config):
-        # TODO: parse config file path and delete mockup config
-
-
-        # We follow a fail by default aproach. If a variable is required, it must be provided. There are no default values.
-        # A user can use a default config file and override via env vars the configuration that it needs
-
+        logger.debug('Parsing configuration')
         self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL', required=True)
         if not self._log_level == 'INFO' and not self._log_level == 'DEBUG' and not self._log_level == 'WARN':
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
@@ -101,6 +96,7 @@ class Config(metaclass=Singleton):
         self._input = Input(config['input'])
         self._output = Output(config['output'])
         self._n_workers = prioritized_config(config, 'n_workers', f'{ENV_PREFIX}_N_WORKERS', convert_to=int, required=True)
+        logger.debug('[green]Configuration parsed[/green]')
 
     def get_input(self):
         return self._input

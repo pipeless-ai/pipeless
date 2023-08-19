@@ -8,7 +8,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GstApp, GLib
 
-from pipeless_ai.lib.logger import logger, update_logger_component
+from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.connection import InputOutputSocket, InputPushSocket
 from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
@@ -125,12 +125,12 @@ def on_pad_added(element, pad, *callbacks):
     for callback in callbacks:
         callback(pad)
 
-def input():
-    # Load config
-    config = Config(None)
-    Gst.init(None)
-
+def input(config_dict):
     update_logger_component('INPUT')
+    config = Config(config_dict)
+    update_logger_level(config.get_log_level())
+
+    Gst.init(None)
 
     logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
     pipeline = Gst.Pipeline.new("pipeline")

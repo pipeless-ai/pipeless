@@ -9,7 +9,7 @@ gi.require_version('GstPbutils', '1.0')
 from gi.repository import Gst, GstApp, GLib, GstPbutils
 
 from pipeless_ai.lib.connection import InputOutputSocket, OutputPullSocket
-from pipeless_ai.lib.logger import logger, update_logger_component
+from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.messages import EndOfStreamMsg, StreamCapsMsg, StreamTagsMsg, deserialize, RgbImageMsg
 from pipeless_ai.lib.config import Config
 
@@ -348,9 +348,12 @@ def handle_input_messages(output: Output):
 
     return True # Indicate the GLib timeout to retry on the next interval
 
-def output():
-    Gst.init(None)
+def output(config_dict):
     update_logger_component('OUTPUT')
+    config = Config(config_dict)
+    update_logger_level(config.get_log_level())
+
+    Gst.init(None)
 
     output = Output()
     loop = GLib.MainLoop()
