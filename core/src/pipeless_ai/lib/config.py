@@ -43,7 +43,7 @@ class Video():
             self._location = 'screen'
         else:
             try:
-                uri_split = self._uri.split(':')
+                uri_split = self._uri.split('://')
                 self._protocol = uri_split[0]
                 self._location = uri_split[1]
             except:

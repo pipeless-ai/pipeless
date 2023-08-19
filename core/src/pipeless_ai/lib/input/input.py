@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 import numpy as np
@@ -130,9 +131,13 @@ def input(config_dict):
     config = Config(config_dict)
     update_logger_level(config.get_log_level())
 
-    Gst.init(None)
-
     logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
+    if config.get_input().get_video().get_uri_protocol() == 'file':
+        if not os.path.isfile(config.get_input().get_video().get_uri_location()):
+            logger.error("[red]Input video file doesn't exist[/red]")
+            sys.exit(1)
+
+    Gst.init(None)
     pipeline = Gst.Pipeline.new("pipeline")
 
     # Create elements
