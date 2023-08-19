@@ -5,46 +5,40 @@ import time
 from pipeless_ai.lib.input import input
 from pipeless_ai.lib.output import output
 from pipeless_ai.lib.worker import worker
-from pipeless_ai.lib.logger import logger, update_logger_level
-from pipeless_ai.lib.config import Config
+from pipeless_ai.lib.logger import logger
 
-def run_all(user_app_class):
+def run_all(config_dict, user_app_class):
     executor = concurrent.futures.ProcessPoolExecutor()
-    t_output = executor.submit(output.output)
+    t_output = executor.submit(output.output, config_dict)
     time.sleep(1) # Allow to create sockets
-    t_worker = executor.submit(worker.worker, user_app_class)
+    t_worker = executor.submit(worker.worker, config_dict, user_app_class)
     time.sleep(1) # Allow to create sockets
-    t_input = executor.submit(input.input)
+    t_input = executor.submit(input.input, config_dict)
     concurrent.futures.wait([t_output, t_worker, t_input])
 
 class Pipeless():
     """
     Main class of the framework
     """
-    def __init__(self, _config, component=None, user_app_module = None):
+    def __init__(self, config_dict, component=None, user_app_module = None):
         """
         Parameters:
-        - config(Config): Configuration provided by the user
+        - config_dict: YAML configuration provided by the user
         - component(str): Component to initialize
         """
-        # Initialize global configuration
-        config = Config(_config)
-
-        update_logger_level(config.get_log_level())
-
         logger.info(f'Running component: {component}')
 
         if component == 'input':
-            input.input()
+            input.input(config_dict)
         elif component == 'output':
-            output.output()
+            output.output(config_dict)
         elif component == 'worker':
-            worker.worker(user_app_module)
+            worker.worker(config_dict, user_app_module)
         elif component == 'all':
-            run_all(user_app_module)
+            run_all(config_dict, user_app_module)
         else:
             logger.warning(f'No (or wrong) component provided: {component}. Defaulting to all.')
-            run_all(user_app_module)
+            run_all(config_dict, user_app_module)
 
 if __name__ == "__main__":
     # The config comes from the CLI in usua environments.

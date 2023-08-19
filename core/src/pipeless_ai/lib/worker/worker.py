@@ -3,8 +3,9 @@ import sys
 import traceback
 import numpy as np
 
+from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket
-from pipeless_ai.lib.logger import logger, update_logger_component
+from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
 
 def fetch_and_process(user_app):
@@ -61,8 +62,10 @@ def load_user_module(path):
     user_app = UserApp()
     return user_app
 
-def worker(user_module_path):
+def worker(config_dict, user_module_path):
     update_logger_component('WORKER')
+    config = Config(config_dict)
+    update_logger_level(config.get_log_level())
 
     if not user_module_path:
         logger.error('Missing app .py file path')
