@@ -48,7 +48,11 @@ class TfLiteModel(TfLiteModelInterface):
         pass
 
     def invoke_inference(self, rgb_frame):
+        print('before preapre input')
         frame_input_tensor = self.prepare_input(rgb_frame)
+        print('before infer')
         raw_output = self.infer(frame_input_tensor)
+        print('before process output')
         output = self.process_output(raw_output)
+        print('end')
         return output

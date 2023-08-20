@@ -1,5 +1,6 @@
 import tensorflow as tf
 import math
+import numpy as np
 
 from pipeless_ai_tf_models.tflite import TfLiteModel
 
@@ -8,10 +9,11 @@ model_url = 'https://tfhub.dev/google/lite-model/movenet/multipose/lightning/tfl
 class MultiPoseEstimationLightning(TfLiteModel):
 
     def __init__(self):
-        super.__init__(model_url)
+        super().__init__(model_url)
 
     def prepare_input(self, rgb_frame):
-        image = tf.expand_dims(image, axis=0)
+        self.original_image_shape = rgb_frame.shape
+        image = tf.expand_dims(rgb_frame, axis=0)
         resized_image, image_shape = resize_with_aspect_ratio(image, 256)
         #image_tensor = tf.cast(resized_image, dtype=tf.uint8)
         input_tensor = tf.cast(resized_image, dtype=tf.uint8)
@@ -36,7 +38,50 @@ class MultiPoseEstimationLightning(TfLiteModel):
         return keypoints_with_scores
 
     def process_output(self, output):
-        return output # Nothing to do in this model
+        """
+        Process output to return bounding boxes and keypoints.
+        See the output format on the model documentation
+        Ref: https://tfhub.dev/google/lite-model/movenet/multipose/lightning/tflite/float16/1
+
+        Returns
+        -   bboxes in format [ymin, xmin, ymax, xmax]
+        -   keypoints in format [x, y]
+        """
+        keypoints_and_boxes = output[0, :, :]
+        keypoints = keypoints_and_boxes[:, :51]  # Extract keypoints [y, x, s]
+        boxes = keypoints_and_boxes[:, 51:]      # Extract boxes [ymin, xmin, ymax, xmax, score]
+
+        output_bboxes = []
+        output_keypoints = []
+
+        # Loop through each instance
+        for i in range(len(keypoints)):
+            instance_keypoints = keypoints[i, :]
+            instance_box = boxes[i, :]
+
+            # Reshape keypoints to match [y, x, s] format
+            instance_keypoints = instance_keypoints.reshape((-1, 3))
+
+            # Convert normalized coordinates to pixel values
+            img_height, img_width, _ = self.original_image_shape
+            instance_keypoints[:, :2] = instance_keypoints[:, :2] * np.array([img_height, img_width])
+
+            # Get bounding box
+            ymin, xmin, ymax, xmax, b_score = instance_box
+            bbox = (
+                int(ymin * img_height), int(xmin * img_width),
+                int(ymax * img_height), int(xmax * img_width)
+            )
+            if b_score > 0.5:
+               output_bboxes.append(bbox)
+
+            # Get keypoints
+            for j in range(0, 17):
+                keypoint_y, keypoint_x, keypoint_score = instance_keypoints[j]
+                if keypoint_score > 0.5:
+                    output_keypoints.append((int(keypoint_x), int(keypoint_y)))
+
+        return output_bboxes, output_keypoints
 
 def resize_with_aspect_ratio(image, target_size):
     _, height, width, _ = image.shape
