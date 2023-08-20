@@ -1,9 +1,7 @@
-#from lightning import MultiPoseEstimationLightning
-from pipeless_ai_tf_models.multi_pose_estimation.lightning import MultiPoseEstimationLightning
-
 import cv2
 import numpy as np
 
+from pipeless_ai_tf_models.multi_pose_estimation.lightning import MultiPoseEstimationLightning
 mpe = MultiPoseEstimationLightning()
 
 rgb_image = cv2.imread('test.jpeg')

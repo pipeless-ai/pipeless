@@ -13,6 +13,7 @@ keywords = ["multimedia", "framework", "artificial-intelligence", "pipeline", "d
 [tool.poetry.dependencies]
 python = ">=3.9"
 tensorflow = "^2.13.0"
+numpy = "^1.24.3"
 pipeless-ai = "^0.1.0"
 
 [build-system]

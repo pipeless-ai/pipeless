@@ -1,4 +1,4 @@
-# Multi pose estimation model
+# Multi-pose estimation model
 
 Input: RGB frame
 Output:
