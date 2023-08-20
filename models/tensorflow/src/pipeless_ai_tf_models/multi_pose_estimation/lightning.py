@@ -9,7 +9,7 @@ model_url = 'https://tfhub.dev/google/lite-model/movenet/multipose/lightning/tfl
 class MultiPoseEstimationLightning(TfLiteModel):
 
     def __init__(self):
-        super().__init__(model_url)
+        super().__init__(model_url=model_url)
 
     def prepare_input(self, rgb_frame):
         self.original_image_shape = rgb_frame.shape
