@@ -1,15 +1,18 @@
 import tensorflow as tf
 import math
 import numpy as np
+import pkg_resources
 
 from pipeless_ai_tf_models.tflite import TfLiteModel
 
-model_url = 'https://tfhub.dev/google/lite-model/movenet/multipose/lightning/tflite/float16/1?lite-format=tflite'
+model_path = pkg_resources.resource_filename('pipeless_ai_tf_models.multi_pose_estimation', 'MultiPoseEstimationLightning.tflite')
 
 class MultiPoseEstimationLightning(TfLiteModel):
-
+    """
+    Model Ref: https://tfhub.dev/google/lite-model/movenet/multipose/lightning/tflite/float16/1?lite-format=tflite
+    """
     def __init__(self):
-        super().__init__(model_url=model_url)
+        super().__init__(model_path=model_path)
 
     def prepare_input(self, rgb_frame):
         self.original_image_shape = rgb_frame.shape
