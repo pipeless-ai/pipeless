@@ -75,6 +75,10 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
             #       by saving the n_workers config option
             logger.info('Notifying EOS to worker')
             w_socket.ensure_send(m_msg)
+
+        if config.get_output().get_video().get_uri_protocol() == 'file':
+            # Stop after the first stream when using an output file
+            loop.quit()
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
@@ -226,9 +230,9 @@ def input(config_dict):
     finally:
         logger.info('Closing pipeline')
         pipeline.set_state(Gst.State.NULL)
-        logger.info('Pipeline closed')
         # Rettreive and close the sockets
         m_socket = InputOutputSocket('w')
         m_socket.close()
         s_push  = InputPushSocket()
         s_push.close()
+        logger.info('Input finished. Please wait for workers and output.')
