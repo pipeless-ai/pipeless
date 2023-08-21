@@ -16,11 +16,11 @@ class ComponentFilter(logging.Filter):
 def create_basic_logger(level):
     FORMAT = '- %(component)s - %(message)s'
     rich_handler = RichHandler(markup=True)
-
-    logging.basicConfig(
-        level=level, format=FORMAT, datefmt="[%X]", handlers=[rich_handler]
-    )
+    formatter = logging.Formatter(FORMAT, datefmt="%X")
+    rich_handler.setFormatter(formatter)
     logger = logging.getLogger("rich")
+    logger.addHandler(rich_handler)
+
     return logger
 
 logger = create_basic_logger('DEBUG')
