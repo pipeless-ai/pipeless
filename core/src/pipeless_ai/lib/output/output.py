@@ -309,6 +309,11 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, output: Output):
     if mtype == Gst.MessageType.EOS:
         logger.info("End of stream reached.")
         output.remove_pipeline()
+
+        config = Config(None)
+        if config.get_output().get_video().get_uri_protocol() == 'file':
+            # Stop after the first stream when using an output file
+            output.get_mainloop().quit()
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
@@ -377,3 +382,4 @@ def output(config_dict):
         m_socket.close()
         r_socket = OutputPullSocket()
         r_socket.close()
+        logger.info('Output finished.')

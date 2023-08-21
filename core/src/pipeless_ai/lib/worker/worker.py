@@ -80,15 +80,19 @@ def worker(config_dict, user_module_path):
             while continue_worker:
                 continue_worker = fetch_and_process(user_app)
             user_app._PipelessApp__after()
+            
+            if config.get_output().get_video().get_uri_protocol() == 'file':
+               # Stop after the first stream when using an output file
+               break
     except KeyboardInterrupt:
         pass
     except Exception:
         traceback.print_exc()
     finally:
-        logger.info('Worker finished!')
-        # Retreive and close the sockets
+        # Retrieve and close the sockets
         logger.debug('Cleaning sockets')
         r_socket = InputPullSocket()
         r_socket.close()
         s_socket = OutputPushSocket()
         s_socket.close()
+        logger.info('Worker finished. Please wait for the output.')
