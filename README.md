@@ -149,11 +149,11 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `input.address.host` | Host where the input component is running | `localhost` (string) | `PIPELESS_INPUT_ADDRESS_HOST` |
 | `input.address.port` | Port of the input component process | `1234` (int) | `PIPELESS_INPUT_ADDRESS_PORT` |
 | `input.video.enable` | Whether to enable to video input | `true` (boolean) | `PIPELESS_INPUT_VIDEO_ENABLE` |
-| `input.video.uri`    | Uri of the input video to process. **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_INPUT_VIDEO_URI` |
+| `input.video.uri`    | Uri of the input video to process or `v4l2` to use device webcam/tv card. URIs **Must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_INPUT_VIDEO_URI` |
 | `output.address.host` | Host where the output component is running | `localhost` (string) | `PIPELESS_OUTPUT_ADDRESS_HOST` |
 | `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
 | `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
-| `output.video.uri`    | `screen` to see video directly on the device screen, or the uri where to send the processed output video. The URI **must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
+| `output.video.uri`    | `screen` to see video directly on the device screen, or the URI where to send the processed output video. URIs **must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
 
 ## Current state 📌
 
@@ -163,8 +163,12 @@ Pipeless is in an alpha state. Below you can find the fields currently supported
 
 For the input media we support almost any protocol and format (with several codecs). If you need a format that is not supported we appreacite the opening of a feature request or pull request.
 
-Supported input protocols: `file`, `http(s)`, `rtmp`, `rtsp`, `rtp`, `tcp`, `udp`, `ftp`, ...
+Supported input protocols: `v4l2` (for device webcam), `file`, `http(s)`, `rtmp`, `rtsp`, `rtp`, `tcp`, `udp`, `ftp`, ...
 Supported input formats: `mp4`, `webm`, `mkv`, ... (several codecs supported for all of them)
+
+> NOTE: When using `v4l2` as input URI to read from device webcam, the output URI **must** be `screen`.
+
+> IMPORTANT: `v4l2` as input is supported in core versions >= `0.1.3-alpha`
 
 The following table describes the supported output protocols and formats. New output protocols and formats are added constantly.
 

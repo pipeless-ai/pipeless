@@ -20,7 +20,7 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
         logger.error('Sample is None!')
         return Gst.FlowReturn.ERROR # TODO: We should return a different status if we want to leave the app running forever and being able to recover from flows
 
-    logger.debug(f'Sample caps: {sample.get_caps()}')
+    logger.debug(f'Sample caps: {sample.get_caps().to_string()}')
 
     buffer = sample.get_buffer()
     if buffer is None:
@@ -113,7 +113,7 @@ def on_pad_upstream_event(pad, info, user_data):
     caps = pad.get_current_caps()
     if caps is not None:
         # Caps negotiation is complete, notify new stream to output component
-        logger.debug(f'[green]uridecodebin pad "{pad.get_name()}" with caps: {caps}[/green]')
+        logger.info(f'[green]dynamic source pad "{pad.get_name()}" with caps:[/green] {caps.to_string()}')
         m_socket = InputOutputSocket('w')
         m_msg = StreamCapsMsg(caps.to_string())
         m_socket.send(m_msg.serialize())
@@ -129,6 +129,76 @@ def handle_caps_change(pad):
 def on_pad_added(element, pad, *callbacks):
     for callback in callbacks:
         callback(pad)
+
+def get_input_bin(uri):
+    """
+    Creates the appropiate input bin depending on the configuration
+    """
+    bin = Gst.Bin.new("source-bin")
+    if uri == 'v4l2':
+        # Input from webcam
+        v4l2src = Gst.ElementFactory.make("v4l2src", "source")
+        videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+        videoscale = Gst.ElementFactory.make("videoscale", "videoscale")
+        # Webcam resolutions are not standard and we can't read the webcam caps,
+        # force a hardcoded resolution so that we annouce a correct resolution to the output.
+        forced_size_str = 'video/x-raw,width=1280,height=720'
+        capsfilter = Gst.ElementFactory.make("capsfilter", "capsfilter")
+        capsfilter.set_property("caps", Gst.Caps.from_string(forced_size_str))
+
+        for elem in [v4l2src, videoconvert, videoscale, capsfilter]:
+            bin.add(elem)
+
+        # Link elements statically
+        if not v4l2src.link(videoconvert):
+            logger.error('Error linking v4l2src to videoconvert')
+            sys.exit(1)
+        if not videoconvert.link(videoscale):
+            logger.error('Error linking videoconvert to videoscale')
+            sys.exit(1)
+        if not videoscale.link(capsfilter):
+            logger.error('Error linking videoscale to capsfilter')
+            sys.exit(1)
+
+        # Create ghost pads to be able to plug other components
+        #ghostpad_src = Gst.GhostPad.new("src", capsfilter.get_static_pad("src"))
+        ghostpad_src = Gst.GhostPad.new("src", capsfilter.get_static_pad("src"))
+        bin.add_pad(ghostpad_src)
+
+        # v4l2src doesn't have caps propert. Notify the output about the new stream
+        forced_caps_str = f'{forced_size_str},format=RGB,framerate=1/30'
+        m_socket = InputOutputSocket('w')
+        m_msg = StreamCapsMsg(forced_caps_str)
+        m_socket.send(m_msg.serialize())
+    else:
+        # Use uridecodebin by default
+        uridecodebin = Gst.ElementFactory.make("uridecodebin3", "source")
+        videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+        for elem in [uridecodebin, videoconvert]:
+            bin.add(elem)
+
+        uridecodebin.set_property("uri", uri)
+
+        # Uridecodebin uses dynamic linking (creates pads on new streams detected)
+        videoconvert_sink_pad = videoconvert.get_static_pad("sink")
+        def pad_added_callback(pad):
+            if not videoconvert_sink_pad.is_linked():
+                logger.info('Linking uridecodebin pad to videoconvert pad')
+                pad.link(videoconvert_sink_pad) # uridecoder -> videoconvert -> appsink
+            else:
+                logger.warning('Video converter pad is already linked. Skipping uridecoder link')
+
+        uridecodebin.connect("pad-added", lambda element, pad:
+            on_pad_added(
+                element, pad, pad_added_callback, handle_caps_change
+            )
+        )
+
+        # Create ghost pads to be able to plug other components
+        ghostpad_src = Gst.GhostPad.new("src", videoconvert.get_static_pad("src"))
+        bin.add_pad(ghostpad_src)
+
+    return bin
 
 def input(config_dict):
     update_logger_component('INPUT')
@@ -148,18 +218,11 @@ def input(config_dict):
     # We will force RBG on the sink and videoconvert takes care of
     # converting between space colors negotiating caps automatically.
     # Ref: https://gstreamer.freedesktop.org/documentation/tutorials/basic/handy-elements.html?gi-language=c#videoconvert
-    uridecodebin = Gst.ElementFactory.make("uridecodebin3", "uridecodebin")
-    videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+    input_bin = get_input_bin(config.get_input().get_video().get_uri())
     appsink = Gst.ElementFactory.make("appsink", "appsink")
 
     if not pipeline:
         logger.error('Failed to create pipeline')
-        sys.exit(1)
-    if not uridecodebin:
-        logger.error('Failed to create uridecodebin')
-        sys.exit(1)
-    if not videoconvert:
-        logger.error('Failed to create videoconvert')
         sys.exit(1)
     if not appsink:
         logger.error("Failed to create appsink.")
@@ -169,35 +232,16 @@ def input(config_dict):
     appsink.set_property("emit-signals", True)
     appsink.connect("new-sample", on_new_sample)
     # Force RGB output in sink
-    caps = Gst.Caps.from_string("video/x-raw,format=RGB")
-    appsink.set_property("caps", caps)
+    sink_caps = Gst.Caps.from_string("video/x-raw,format=RGB")
+    appsink.set_property("caps", sink_caps)
 
     # Add elemets to the pipeline
-    for elem in [uridecodebin, videoconvert, appsink]: pipeline.add(elem)
+    for elem in [input_bin, appsink]: pipeline.add(elem)
 
-    # Link static elements (fixed number of pads): uridecoder (linked later) -> videoconvert -> appsink
-    if not videoconvert.link(appsink):
-        logger.error("Failed to link appsink to videoconvert")
+    # Link static elements (fixed number of pads): input_bin -> appsink
+    if not input_bin.link(appsink):
+        logger.error("Error linking input bin to appsink")
         sys.exit(1)
-
-    videoconvert_sink_pad = videoconvert.get_static_pad("sink")
-    # Link dynamic elements (dynamic number of pads)
-    # uridecodebin creates pads for each stream found in the uri (ex: video, audio, subtitles)
-    uridecodebin.set_property("uri", config.get_input().get_video().get_uri())
-    def pad_added_callback(pad):
-        if not videoconvert_sink_pad.is_linked():
-            logger.info('Linking uridecoderbin pad to videoconvert pad')
-            pad.link(videoconvert_sink_pad) # uridecoder -> videoconvert -> appsink
-        else:
-            logger.warning('Video converter pad is already linked. Skipping uridecoder link')
-
-    uridecodebin.connect(
-        "pad-added",
-        lambda element, pad:
-          on_pad_added(
-            element, pad, pad_added_callback, handle_caps_change
-        )
-    )
 
     loop = GLib.MainLoop()
 
@@ -213,10 +257,6 @@ def input(config_dict):
         sys.exit(1)
 
     try:
-        logger.debug(f'uridecodebin state: {uridecodebin.get_state(5)}')
-        logger.debug(f'videoconverter state: {videoconvert.get_state(5)}')
-        logger.debug(f'appsink state: {appsink.get_state(5)}')
-
         # Start socket to wait all components connections
         s_push  = InputPushSocket() # Listener
         m_socket = InputOutputSocket('w') # Waits for output

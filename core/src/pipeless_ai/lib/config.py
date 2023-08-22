@@ -41,6 +41,10 @@ class Video():
             # To reproduce videos locally directly on the screen
             self._protocol = 'screen'
             self._location = 'screen'
+        elif self._uri == 'v4l2':
+            # When reading streams from v4l2 devices like webcams and tv cards
+            self._protocol = 'v4l2'
+            self._location = 'v4l2'
         else:
             try:
                 uri_split = self._uri.split('://')
