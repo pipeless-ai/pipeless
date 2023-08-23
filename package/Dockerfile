@@ -1,4 +1,4 @@
-FROM bitnami/minideb:bullseye
+FROM bitnami/python:3.10
 RUN install_packages libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
     libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
@@ -7,10 +7,17 @@ RUN install_packages libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
     gstreamer1.0-qt5 gstreamer1.0-pulseaudio
 
 # Hack to allow mp4 files without errors. Note this library provides hardware acceleration, so we need an alternative fix.
-# Test it by running this command: GST_DEBUG="*:3,GstVaapiPostproc:7,GstGLUploadElement:7" gst-launch-1.0 uridecodebin uri=<path>.mp4 ! glimagesink
-RUN apt-get remove gstreamer1.0-vaapi
-# Gstreamer python bindings
-RUN install_packages python3-gi python3-gst-1.0
+#RUN apt-get remove gstreamer1.0-vaapi
 
-# Install poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN install_packages libcairo2-dev libgirepository1.0-dev
+
+# Allow python to install packages as nonroot
+RUN mkdir /.local && chmod g+w /.local
+USER 1001
+RUN pip install pipeless-ai pipeless-ai-cli
+# Allow to execute commands installed with pip
+ENV PATH="${PATH}:/.local/bin"
+
+WORKDIR /app
+
+ENTRYPOINT ["pipeless"]
