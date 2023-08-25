@@ -64,6 +64,26 @@ def recv_error_handler(func):
 
     return recv_handler
 
+def wait_socket_dial(socket, addr):
+    '''
+    Waits until the socket connects to the provided addr
+    '''
+    connected = False
+    while not connected:
+        try:
+            socket.dial(addr, block=True)
+            connected = True
+        except ConnectionRefused:
+            logger.warning(f'[orange3]Connection to {addr} failed. Connection Refushed. Retrying...[/orange3]')
+            time.sleep(1)
+        except TryAgain:
+            logger.warning(f'[orange3]Connection to {addr} failed. Try Again. Retrying...[/orange3]')
+            time.sleep(1)
+        except Exception as e:
+            logger.error(f'[red]Failed to connect to {addr}. {e}')
+            sys.exit(1)
+
+
 class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
@@ -74,7 +94,7 @@ class InputOutputSocket(metaclass=Singleton):
         - mode: 'w' for the input (write). 'r' for the output (read)
         """
         config = Config(None) # Get the already existing config instance
-        address = config.get_input().get_address()
+        address = config.get_output().get_address()
         # Make this connection to run on the provided port+1.
         # The provided port is for other type of connection
         port = str(address.get_port() + 1)
@@ -83,15 +103,8 @@ class InputOutputSocket(metaclass=Singleton):
             self._socket = Pair0()
             self._socket.send_timeout = send_timeout
             self._name = 'InputOutputSocket-Write'
-
-            connected = False
-            while not connected:
-                try:
-                    self._socket.dial(self._addr, block=True)
-                    connected = True
-                except ConnectionRefused:
-                    logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
-                    time.sleep(1)
+            
+            wait_socket_dial(self._socket, self._addr)
         elif mode == 'r':
             self._socket = Pair0(listen=self._addr)
             self._socket.recv_timeout = read_timeout
@@ -160,14 +173,7 @@ class OutputPushSocket(metaclass=Singleton):
         self._socket.send_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'OutputPushSocket'
 
-        connected = False
-        while not connected:
-            try:
-                self._socket.dial(self._addr, block=True)
-                connected = True
-            except ConnectionRefused:
-                logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
-                time.sleep(1)
+        wait_socket_dial(self._socket, self._addr)
 
     @send_error_handler
     def send(self, msg):
@@ -195,14 +201,7 @@ class InputPullSocket(metaclass=Singleton):
         self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'InputPullSocket'
 
-        connected = False
-        while not connected:
-            try:
-                self._socket.dial(self._addr, block=True)
-                connected = True
-            except ConnectionRefused:
-                logger.warning(f'[orange3]Connection to {self._addr} failed. Retrying...[/orange3]')
-                time.sleep(1)
+        wait_socket_dial(self._socket, self._addr) 
 
     @recv_error_handler
     def recv(self):
