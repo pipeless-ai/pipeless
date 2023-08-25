@@ -1,0 +1,42 @@
+version: "2"
+
+services:
+  input:
+    image: miguelaeh/pipeless:latest
+    command: ['run', 'input']
+    volumes:
+      - '${APP_DIR}:/app'
+    environment:
+      - PIPELESS_INPUT_ADDRESS_HOST=input
+      - PIPELESS_INPUT_ADDRESS_PORT=1234
+      - PIPELESS_OUTPUT_ADDRESS_HOST=output
+      - PIPELESS_OUTPUT_ADDRESS_PORT=1237
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
+
+  output:
+    image: miguelaeh/pipeless:latest
+    command: ['run', 'output']
+    volumes:
+      - '${APP_DIR}:/app'
+    environment:
+      - PIPELESS_INPUT_ADDRESS_HOST=input
+      - PIPELESS_INPUT_ADDRESS_PORT=1234
+      - PIPELESS_OUTPUT_ADDRESS_HOST=output
+      - PIPELESS_OUTPUT_ADDRESS_PORT=1237
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
+
+  worker:
+    image: miguelaeh/pipeless:latest
+    command: ['run', 'worker']
+    volumes:
+      - '${APP_DIR}:/app'
+    environment:
+      - PIPELESS_INPUT_ADDRESS_HOST=input
+      - PIPELESS_INPUT_ADDRESS_PORT=1234
+      - PIPELESS_OUTPUT_ADDRESS_HOST=output
+      - PIPELESS_OUTPUT_ADDRESS_PORT=1237
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
+      - PIPELESS_USER_PYTHON_PACKAGES=opencv-python

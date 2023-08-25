@@ -10,7 +10,7 @@ gi.require_version('GstApp', '1.0')
 from gi.repository import Gst, GstApp, GLib
 
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
-from pipeless_ai.lib.connection import InputOutputSocket, InputPushSocket
+from pipeless_ai.lib.connection import InputOutputSocket, InputPushSocket, WorkerReadySocket
 from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, StreamCapsMsg, StreamTagsMsg
 
@@ -250,16 +250,20 @@ def input(config_dict):
     bus.add_signal_watch()
     bus.connect("message", on_bus_message, loop)
 
-    logger.info('Starting pipeline')
-    ret = pipeline.set_state(Gst.State.PLAYING)
-    if ret == Gst.StateChangeReturn.FAILURE:
-        logger.error("[red]Unable to set the pipeline to the playing state.[/red]")
-        sys.exit(1)
-
     try:
         # Start socket to wait all components connections
         s_push  = InputPushSocket() # Listener
+        w_socket = WorkerReadySocket('input')
+        logger.info('Waiting first worker to be available')
+        w_socket.recv() # Wait for the first worker to appear
         m_socket = InputOutputSocket('w') # Waits for output
+        logger.info('First worker ready')
+
+        logger.info('Starting pipeline')
+        ret = pipeline.set_state(Gst.State.PLAYING)
+        if ret == Gst.StateChangeReturn.FAILURE:
+            logger.error("[red]Unable to set the pipeline to the playing state.[/red]")
+            sys.exit(1)
 
         loop.run()
     except KeyboardInterrupt:
