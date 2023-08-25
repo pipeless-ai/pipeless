@@ -24,4 +24,4 @@ RUN pip install pipeless-ai pipeless-ai-cli
 
 WORKDIR /app
 
-ENTRYPOINT ["pipeless"]
+ENTRYPOINT ["/entrypoint.sh"]
