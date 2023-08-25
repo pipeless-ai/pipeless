@@ -4,7 +4,7 @@ import traceback
 import numpy as np
 
 from pipeless_ai.lib.config import Config
-from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket
+from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket, WorkerReadySocket
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
 
@@ -70,6 +70,10 @@ def worker(config_dict, user_module_path):
     if not user_module_path:
         logger.error('Missing app .py file path')
         sys.exit(1)
+
+    logger.info('Notifying worker ready to input')
+    w_socket = WorkerReadySocket('worker')
+    w_socket.send(b'ready') # Notify the input that a worker is available
 
     try:
         while True:

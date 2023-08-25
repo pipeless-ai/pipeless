@@ -240,3 +240,49 @@ class OutputPullSocket(metaclass=Singleton):
 
     def get_socket_name(self):
         return self._name
+
+class WorkerReadySocket(metaclass=Singleton):
+    """
+    Allows the input to wait for the first worker before starting to send data
+    When the worker needs to install user packages it takes longer to start
+    and the data send by the input is lost if we don't wait for at least the first worker
+    """
+    def __init__(self, mode):
+        """
+        Parameters:
+        - mode: 'input' for the input. 'worker' for the worker
+        """
+        config = Config(None) # Get the already existing config instance
+        address = config.get_input().get_address()
+        # Make this connection to run on the provided port+2.
+        # The provided port is for other type of connection
+        port = str(address.get_port() + 2)
+        self._addr = f'tcp://{address.get_host()}:{port}'
+        if mode == 'worker':
+            self._socket = Pair0()
+            self._name = 'WorkerReadySocket-Worker'
+
+            wait_socket_dial(self._socket, self._addr)
+        elif mode == 'input':
+            self._socket = Pair0(listen=self._addr)
+            self._name = 'WorkerReadySocket-Input'
+        else:
+            raise 'Wrong mode for WorkerReadySocket'
+
+    @send_error_handler
+    def send(self, msg):
+        # Blocking send call. We always want to ensure the messages
+        # from input to output arrive because they change the pipelines
+        self._socket.send(msg)
+
+    @recv_error_handler
+    def recv(self):
+        # Only the input will receive, and once the first worker send, we won't receive again
+        # so we create a blocking call
+        return self._socket.recv()
+
+    def close(self):
+        self._socket.close()
+
+    def get_socket_name(self):
+        return self._name
