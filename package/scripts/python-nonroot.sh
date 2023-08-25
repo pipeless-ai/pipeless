@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -o errexit
+set -o nounset
+set -o pipefail
+# set -o xtrace # Uncomment this line for debugging purposes
+
 dirs=(
     # Allow python to install packages as nonroot
     "/.local"

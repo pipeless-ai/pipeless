@@ -1,6 +1,6 @@
 # Pipeless container library
 
-this directory contains files to build the Pipeless container images.
+This directory contains the source files to build the Pipeless container images.
 
 The container images provide a way to run Pipeless out-of-the box without having to deal with dependencies.
 
@@ -35,8 +35,13 @@ docker run --rm miguelaeh/pipeless run input
 Sometimes, your app may require python packages that are not installed by default into the pipeless container. You can use the `PIPELESS_USER_PYTHON_PACKAGES` variable to automatically install them on start. You can specify them as a list separated by commas (`,`), semicolons (`;`) or spaces (` `). For example:
 
 ```console
-docker run --rm -e "PIPELESS_USER_PYTHON_PACKAGES=opencv-python;some_other_package"  miguelaeh/pipeless run worker
+docker run --rm -e "PIPELESS_USER_PYTHON_PACKAGES=opencv-python;some_other_package" miguelaeh/pipeless run worker
 ```
+
+### Important Notes
+
+If you want to store the processed media to a file, it must be done in a path under `/app`. For example, setting `PIPELESS_OUTPUT_VIDEO_URI=file:///app/my_video.mp4`.
+Futhermore, the directory mounted at `/app` (i.e. `/your/app/dir` on the above examples) must have group `root` with write permissions.
 
 ## Docker compose usage
 
@@ -53,8 +58,3 @@ Stop the docker compose:
 ```console
 APP_DIR=/your/app/dir docker compose down -v
 ```
-
-## Important Notes 
-
-If you want to store the processed media to a file, it must be done in a path under `/app`. For example, setting `PIPELESS_OUTPUT_VIDEO_URI=file:///app/my_video.mp4`.
-Futhermore, the directory mounted at `/app` (i.e. `/your/app/dir` on the above examples) must have group `root` with write permissions.

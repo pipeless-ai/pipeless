@@ -2,7 +2,7 @@ version: "2"
 
 services:
   input:
-    image: pipeless:latest
+    image: miguelaeh/pipeless:latest
     command: ['run', 'input']
     volumes:
       - '${APP_DIR}:/app'
@@ -15,7 +15,7 @@ services:
       - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
 
   output:
-    image: pipeless:latest
+    image: miguelaeh/pipeless:latest
     command: ['run', 'output']
     volumes:
       - '${APP_DIR}:/app'
@@ -28,7 +28,7 @@ services:
       - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
 
   worker:
-    image: pipeless:latest
+    image: miguelaeh/pipeless:latest
     command: ['run', 'worker']
     volumes:
       - '${APP_DIR}:/app'

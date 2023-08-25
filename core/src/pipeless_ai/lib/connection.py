@@ -83,7 +83,6 @@ def wait_socket_dial(socket, addr):
             logger.error(f'[red]Failed to connect to {addr}. {e}')
             sys.exit(1)
 
-
 class InputOutputSocket(metaclass=Singleton):
     """
     nng socket to send messages from the input to the output
