@@ -10,7 +10,7 @@ n_workers: 1
 output:
   address:
     host: localhost
-    port: 1236
+    port: 1237
   video:
     enable: true
     uri: screen
