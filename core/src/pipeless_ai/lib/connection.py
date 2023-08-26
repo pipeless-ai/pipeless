@@ -27,12 +27,14 @@ def send_error_handler(func):
         socket_name = args[0].get_socket_name()
         try:
             func(*args, **kwargs)
+            return True # Inidicate data was sent
         except Timeout:
             logger.warning(f"Timeout sending message on socket: {socket_name}")
+            return False # Inidicate no data was sent
         except TryAgain:
             # For non-blocking calls
             logger.debug(f"[bright_yellow]No data written, try again on: {socket_name}[/bright_yellow]")
-            return None
+            return False # Inidicate no data was sent
         except ClosedException as e:
             logger.error(f"Trying to write to a closed socket: {socket_name}")
             # Forward to ensure resource cleanup
@@ -102,7 +104,7 @@ class InputOutputSocket(metaclass=Singleton):
             self._socket = Pair0()
             self._socket.send_timeout = send_timeout
             self._name = 'InputOutputSocket-Write'
-            
+
             wait_socket_dial(self._socket, self._addr)
         elif mode == 'r':
             self._socket = Pair0(listen=self._addr)
@@ -149,9 +151,11 @@ class InputPushSocket(metaclass=Singleton):
         self._socket.send(msg, block=False)
 
     @send_error_handler
-    def ensure_send(self, msg):
+    def __block_send(self, msg):
         # Blocking send, we must be sure the message is sent
         self._socket.send(msg)
+    def ensure_send(self, msg):
+        while not self.__block_send(msg): logger.warning('Retrying send...')
 
     def close(self):
         self._socket.close()
@@ -180,6 +184,13 @@ class OutputPushSocket(metaclass=Singleton):
         # Don't worry if we miss a message from time to time
         self._socket.send(msg, block=False)
 
+    @send_error_handler
+    def __block_send(self, msg):
+        # Blocking send, we must be sure the message is sent
+        self._socket.send(msg)
+    def ensure_send(self, msg):
+        while not self.__block_send(msg): logger.warning('Retrying send...')
+
     def close(self):
         self._socket.close()
 
@@ -200,7 +211,7 @@ class InputPullSocket(metaclass=Singleton):
         self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
         self._name = 'InputPullSocket'
 
-        wait_socket_dial(self._socket, self._addr) 
+        wait_socket_dial(self._socket, self._addr)
 
     @recv_error_handler
     def recv(self):

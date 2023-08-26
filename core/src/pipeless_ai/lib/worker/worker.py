@@ -42,7 +42,7 @@ def fetch_and_process(user_app):
             s_socket.send(msg.serialize())
         elif isinstance(msg, EndOfStreamMsg):
             logger.info('Worker iteration finished. Notifying output. About to reset worker')
-            s_socket.send(raw_msg) # Forward the message to the output
+            s_socket.ensure_send(raw_msg) # Forward the message to the output
             return False # Reset worker
         else:
             logger.error(f'Unsupported message type: {msg.type}')
@@ -84,7 +84,7 @@ def worker(config_dict, user_module_path):
             while continue_worker:
                 continue_worker = fetch_and_process(user_app)
             user_app._PipelessApp__after()
-            
+
             if config.get_output().get_video().get_uri_protocol() == 'file':
                # Stop after the first stream when using an output file
                break
