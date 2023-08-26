@@ -275,8 +275,7 @@ def input(config_dict):
         logger.info('Closing pipeline')
         pipeline.set_state(Gst.State.NULL)
         # Rettreive and close the sockets
-        m_socket = InputOutputSocket('w')
         m_socket.close()
-        s_push  = InputPushSocket()
         s_push.close()
+        w_socket.close()
         logger.info('Input finished. Please wait for workers and output.')

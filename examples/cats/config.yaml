@@ -10,7 +10,7 @@ input:
 output:
   address:
     host: localhost
-    port: 1236
+    port: 1237
   video:
     enable: true
     uri: file:///home/example/path/pipeless/examples/cats/cats-output.mp4

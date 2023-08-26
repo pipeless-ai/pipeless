@@ -362,12 +362,12 @@ def output(config_dict):
     loop = GLib.MainLoop()
     output.set_mainloop(loop)
 
-    GLib.timeout_add(0, lambda: handle_input_messages(output))
-
     try:
         # Start socket listeners
         m_socket = InputOutputSocket('r')
         r_socket = OutputPullSocket()
+
+        GLib.timeout_add(0, lambda: handle_input_messages(output))
 
         loop.run()
     except KeyboardInterrupt:
@@ -378,8 +378,6 @@ def output(config_dict):
     finally:
         logger.info('Closing pipeline')
         # Retreive and close the sockets
-        m_socket = InputOutputSocket('r')
         m_socket.close()
-        r_socket = OutputPullSocket()
         r_socket.close()
         logger.info('Output finished.')
