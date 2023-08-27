@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pipeless-ai-tf-models"
+version = "0.1.0"
+description = "A collection of TensorFlow based models for the Pipeless framework"
+authors = ["Miguel A. Cabrera Minagorri <devgorri@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://pipeless.ai"
+repository = "https://github.com/miguelaeh/pipeless"
+documentation = "https://github.com/miguelaeh/pipeless"
+keywords = ["multimedia", "framework", "artificial-intelligence", "pipeline", "developer-tools"]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+tensorflow = "^2.12.0"
+numpy = "^1.24.0 <1.25.0"
+pipeless-ai = "^0.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
