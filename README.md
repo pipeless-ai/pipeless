@@ -16,12 +16,15 @@ With just with these simple lines of code:
 
 - [Requirements](#requirements-%EF%B8%8F)
 - [Installation](#installation-%EF%B8%8F)
+   - [Using Docker](#using-docker)
 - [Getting started](#getting-started-)
    - [Create a Project](#create-a-project)
    - [Project Structure](#project-structure)
    - [Media Processing](#media-processing)
    - [Run Your App](#run-your-app)
    - [Configuration](#configuration)
+- [Ready to use models](#ready-to-use-models)
+   - [Tensorflow models](#tensorflow-based-models)
 - [Current State](#current-state-)
 - [Troubleshooting](#troubleshooting-)
 - [Examples](#examples-)
@@ -62,6 +65,16 @@ pipeless --help
 ```
 
 > NOTE: you may need to reload your shell for the new command to be available
+
+### Using docker
+
+Instead of installing locally, you can alternatively use docker and save the time of installing dependencies:
+
+```console
+docker run miguelaeh/pipeless --help
+```
+
+Find the whole container documentation [here](/package/README.md).
 
 ## Getting Started 🚀
 
@@ -154,6 +167,14 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
 | `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
 | `output.video.uri`    | `screen` to see video directly on the device screen, or the URI where to send the processed output video. URIs **must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
+
+## Ready to use models
+
+We provide some modules containing a growing set of ready to use models for common cases. You can use them to develop your applications as fast as writing a couple lines of code. Each module has its own documentation, and the whole set of modules can be found [here](/models/README.md).
+
+### Tensorflow based models
+
+* [Multi-pose estimation](/models/tensorflow/src/pipeless_ai_tf_models/multi_pose_estimation/): Detects up to 6 people. Returns bounding boxes for the people and 17 keypoints (nose, left eye, right eye, left ear, ...)
 
 ## Current state 📌
 
