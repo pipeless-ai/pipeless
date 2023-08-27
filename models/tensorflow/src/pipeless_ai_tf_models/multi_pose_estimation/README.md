@@ -19,3 +19,5 @@ for bbox in bboxes:
 for keypoint in keypoints:
     cv2.circle(rgb_image, (keypoint[0], keypoint[1]), 5, (255, 0, 255), -1)
 ```
+
+> For a complete working example using Pipeless check [this](https://github.com/miguelaeh/pipeless/tree/main/examples/pose)

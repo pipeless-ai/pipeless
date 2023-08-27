@@ -37,7 +37,7 @@ class TfLiteModel(TfLiteModelInterface):
         else:
             self.signature = self.interpreter.get_signature_runner()
 
-    def prepare_input(self, **kwargs):
+    def prepare_input(self, rgb_frame):
         """
         To be implemented by the specific model
         Must return the processed input data
@@ -61,6 +61,9 @@ class TfLiteModel(TfLiteModelInterface):
         pass
 
     def invoke_inference(self, rgb_frame):
+        """
+        Method to be called by the users
+        """
         frame_input_tensor = self.prepare_input(rgb_frame)
         raw_output = self.infer(frame_input_tensor)
         output = self.process_output(raw_output)

@@ -1,10 +1,11 @@
 import cv2
-import numpy as np
-
-from pipeless_ai_tf_models.multi_pose_estimation.lightning import MultiPoseEstimationLightning
-mpe = MultiPoseEstimationLightning()
 
 rgb_image = cv2.imread('test.jpeg')
+
+from pipeless_ai_tf_models.multi_pose_estimation.lightning import MultiPoseEstimationLightning
+
+mpe = MultiPoseEstimationLightning()
+
 bboxes, keypoints = mpe.invoke_inference(rgb_image)
 
 for bbox in bboxes:

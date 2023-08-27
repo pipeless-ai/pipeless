@@ -2,6 +2,7 @@ import tensorflow as tf
 import math
 import numpy as np
 import pkg_resources
+import pdb
 
 from pipeless_ai_tf_models.tflite import TfLiteModel
 
@@ -16,9 +17,9 @@ class MultiPoseEstimationLightning(TfLiteModel):
 
     def prepare_input(self, rgb_frame):
         self.original_image_shape = rgb_frame.shape
-        image = tf.expand_dims(rgb_frame, axis=0)
+        rgb_frame_tensor = tf.convert_to_tensor(rgb_frame)
+        image = tf.expand_dims(rgb_frame_tensor, axis=0)
         resized_image, image_shape = resize_with_aspect_ratio(image, 256)
-        #image_tensor = tf.cast(resized_image, dtype=tf.uint8)
         input_tensor = tf.cast(resized_image, dtype=tf.uint8)
         return input_tensor
 
@@ -100,5 +101,7 @@ def resize_with_aspect_ratio(image, target_size):
         scaled_height = math.ceil(height * scale)
         image = tf.image.resize(image, [scaled_height, target_width])
         target_height = int(math.ceil(scaled_height / 32) * 32)
+
+    image = tf.convert_to_tensor(image)
     image = tf.image.pad_to_bounding_box(image, 0, 0, target_height, target_width)
     return (image,  (target_height, target_width))
