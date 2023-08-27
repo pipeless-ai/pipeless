@@ -1,0 +1,16 @@
+input:
+  address:
+    host: localhost
+    port: 1234
+  video:
+    enable: true
+    uri: file:///home/example/path/woman-walking.mp4
+log_level: INFO
+n_workers: 1
+output:
+  address:
+    host: localhost
+    port: 1237
+  video:
+    enable: true
+    uri: file:///home/example/path/output.mp4
