@@ -1,5 +1,4 @@
 log_level: INFO
-n_workers: 1
 input:
   address:
     host: localhost
@@ -14,3 +13,5 @@ output:
   video:
     enable: true
     uri: file:///home/example/path/pipeless/examples/cats/cats-output.mp4
+worker:
+  n_workers: 1

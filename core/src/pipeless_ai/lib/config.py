@@ -6,8 +6,8 @@ from pipeless_ai.lib.logger import logger
 
 ENV_PREFIX = 'PIPELESS'
 
-def prioritized_config(config, path, env_var_name, convert_to=str, required=False):
-    value = os.environ.get(env_var_name, None)
+def prioritized_config(config, path, env_var_name, convert_to=str, required=False, default=None):
+    value = os.environ.get(env_var_name, default)
     if value is None:
         try:
             value = config[path]
@@ -76,18 +76,33 @@ class Input():
 
 class Output():
     def __init__(self, output_dict):
-        """
-        When no output video URI is provided, the video is sent to the default
-        video output of the computer.
-        """
         self._video = Video(output_dict['video'], f'{ENV_PREFIX}_OUTPUT_VIDEO')
         # Address where the output component is running
         self._address = Address(output_dict['address'], f'{ENV_PREFIX}_OUTPUT_ADDRESS')
+        self._recv_buffer_size = prioritized_config(
+            output_dict, 'recv_buffer_size',
+            f'{ENV_PREFIX}_OUTPUT_RECV_BUFFER_SIZE', convert_to=int,
+            default=300) # 5 seconds of 60 pfs video
 
     def get_video(self):
         return self._video
     def get_address(self):
         return self._address
+    def get_recv_buffer_size(self):
+        return self._recv_buffer_size
+
+class Worker():
+    def __init__(self, worker_dict):
+        self._n_workers = prioritized_config(worker_dict, 'n_workers', f'{ENV_PREFIX}_WORKER_N_WORKERS', convert_to=int, required=True)
+        self._recv_buffer_size = prioritized_config(
+            worker_dict, 'recv_buffer_size',
+            f'{ENV_PREFIX}_WORKER_RECV_BUFFER_SIZE', convert_to=int,
+            default=300) # 5 seconds of 60 pfs video
+
+    def get_n_workers(self):
+        return self._n_workers
+    def get_recv_buffer_size(self):
+        return self._recv_buffer_size
 
 class Config(metaclass=Singleton):
     def __init__(self, config):
@@ -99,14 +114,14 @@ class Config(metaclass=Singleton):
 
         self._input = Input(config['input'])
         self._output = Output(config['output'])
-        self._n_workers = prioritized_config(config, 'n_workers', f'{ENV_PREFIX}_N_WORKERS', convert_to=int, required=True)
+        self._worker = Worker(config['worker'])
         logger.debug('[green]Configuration parsed[/green]')
 
     def get_input(self):
         return self._input
     def get_output(self):
         return self._output
+    def get_worker(self):
+        return self._worker
     def get_log_level(self):
         return self._log_level
-    def get_n_workers(self):
-        return self._n_workers

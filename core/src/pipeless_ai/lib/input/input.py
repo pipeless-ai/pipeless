@@ -69,7 +69,7 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
         m_msg = EndOfStreamMsg()
         m_msg = m_msg.serialize()
         config = Config(None)
-        for _ in range(config.get_n_workers()):
+        for _ in range(config.get_worker().get_n_workers()):
             # The socket is round robin, send to all workers
             # TODO: a broadcast socket for this is better for scaling
             #       by saving the n_workers config option

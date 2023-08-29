@@ -6,7 +6,6 @@ input:
     enable: true
     uri: file:///home/example/path/book-video.mp4
 log_level: INFO
-n_workers: 1
 output:
   address:
     host: localhost
@@ -14,3 +13,5 @@ output:
   video:
     enable: true
     uri: screen
+worker:
+  n_workers: 1

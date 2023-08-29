@@ -208,7 +208,7 @@ class InputPullSocket(metaclass=Singleton):
         self._socket = Pull0()
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
-        self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
+        self._socket.recv_buffer_size = config.get_worker().get_recv_buffer_size()
         self._name = 'InputPullSocket'
 
         wait_socket_dial(self._socket, self._addr)
@@ -231,12 +231,13 @@ class OutputPullSocket(metaclass=Singleton):
     """
     def __init__(self, timeout=500):
         config = Config(None) # Get the already existing config instance
-        address = config.get_output().get_address()
+        out_config = config.get_output()
+        address = out_config.get_address()
         self._addr = f'tcp://{address.get_address()}'
         self._socket = Pull0(listen=self._addr)
         self._socket.recv_timeout = timeout
         self._socket.recv_max_size = 0 # Unlimited receive size
-        self._socket.recv_buffer_size = 180 # 3 seconds of 60 pfs video
+        self._socket.recv_buffer_size = out_config.get_recv_buffer_size()
         self._name = 'OutputPullSocket'
 
     @recv_error_handler

@@ -162,7 +162,6 @@ To configure your app you can use either env vars or the config file (`config.ya
 | Option | Description | Value(s)/Type | Env Var |
 | ------ | ----------- | ------------- | ------- |
 | `log_level` | Level of the logging|  `DEBUG`, `INFO`, `WARN`, `ERROR` | `PIPELESS_LOG_LEVEL` |
-| `n_workers` | Number of workers deployed | int | `PIPELESS_N_WORKERS` |
 | `input.address.host` | Host where the input component is running | `localhost` (string) | `PIPELESS_INPUT_ADDRESS_HOST` |
 | `input.address.port` | Port of the input component process | `1234` (int) | `PIPELESS_INPUT_ADDRESS_PORT` |
 | `input.video.enable` | Whether to enable to video input | `true` (boolean) | `PIPELESS_INPUT_VIDEO_ENABLE` |
@@ -171,6 +170,9 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `output.address.port` | Port of the output component process | `1234` (int) | `PIPELESS_OUTPUT_ADDRESS_PORT` |
 | `output.video.enable` | Whether to enable to video output | `true` (boolean) | `PIPELESS_OUTPUT_VIDEO_ENABLE` |
 | `output.video.uri`    | `screen` to see video directly on the device screen, or the URI where to send the processed output video. URIs **must** include the protocol (`file://`, `https://`, `rtmp://`, etc) | string | `PIPELESS_OUTPUT_VIDEO_URI` |
+| `output.recv_buffer_size` | Size of the output socket reception buffer | `300` (int) | `PIPELESS_OUTPUT_RECV_BUFFER_SIZE` |
+| `worker.recv_buffer_size` | Size of the worker socket reception buffer | `300` (int) | `PIPELESS_WORKER_RECV_BUFFER_SIZE` |
+| `worker.n_workers` | Number of workers deployed | int | `PIPELESS_WORKER_N_WORKERS` |
 
 ## Ready to use models
 
@@ -250,3 +252,11 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 The Apache License 2.0 is a permissive open-source license that allows you to use, modify, and distribute this software for personal or commercial purposes. It comes with certain obligations, including providing attribution to the original authors and including the original license text in your distributions.
 
 For the full license text, please refer to the [Apache License 2.0](LICENSE).
+
+## Notable Changes
+
+### Core version `0.1.6` and CLI version `0.1.5`
+
+These versions include a new **optional** parameter to configure the reception buffers of the sockets, which is useful to adjust the buffer sizes to the processing time.
+
+With the above change, we also moved the **n_workers** option to the `worker` configuration section, which constitutes a **breaking change**. Since Pipeless is still in alpha, we are not increasing the major version.
