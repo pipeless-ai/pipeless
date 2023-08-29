@@ -21,7 +21,6 @@ def create_project(name: str):
     # TODO: should be able to override default config via CLI options
     default_config = {
         'log_level': 'INFO',
-        'n_workers': 1,
         'input': {
             'video': {
                 'enable': True,
@@ -41,7 +40,10 @@ def create_project(name: str):
                 'host': 'localhost',
                 'port': 1236
             },
-        }
+        },
+        'worker': {
+            'n_workers': 1,
+        },
     }
 
     try:
