@@ -1,10 +1,12 @@
-# Pipeless
+![Pipeless](assets/pipeless-logo-w300.png)
 
-Pipeless is an AI-focused open source multimedia framework. Developers can create and deploy applications that analyze and manipulate audio and video in real time in just minutes, allowing them to focus on their applications instead of on creating and maintaining processing pipelines.
+Pipeless is an open source multimedia framework with focus on computer vision.
+
+With Pipeless, developers can create and deploy applications that analyze and manipulate audio and video in real time in just minutes, allowing them to focus on their applications instead of on creating and maintaining multimedia pipelines.
 
 You can build applications in less than 15 lines of code thanks to the built-in models or you can easily bring your own models for complex use cases.
 
-It can be run either locally or in the cloud and can be easily deployed thanks to our container images.
+Pipeless run either locally or in the cloud and can be easily deployed thanks to our container images.
 
 For example, you can build thing like:
 
