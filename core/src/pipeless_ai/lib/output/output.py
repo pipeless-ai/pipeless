@@ -57,7 +57,7 @@ def create_sink(protocol, location):
         return sink
     elif protocol == 'rtmp':
         sink = Gst.ElementFactory.make("rtmpsink", "sink")
-        sink.set_property("location", location)
+        sink.set_property("location", f'{protocol}://{location}')
         return sink
     elif protocol == 'rtsp':
         sink = Gst.ElementFactory.make("rtspclientsink", "sink")
@@ -115,10 +115,37 @@ def get_processing_bin(protocol, location):
         else:
             logger.error('Unsupported file type. Try with a different extension.')
     elif protocol == "rtmp":
-        #"videoconvert ! x264enc ! flvmux streamable=true name=mux ! rtmpsink location={file_name}"
-        logger.error('Not implemented')
+        videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+        queue = Gst.ElementFactory.make("queue", "queue")
+        encoder = Gst.ElementFactory.make("x264enc", "encoder")
+        taginject = Gst.ElementFactory.make("taginject", "taginject")
+        muxer = Gst.ElementFactory.make("flvmux", "muxer")
+        for elem in [videoconvert, queue, encoder, taginject, muxer]:
+            bin.add(elem)
+
+        muxer.set_property("streamable", True)
+
+        if not videoconvert.link(queue):
+            logger.error("Error linking videoconvert to queue")
+            sys.exit(1)
+        if not queue.link(encoder):
+            logger.error("Error linking queue to encoder")
+            sys.exit(1)
+        if not encoder.link(taginject):
+            logger.error("Error linking encoder to taginject")
+            sys.exit(1)
+        if not taginject.link(muxer):
+            logger.error("Error linking taginject to muxer")
+            sys.exit(1)
+
+        # Create ghost pads to be able to plug other components
+        ghostpad_sink = Gst.GhostPad.new("sink", videoconvert.get_static_pad("sink"))
+        bin.add_pad(ghostpad_sink)
+        ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
+        bin.add_pad(ghostpad_src)
+
     elif protocol == 'screen':
-        queue1 = Gst.ElementFactory.make("queue", "queue1")
+        queue1 = Gst.ElementFactory.make("queue", "queue1") # TODO: is this queue required?
         videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         queue2 = Gst.ElementFactory.make("queue", "queue2")
         for elem in [queue1, videoconvert, queue2]: bin.add(elem)
