@@ -56,50 +56,6 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
 
     return Gst.FlowReturn.OK
 
-def on_bus_message(bus: Gst.Bus, msg: Gst.Message, loop: GLib.MainLoop):
-    """
-    Callback to manage bus messages
-    For example, when we receive a new-sample and return an error from
-    the processing, we can catch it and stop the pipeline here.
-    """
-    mtype = msg.type
-    if mtype == Gst.MessageType.EOS:
-        logger.info("End of stream reached.")
-        w_socket = InputPushSocket()
-        m_msg = EndOfStreamMsg()
-        m_msg = m_msg.serialize()
-        config = Config(None)
-        for _ in range(config.get_worker().get_n_workers()):
-            # The socket is round robin, send to all workers
-            # TODO: a broadcast socket for this is better for scaling
-            #       by saving the n_workers config option
-            logger.info('Notifying EOS to worker')
-            w_socket.ensure_send(m_msg)
-
-        if config.get_output().get_video().get_uri_protocol() == 'file':
-            # Stop after the first stream when using an output file
-            loop.quit()
-    elif mtype == Gst.MessageType.ERROR:
-        err, debug = msg.parse_error()
-        logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
-        logger.error(f"Debugging information: {debug if debug else 'none'}")
-        loop.quit()
-    elif mtype == Gst.MessageType.WARNING:
-        err, debug = msg.parse_warning()
-        logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
-        logger.warning(f"Debugging information: {debug if debug else 'none'}")
-    elif mtype == Gst.MessageType.STATE_CHANGED:
-        old_state, new_state, pending_state = msg.parse_state_changed()
-        logger.debug(f'New pipeline state: {new_state}')
-    elif mtype == Gst.MessageType.TAG:
-        tags = msg.parse_tag().to_string()
-        logger.info(f'Tags parsed: {tags}')
-        t_socket = InputOutputSocket('w')
-        t_msg = StreamTagsMsg(tags)
-        t_socket.send(t_msg.serialize())
-
-    return True
-
 def on_pad_upstream_event(pad, info, user_data):
     """
      TODO: if the pad name is always different, we can run simultaneous
@@ -200,6 +156,123 @@ def get_input_bin(uri):
 
     return bin
 
+class Input:
+    def __init__(self):
+        self.__pipeline : Gst.Pipeline = None
+        self.__loop : GLib.MainLoop = None
+
+    def new_pipeline(self):
+        """
+        Create a new input pipeline
+        """
+        config = Config(None)
+        self.__pipeline = Gst.Pipeline.new("pipeline")
+        # Create elements
+        # We will force RBG on the sink and videoconvert takes care of
+        # converting between space colors negotiating caps automatically.
+        # Ref: https://gstreamer.freedesktop.org/documentation/tutorials/basic/handy-elements.html?gi-language=c#videoconvert
+        input_bin = get_input_bin(config.get_input().get_video().get_uri())
+        appsink = Gst.ElementFactory.make("appsink", "appsink")
+
+        if not self.__pipeline:
+            logger.error('Failed to create pipeline')
+            sys.exit(1)
+        if not appsink:
+            logger.error("Failed to create appsink.")
+            sys.exit(1)
+
+        # Set properties for elements
+        appsink.set_property("emit-signals", True)
+        appsink.connect("new-sample", on_new_sample)
+        # Force RGB output in sink
+        sink_caps = Gst.Caps.from_string("video/x-raw,format=RGB")
+        appsink.set_property("caps", sink_caps)
+
+        # Add elemets to the pipeline
+        for elem in [input_bin, appsink]: self.__pipeline.add(elem)
+
+        # Link static elements (fixed number of pads): input_bin -> appsink
+        if not input_bin.link(appsink):
+            logger.error("Error linking input bin to appsink")
+            sys.exit(1)
+
+        # Handle bus events on the main loop
+        bus = self.__pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message", on_bus_message, self)
+
+    def start(self):
+        if not self.__pipeline:
+            logger.error('[red]The pipeline has not been created. Unable to start.[/red]')
+            sys.exit(1)
+
+        logger.info('Starting input pipeline')
+        ret = self.__pipeline.set_state(Gst.State.PLAYING)
+        if ret == Gst.StateChangeReturn.FAILURE:
+            logger.error("[red]Unable to set the pipeline to the playing state.[/red]")
+            sys.exit(1)
+
+    def close(self):
+        logger.info('Closing pipeline')
+        self.__pipeline.set_state(Gst.State.NULL)
+
+    def set_mainloop(self, loop: GLib.MainLoop):
+        self.__loop = loop
+    def get_mainloop(self):
+        return self.__loop
+
+def on_bus_message(bus: Gst.Bus, msg: Gst.Message, input: Input):
+    """
+    Callback to manage bus messages
+    For example, when we receive a new-sample and return an error from
+    the processing, we can catch it and stop the pipeline here.
+    """
+    mtype = msg.type
+    if mtype == Gst.MessageType.EOS:
+        logger.info("End of stream reached.")
+        w_socket = InputPushSocket()
+        m_msg = EndOfStreamMsg()
+        m_msg = m_msg.serialize()
+        config = Config(None)
+        for _ in range(config.get_worker().get_n_workers()):
+            # The socket is round robin, send to all workers
+            # TODO: a broadcast socket for this is better for scaling
+            #       by saving the n_workers config option
+            logger.info('Notifying EOS to worker')
+            w_socket.ensure_send(m_msg)
+
+        if (config.get_output().get_video().get_uri_protocol() == 'file'
+            or config.get_input().get_video().get_uri_protocol() == 'file'):
+            # Stop after the first stream when using an input or output file.
+            # We do not want to override the output file
+            # and we can't get a new stream once the file ends
+            input.get_mainloop().quit()
+        else:
+            # Reset the input pipeline to handle a new stream
+            input.close()
+            input.new_pipeline()
+            input.start()
+    elif mtype == Gst.MessageType.ERROR:
+        err, debug = msg.parse_error()
+        logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
+        logger.error(f"Debugging information: {debug if debug else 'none'}")
+        input.get_mainloop().quit()
+    elif mtype == Gst.MessageType.WARNING:
+        err, debug = msg.parse_warning()
+        logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
+        logger.warning(f"Debugging information: {debug if debug else 'none'}")
+    elif mtype == Gst.MessageType.STATE_CHANGED:
+        old_state, new_state, pending_state = msg.parse_state_changed()
+        logger.debug(f'New pipeline state: {new_state}')
+    elif mtype == Gst.MessageType.TAG:
+        tags = msg.parse_tag().to_string()
+        logger.info(f'Tags parsed: {tags}')
+        t_socket = InputOutputSocket('w')
+        t_msg = StreamTagsMsg(tags)
+        t_socket.send(t_msg.serialize())
+
+    return True
+
 def input(config_dict):
     update_logger_component('INPUT')
     config = Config(config_dict)
@@ -212,43 +285,10 @@ def input(config_dict):
             sys.exit(1)
 
     Gst.init(None)
-    pipeline = Gst.Pipeline.new("pipeline")
-
-    # Create elements
-    # We will force RBG on the sink and videoconvert takes care of
-    # converting between space colors negotiating caps automatically.
-    # Ref: https://gstreamer.freedesktop.org/documentation/tutorials/basic/handy-elements.html?gi-language=c#videoconvert
-    input_bin = get_input_bin(config.get_input().get_video().get_uri())
-    appsink = Gst.ElementFactory.make("appsink", "appsink")
-
-    if not pipeline:
-        logger.error('Failed to create pipeline')
-        sys.exit(1)
-    if not appsink:
-        logger.error("Failed to create appsink.")
-        sys.exit(1)
-
-    # Set properties for elements
-    appsink.set_property("emit-signals", True)
-    appsink.connect("new-sample", on_new_sample)
-    # Force RGB output in sink
-    sink_caps = Gst.Caps.from_string("video/x-raw,format=RGB")
-    appsink.set_property("caps", sink_caps)
-
-    # Add elemets to the pipeline
-    for elem in [input_bin, appsink]: pipeline.add(elem)
-
-    # Link static elements (fixed number of pads): input_bin -> appsink
-    if not input_bin.link(appsink):
-        logger.error("Error linking input bin to appsink")
-        sys.exit(1)
-
+    input = Input()
     loop = GLib.MainLoop()
-
-    # Handle bus events on the main loop
-    bus = pipeline.get_bus()
-    bus.add_signal_watch()
-    bus.connect("message", on_bus_message, loop)
+    input.set_mainloop(loop)
+    input.new_pipeline()
 
     try:
         # Start socket to wait all components connections
@@ -259,11 +299,7 @@ def input(config_dict):
         m_socket = InputOutputSocket('w') # Waits for output
         logger.info('First worker ready')
 
-        logger.info('Starting pipeline')
-        ret = pipeline.set_state(Gst.State.PLAYING)
-        if ret == Gst.StateChangeReturn.FAILURE:
-            logger.error("[red]Unable to set the pipeline to the playing state.[/red]")
-            sys.exit(1)
+        input.start()
 
         loop.run()
     except KeyboardInterrupt:
@@ -272,9 +308,7 @@ def input(config_dict):
         traceback.print_exc()
         loop.quit()
     finally:
-        logger.info('Closing pipeline')
-        pipeline.set_state(Gst.State.NULL)
-        # Rettreive and close the sockets
+        # Retrieve and close the sockets
         m_socket.close()
         s_push.close()
         w_socket.close()
