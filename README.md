@@ -176,6 +176,8 @@ To configure your app you can use either env vars or the config file (`config.ya
 | `worker.recv_buffer_size` | Size of the worker socket reception buffer | `300` (int) | `PIPELESS_WORKER_RECV_BUFFER_SIZE` |
 | `worker.n_workers` | Number of workers deployed | int | `PIPELESS_WORKER_N_WORKERS` |
 
+When using remote input **and** output video URIs, Pipeless will run as daemon (it will never stop) and it will process any number of consecutive streams that appear on the remote URI.
+
 ## Ready to use models
 
 We provide some modules containing a growing set of ready to use models for common cases. You can use them to develop your applications as fast as writing a couple lines of code. Each module has its own documentation, and the whole set of modules can be found [here](/models/README.md).

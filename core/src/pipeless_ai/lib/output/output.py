@@ -338,8 +338,11 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, output: Output):
         output.remove_pipeline()
 
         config = Config(None)
-        if config.get_output().get_video().get_uri_protocol() == 'file':
-            # Stop after the first stream when using an output file
+        if (config.get_output().get_video().get_uri_protocol() == 'file'
+            or config.get_input().get_video().get_uri_protocol() == 'file'):
+            # Stop after the first stream when using an input or output file.
+            # We do not want to override the output file
+            # and we can't get a new stream once the file ends
             output.get_mainloop().quit()
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
@@ -404,7 +407,7 @@ def output(config_dict):
         loop.quit()
     finally:
         logger.info('Closing pipeline')
-        # Retreive and close the sockets
+        # Retrieve and close the sockets
         m_socket.close()
         r_socket.close()
         logger.info('Output finished.')

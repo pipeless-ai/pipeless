@@ -85,8 +85,11 @@ def worker(config_dict, user_module_path):
                 continue_worker = fetch_and_process(user_app)
             user_app._PipelessApp__after()
 
-            if config.get_output().get_video().get_uri_protocol() == 'file':
-               # Stop after the first stream when using an output file
+            if (config.get_output().get_video().get_uri_protocol() == 'file'
+                or config.get_input().get_video().get_uri_protocol() == 'file'):
+                # Stop after the first stream when using an input or output file.
+                # We do not want to override the output file
+                # and we can't get a new stream once the file ends
                break
     except KeyboardInterrupt:
         pass
