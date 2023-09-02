@@ -1,5 +1,5 @@
-<div style="text-align:center">
-<img src="assets/pipeless-logo-w300.png" alt="Pipeless logo" />
+<div style="align:center">
+  <img src="assets/pipeless-logo-w300.png" alt="Pipeless logo" />
 </div>
 
 Pipeless is an open source multimedia framework with focus on computer vision.
