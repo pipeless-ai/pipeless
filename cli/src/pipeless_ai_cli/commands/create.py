@@ -38,7 +38,7 @@ def create_project(name: str):
             },
             'address': { # address where the input component runs for the nng connections
                 'host': 'localhost',
-                'port': 1236
+                'port': 1237
             },
         },
         'worker': {
