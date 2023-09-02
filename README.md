@@ -1,4 +1,4 @@
-<div style="align:center">
+<div align="center">
   <img src="assets/pipeless-logo-w300.png" alt="Pipeless logo" />
 </div>
 
