@@ -70,9 +70,11 @@ def on_pad_upstream_event(pad, info, user_data):
     if caps is not None:
         # Caps negotiation is complete, notify new stream to output component
         logger.info(f'[green]dynamic source pad "{pad.get_name()}" with caps:[/green] {caps.to_string()}')
-        m_socket = InputOutputSocket('w')
-        m_msg = StreamCapsMsg(caps.to_string())
-        m_socket.send(m_msg.serialize())
+        config = Config(None)
+        if config.get_output().get_video().is_enabled():
+            m_socket = InputOutputSocket('w')
+            m_msg = StreamCapsMsg(caps.to_string())
+            m_socket.send(m_msg.serialize())
         # We already got the caps. Remove the probe from the pad
         return Gst.PadProbeReturn.REMOVE
 
@@ -121,11 +123,13 @@ def get_input_bin(uri):
         ghostpad_src = Gst.GhostPad.new("src", capsfilter.get_static_pad("src"))
         bin.add_pad(ghostpad_src)
 
-        # v4l2src doesn't have caps propert. Notify the output about the new stream
-        forced_caps_str = f'{forced_size_str},format=RGB,framerate=1/30'
-        m_socket = InputOutputSocket('w')
-        m_msg = StreamCapsMsg(forced_caps_str)
-        m_socket.send(m_msg.serialize())
+        config = Config(None)
+        if config.get_output().get_video().is_enabled():
+            # v4l2src doesn't have caps propert. Notify the output about the new stream
+            forced_caps_str = f'{forced_size_str},format=RGB,framerate=1/30'
+            m_socket = InputOutputSocket('w')
+            m_msg = StreamCapsMsg(forced_caps_str)
+            m_socket.send(m_msg.serialize())
     else:
         # Use uridecodebin by default
         uridecodebin = Gst.ElementFactory.make("uridecodebin3", "source")
@@ -267,9 +271,11 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, input: Input):
     elif mtype == Gst.MessageType.TAG:
         tags = msg.parse_tag().to_string()
         logger.info(f'Tags parsed: {tags}')
-        t_socket = InputOutputSocket('w')
-        t_msg = StreamTagsMsg(tags)
-        t_socket.send(t_msg.serialize())
+        config = Config(None)
+        if config.get_output().get_video().is_enabled():
+            t_socket = InputOutputSocket('w')
+            t_msg = StreamTagsMsg(tags)
+            t_socket.send(t_msg.serialize())
 
     return True
 
@@ -296,8 +302,9 @@ def input(config_dict):
         w_socket = WorkerReadySocket('input')
         logger.info('Waiting first worker to be available')
         w_socket.recv() # Wait for the first worker to appear
-        m_socket = InputOutputSocket('w') # Waits for output
         logger.info('First worker ready')
+        if config.get_output().get_video().is_enabled():
+            m_socket = InputOutputSocket('w') # Waits for output
 
         input.start()
 
@@ -309,7 +316,8 @@ def input(config_dict):
         loop.quit()
     finally:
         # Retrieve and close the sockets
-        m_socket.close()
+        if config.get_output().get_video().is_enabled():
+            m_socket.close()
         s_push.close()
         w_socket.close()
-        logger.info('Input finished. Please wait for workers and output.')
+        logger.info('Input finished. Please wait for workers and output (if enabled).')

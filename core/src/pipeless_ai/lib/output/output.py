@@ -385,6 +385,9 @@ def output(config_dict):
     update_logger_component('OUTPUT')
     config = Config(config_dict)
     update_logger_level(config.get_log_level())
+    if not config.get_output().get_video().is_enabled():
+        logger.info('Output video is disabled')
+        return
 
     Gst.init(None)
 
