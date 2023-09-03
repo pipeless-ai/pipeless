@@ -34,25 +34,30 @@ class Address():
 class Video():
     def __init__(self, video_dict, env_prefix):
         self._enable = prioritized_config(video_dict, 'enable', f'{env_prefix}_ENABLE', convert_to=bool, required=True)
-        # NOTE: When output the URI is not required even if video is enabled.
-        #       By default goes to the default video output (screen)
-        self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
-        if self._uri == 'screen':
-            # To reproduce videos locally directly on the screen
-            self._protocol = 'screen'
-            self._location = 'screen'
-        elif self._uri == 'v4l2':
-            # When reading streams from v4l2 devices like webcams and tv cards
-            self._protocol = 'v4l2'
-            self._location = 'v4l2'
+        if self._enable:
+            # NOTE: When output the URI is not required even if video is enabled.
+            #       By default goes to the default video output (screen)
+            self._uri = prioritized_config(video_dict, 'uri', f'{env_prefix}_URI', required=False)
+            if self._uri == 'screen':
+                # To reproduce videos locally directly on the screen
+                self._protocol = 'screen'
+                self._location = 'screen'
+            elif self._uri == 'v4l2':
+                # When reading streams from v4l2 devices like webcams and tv cards
+                self._protocol = 'v4l2'
+                self._location = 'v4l2'
+            else:
+                try:
+                    uri_split = self._uri.split('://')
+                    self._protocol = uri_split[0]
+                    self._location = uri_split[1]
+                except:
+                    logger.error(f'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc')
+                    sys.exit(1)
         else:
-            try:
-                uri_split = self._uri.split('://')
-                self._protocol = uri_split[0]
-                self._location = uri_split[1]
-            except:
-                logger.error(f'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc')
-                sys.exit(1)
+            self._uri = None
+            self._protocol = None
+            self._location = None
 
     def is_enabled(self):
         return self._enable
