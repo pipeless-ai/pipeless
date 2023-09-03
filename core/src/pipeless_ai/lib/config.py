@@ -82,12 +82,13 @@ class Input():
 class Output():
     def __init__(self, output_dict):
         self._video = Video(output_dict['video'], f'{ENV_PREFIX}_OUTPUT_VIDEO')
-        # Address where the output component is running
-        self._address = Address(output_dict['address'], f'{ENV_PREFIX}_OUTPUT_ADDRESS')
-        self._recv_buffer_size = prioritized_config(
-            output_dict, 'recv_buffer_size',
-            f'{ENV_PREFIX}_OUTPUT_RECV_BUFFER_SIZE', convert_to=int,
-            default=300) # 5 seconds of 60 pfs video
+        if self._video.is_enabled():
+            # Address where the output component is running
+            self._address = Address(output_dict['address'], f'{ENV_PREFIX}_OUTPUT_ADDRESS')
+            self._recv_buffer_size = prioritized_config(
+                output_dict, 'recv_buffer_size',
+                f'{ENV_PREFIX}_OUTPUT_RECV_BUFFER_SIZE', convert_to=int,
+                default=300) # 5 seconds of 60 pfs video
 
     def get_video(self):
         return self._video
