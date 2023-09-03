@@ -199,7 +199,7 @@ For the input media we support almost any protocol and format (with several code
 Supported input protocols: `v4l2` (for device webcam), `file`, `http(s)`, `rtmp`, `rtsp`, `rtp`, `tcp`, `udp`, `ftp`, ...
 Supported input formats: `mp4`, `webm`, `mkv`, ... (several codecs supported for all of them)
 
-The following table describes the supported output protocols and formats. New output protocols and formats are added constantly. 
+The following table describes the supported output protocols and formats. New output protocols and formats are added constantly.
 
 | Output Protocol | Output Format
 | --------------- | ------------- |
@@ -211,7 +211,7 @@ The following table describes the supported output protocols and formats. New ou
 
 > IMPORTANT: `v4l2` as input is supported in core versions >= `0.1.3-alpha`
 
-> Feel free to contribute with new formats. You can also request a new one by opening an issue specifying `Feature Request` on the title and telling us what you need inlcuding an explanation of your use case. 
+> Feel free to contribute with new formats. You can also request a new one by opening an issue specifying `Feature Request` on the title and telling us what you need inlcuding an explanation of your use case.
 
 ### Audio recognition / audio processing
 
@@ -237,6 +237,8 @@ We provide some working applications under the `examples` directory, so you can 
 
 - [Text Overlay](examples/text-overlay)
 - [Cats face recognition](examples/cats)
+- [Pose detection](examples/pose)
+- [Real time evens with Kafka](examples/kafka)
 
 ## Contributing 🤝
 

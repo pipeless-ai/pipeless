@@ -1,0 +1,16 @@
+input:
+  address:
+    host: localhost
+    port: 1234
+  video:
+    enable: true
+    uri: file:///home/path/pipeless/examples/kafka/cats.mp4
+log_level: INFO
+output:
+  address:
+    host: localhost
+    port: 1237
+  video:
+    enable: false
+worker:
+  n_workers: 1
