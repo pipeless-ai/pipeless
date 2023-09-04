@@ -1,6 +1,6 @@
-# Sending data to Kafka and reacting to events on real time
+# Sending data to Kafka and reacting to events in real time
 
-This example uses Pipeless and Kafka and demonstrates how to send data to a Kafka topic to which you can subscribe to perform actions by receiving events on real time.
+This example uses Pipeless and Kafka and demonstrates how to send data to a Kafka topic to which you can subscribe to perform actions by receiving events in real time.
 
 In this case, we are not interested on the output video since we just want to analyze the input and create events based on the elements that appear on it, so **we will disable the video output**.
 
