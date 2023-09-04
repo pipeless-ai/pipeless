@@ -18,6 +18,13 @@ For simplicity we have included a Kafka `docker-compose.yaml` on this same direc
 
 * OpenCV: `pip install opencv-python`
 
+
+## Architecture
+
+The following is the architecture of this example:
+
+![Pipeless + Kafka schema](https://pipeless.ai/kafka-white-bg.jpg)
+
 ## Run the example
 
 1. Clone the repository
