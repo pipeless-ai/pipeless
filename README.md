@@ -180,14 +180,6 @@ To configure your app you can use either env vars or the config file (`config.ya
 
 When using remote input **and** output video URIs, Pipeless will run as daemon (it will never stop) and it will process any number of consecutive streams that appear on the remote URI.
 
-## Ready to use models
-
-We provide some modules containing a growing set of ready to use models for common cases. You can use them to develop your applications as fast as writing a couple lines of code. Each module has its own documentation, and the whole set of modules can be found [here](/models/README.md).
-
-### Tensorflow based models
-
-* [Multi-pose estimation](/models/tensorflow/src/pipeless_ai_tf_models/multi_pose_estimation/): Detects up to 6 people. Returns bounding boxes for the people and 17 keypoints (nose, left eye, right eye, left ear, ...)
-
 ## Current state 📌
 
 Pipeless is in an alpha state. Below you can find the fields currently supported as well as the formats and protocols.
@@ -217,6 +209,36 @@ The following table describes the supported output protocols and formats. New ou
 
 Audio processing is being implemented, however, not yet ready.
 
+## Ready to use models
+
+We provide some modules containing a growing set of ready to use models for common cases. You can use them to develop your applications as fast as writing a couple lines of code. Each module has its own documentation, and the whole set of modules can be found [here](/models/README.md).
+
+### Tensorflow based models
+
+* [Multi-pose estimation](/models/tensorflow/src/pipeless_ai_tf_models/multi_pose_estimation/): Detects up to 6 people. Returns bounding boxes for the people and 17 keypoints (nose, left eye, right eye, left ear, ...)
+
+## Plugins
+
+We also provide a [plugins package](plugins) that provides useful plugins for common tasks such as producing events to Kafka, skipping image processing when they are similar, etc.
+
+To install the plugins package run:
+
+```console
+pip install pipeless-ai-plugins
+```
+
+To import it on your Pipeless project use:
+
+```python
+from pipeless_ai_plugins.<plugin_name> import <plugin_class>
+```
+
+To get more information about a specific plugin, including how to use it please check the specific plugin README.
+
+### Available plugins
+
+- [Kafka](/plugins/src/pipeless_ai_plugins/kafka/): Export events to a Kafka topic
+
 ## Troubleshooting 🐞
 
 * If the pipeline doesn't start and there is not apparent error even on the debug logs run the following command changing `<path>` by your file path:
@@ -238,7 +260,7 @@ We provide some working applications under the `examples` directory, so you can 
 - [Text Overlay](examples/text-overlay)
 - [Cats face recognition](examples/cats)
 - [Pose detection](examples/pose)
-- [Real time evens with Kafka](examples/kafka)
+- [Real time events with Kafka](examples/kafka)
 
 ## Contributing 🤝
 
