@@ -13,14 +13,14 @@ RUN install_packages libcairo2-dev libgirepository1.0-dev
 
 COPY scripts /
 
-RUN /python-nonroot.sh 
+RUN /python-nonroot.sh
 
 USER 1001
 
 # Allow to execute commands installed with pip
 ENV PATH="${PATH}:/.local/bin"
 
-RUN pip install pipeless-ai pipeless-ai-cli
+RUN pip install pipeless-ai pipeless-ai-cli pipeless-ai-plugins pipeless-ai-tf-models
 
 WORKDIR /app
 
