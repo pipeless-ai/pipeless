@@ -3,13 +3,12 @@ from pipeless_ai_plugins.kafka import KafkaProducer
 import cv2
 
 class App(PipelessApp):
-    def before(self, ctx):
-        ctx['producer'] = KafkaProducer()
-        ctx['xml_data'] = cv2.CascadeClassifier('cats.xml')
+    def before(self):
+        self.producer = KafkaProducer()
+        self.xml_data = cv2.CascadeClassifier('cats.xml')
 
-    def process(self, frame, ctx):
-        producer = ctx['producer']
-        model = ctx['xml_data']
+    def process(self, frame):
+        model = self.xml_data
 
         # Create reduced frame for faster detection
         original_height, original_width, _ = frame.shape
@@ -21,4 +20,4 @@ class App(PipelessApp):
 
         # Notify that there is a cat
         if len(bounding_boxes) > 0:
-            producer.produce('pipeless', 'There is a cat!')
+            self.producer.produce('pipeless', 'There is a cat!')

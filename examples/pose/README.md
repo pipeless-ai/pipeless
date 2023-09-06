@@ -30,15 +30,14 @@ You can now check the output video with any media player.
 
 The first thing we need to do is to create an instance of out model. We do it into the `before` stage:
 ```python
-def before(self, ctx):
-    ctx['model'] = MultiPoseEstimationLightning()
+def before(self):
+    self.model = MultiPoseEstimationLightning()
 ```
 
 Once we have an instance of our model, we can use it on every frame to get bounding boxes and keypoints:
 ```python
-def process(self, frame, ctx):
-    model = ctx['model']
-    bboxes, keypoints = model.invoke_inference(frame)
+def process(self, frame):
+    bboxes, keypoints = self.model.invoke_inference(frame)
 ```
 
 Finally, we print our bounding boxes and keypoints into the original frame before returning it, so we can visualize the detections on the output:

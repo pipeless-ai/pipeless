@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 class App(PipelessApp):
-    def process(self, frame, ctx):
+    def process(self, frame):
         pil_image = Image.fromarray(frame)
 
         text = "Hello pipeless!"

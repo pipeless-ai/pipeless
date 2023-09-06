@@ -4,12 +4,11 @@ from pipeless_ai_tf_models.multi_pose_estimation.lightning import MultiPoseEstim
 import cv2
 
 class App(PipelessApp):
-    def before(self, ctx):
-        ctx['model'] = MultiPoseEstimationLightning()
+    def before(self):
+        self.model = MultiPoseEstimationLightning()
 
-    def process(self, frame, ctx):
-        model = ctx['model']
-        bboxes, keypoints = model.invoke_inference(frame)
+    def process(self, frame):
+        bboxes, keypoints = self.model.invoke_inference(frame)
 
         for bbox in bboxes:
             cv2.rectangle(frame, (bbox[1], bbox[0]), (bbox[3], bbox[2]), (0, 255, 0), 2)
@@ -18,4 +17,3 @@ class App(PipelessApp):
             cv2.circle(frame, (keypoint[0], keypoint[1]), 5, (255, 0, 255), -1)
 
         return frame
-

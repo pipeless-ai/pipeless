@@ -40,23 +40,19 @@ In order to recognise cats we need to load a model trained for that purpose.
 Since we want to load the model before any frame is processed, we do it within the `before` stage (method).
 
 ```python
-xml_data = cv2.CascadeClassifier('cats.xml')
+self.xml_data = cv2.CascadeClassifier('cats.xml')
 ```
 
-After loading the model, we store it on the app context (`ctx`) in order to have access during other stage iterations.
-
-```python
-ctx['xml_data'] = xml_data
-```
+We store the model as a class variable in order to have access to it from other stages.
 
 ### Process stage
 
 We will do basic processing here in order to recognise cat faces on the frames and draw a square around them.
 
-First, we get a reference to the model that we added to the context on the `before` stage:
+First, we get a reference to the model within the `before` stage:
 
 ```python
-model = ctx['xml_data']
+model = self.xml_data
 ```
 
 Detecting cats is faster on smaller images so we resize the original frame:

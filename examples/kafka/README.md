@@ -87,10 +87,10 @@ We describe here only the new lines, to understand how the recognition model is 
 
 ### Before stage
 
-In the before state we initiate the producer connection to our Kafka cluster and store on the context so we can use the producer later to send messages to the topic. Initiating the connection is realy simple thanks to the Pipeless Kafka Plugin:
+In the before state we initiate the producer connection to our Kafka cluster so we can use the producer later to send messages to the topic. Initiating the connection is realy simple thanks to the Pipeless Kafka Plugin:
 
 ```python
-ctx['producer'] = KafkaProducer()
+self.producer = KafkaProducer()
 ```
 
 ### Processing stage
@@ -98,12 +98,8 @@ ctx['producer'] = KafkaProducer()
 In this case, instead of editing the frame to draw a bounding box and return the modified video frame like we did on the original cats example, we simply identify the bounding box and, if there is a bounding box, we send a message to the `pipeless` kafka topic:
 
 ```python
-producer = ctx['producer']
-
-...
-
 if len(bounding_boxes) > 0:
-    producer.produce('pipeless', 'There is a cat!')
+   self.producer.produce('pipeless', 'There is a cat!')
 ```
 
 > NOTE: the bounding box detection is exactly the same than on the cats example.
