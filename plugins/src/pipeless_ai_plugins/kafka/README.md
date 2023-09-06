@@ -9,15 +9,15 @@ Initialize the producer within the `before` stage:
 
 ```python
 ...
-def before(self, ctx):
-    ctx['producer'] = KafkaProducer()
+def before(self):
+    self.producer = KafkaProducer()
 ...
 ```
 
 Send information to a Kafka topic at any stage:
 
 ```python
-ctx['producer'].produce('pipeless', 'hello!')
+self.producer.produce('pipeless', 'hello!')
 ```
 
 ## Configuration

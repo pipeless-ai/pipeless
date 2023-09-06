@@ -2,13 +2,12 @@ from pipeless_ai.lib.app.app import PipelessApp
 import cv2
 
 class App(PipelessApp):
-    def before(self, ctx):
+    def before(self):
         # Load the model before processing any frame
-        xml_data = cv2.CascadeClassifier('cats.xml')
-        ctx['xml_data'] = xml_data
+        self.xml_data = cv2.CascadeClassifier('cats.xml')
 
-    def process(self, frame, ctx):
-        model = ctx['xml_data']
+    def process(self, frame):
+        model = self.xml_data
 
         # Create reduced frame for faster detection
         original_height, original_width, _ = frame.shape

@@ -131,13 +131,11 @@ These are the stages that actually modify/learn/process the media streams. All o
 
 These stages have been mainly defined for a proper logical code structure, there are no significant differences on how the code is executed on them.
 
-#### Context
+#### App internal state
 
-You app can maintain its own internal state. This is useful when you need to pass information between stages.
+The application maintains its own internal state. This is useful when you need to pass information between stages.
 
-By default, an internal context is created and can be accessed via the `ctx` variable.
-
-You can also define your own variables within the `App` class, however, note that if you override the constructor the context won't be initialized properly.
+Simply use class variables within the `App` class.
 
 ### Run Your App
 
@@ -289,6 +287,15 @@ The Apache License 2.0 is a permissive open-source license that allows you to us
 For the full license text, please refer to the [Apache License 2.0](LICENSE).
 
 ## Notable Changes
+
+### Core version `0.1.9` and CLI version `0.1.7`
+
+The context has been replaced by class variables, thus, it is no longer used.
+
+Required changes on your application code:
+
+* Update your app methods to **NOT** receive the `ctx` parameter.
+* Update any usage of the context, i.e. references to `ctx['xxx']` must be replaced by class variables, i.e. `self.xxx`.
 
 ### Core version `0.1.6` and CLI version `0.1.5`
 
