@@ -1,5 +1,8 @@
 # Kafka plugin for Pipeless
 
+> IMPORTANT: THIS MODULE IS DEPRECATED IN FAVOR OF THE NEW PLUGIN SYSTEM
+> Check the [plugins docs](https://www.pipeless.ai/docs/v0/plugins) for more information about the new plugin system.
+
 This plugin makes easy to connect to a Kafka cluster using Pipeless.
 It works as a Kafka producer to send information to Kafka topics that can later be used to take actions on events.
 
