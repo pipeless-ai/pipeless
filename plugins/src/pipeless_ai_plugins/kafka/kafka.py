@@ -2,24 +2,6 @@ import os
 import sys
 from confluent_kafka import Producer
 
-# LE metemos self.kafka.version, self.kafka.producer y se configura solo con env vars
-# How do people register plugins they do?
-# How do we load people plugins?
-
-# We cani automatically load all the plugins under the plugins directory of the running application automatically, so users simply need to clone plugins inside that directory
-# Plugins should embed stuff into the self.<plugin_id> into the PipelessApp class such as version, and any fiel that they may want to expose
-
-# Pipeless can read the plugin metadata and load the plugin class under self.<plugin-id> so that the builder of the plugin just need to export functions.
-# Pipeless can execute the plugin constructor on load
-# How does the plugin execute actions on every stage? Should pipeless consider that and execute each plugin stage method in order before the user code? Each plugin should have a stage method like the user app plus an init method (not the as before since before will be executed on every iteration of the worker)
-# We can create the PipelessPlugin interface
-# How do users download plugins? How does pipeless install plugin dependencies (the user must install dependencies manually as documented on the plugin README)?
-# We can add a command to the CLI to install a plugin by its name when available on our official index or from a git repo url when not. It will simply download it to the plugins folder and it could install 
-# When a plugin executes codes on the frame, it should modify the original frame so the user doesn't have to invoke anything. After the latest plugin the frame will be passed to the user code
-# In this way plugins can do both things, execute code on stages as well as provide custom functions to the user
-
-# How do we isolate the variables of each plugin? By adding the plugin id. We should check on the plugin initialization if there is already a self.plugin_id variable, which means two plugins are trying to register with the same id
-
 class KafkaProducer:
     """
     This class allows to send the data extracted from the stream to a Kafka topic.
