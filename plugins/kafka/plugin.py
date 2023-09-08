@@ -3,7 +3,7 @@ import sys
 from confluent_kafka import Producer
 from pipeless_ai.lib.app.app import PipelessApp
 
-class KafkaPlugin(PipelessApp):
+class PipelessPlugin(PipelessApp):
     """
     This class allows to send the data extracted from the stream to a Kafka topic.
     It requires to call the produce method from the user application
@@ -18,6 +18,7 @@ class KafkaPlugin(PipelessApp):
         - KAFKA_USERNAME (optional): username when using SASL or SCRAM authentication
         - KAFKA_PASSWORD (optional): password when using SASL or SCRAM authentication
         """
+        super().__init__()
         bootstrap_servers = os.environ.get('KAFKA_BOOTSTRAP_SERVERS', None)
         if bootstrap_servers is None:
             print('ERROR: missing KAFKA_BOOTSTRAP_SERVERS env var')
