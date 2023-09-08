@@ -11,3 +11,5 @@ output:
     enable: false
 worker:
   n_workers: 1
+plugins:
+  order: 'kafka'

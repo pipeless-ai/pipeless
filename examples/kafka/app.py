@@ -1,10 +1,8 @@
 from pipeless_ai.lib.app.app import PipelessApp
-from pipeless_ai_plugins.kafka import KafkaProducer
 import cv2
 
 class App(PipelessApp):
     def before(self):
-        self.producer = KafkaProducer()
         self.xml_data = cv2.CascadeClassifier('cats.xml')
 
     def process(self, frame):
@@ -20,4 +18,6 @@ class App(PipelessApp):
 
         # Notify that there is a cat
         if len(bounding_boxes) > 0:
-            self.producer.produce('pipeless', 'There is a cat!')
+            self.plugins.kafka.produce('pipeless', 'There is a cat!')
+
+        return frame
