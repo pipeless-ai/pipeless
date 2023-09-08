@@ -1,6 +1,5 @@
 import importlib
 import os
-import sys
 from pipeless_ai.lib.logger import logger
 from pipeless_ai.lib.app.app import PipelessApp
 

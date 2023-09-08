@@ -112,8 +112,8 @@ class Worker():
 class Plugins():
     def __init__(self, plugins_dict):
         self._dir = prioritized_config(plugins_dict, 'dir', f'{ENV_PREFIX}_PLUGINS_DIR', default='plugins')
-        order = prioritized_config(plugins_dict, 'order', f'{ENV_PREFIX}_PLUGINS_ORDER')
-        self._order = tuple(re.split(r'[;,|]', order))
+        order = prioritized_config(plugins_dict, 'order', f'{ENV_PREFIX}_PLUGINS_ORDER', default='')
+        self._order = tuple(re.split(r'[;,|]', order)) if order else ()
 
     def get_plugins_dir(self):
         return self._dir
@@ -128,9 +128,9 @@ class Config(metaclass=Singleton):
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
+        # TODO: we are assuming there is always a config file with all the sections, but a user could use just env vars
         plugins_section = dict.get(config, "plugins", {})
         self._plugins = Plugins(plugins_section)
-
         self._input = Input(config['input'])
         self._output = Output(config['output'])
         self._worker = Worker(config['worker'])
