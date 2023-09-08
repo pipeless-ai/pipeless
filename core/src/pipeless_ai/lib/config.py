@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 from pipeless_ai.lib.singleton import Singleton
@@ -7,14 +8,12 @@ from pipeless_ai.lib.logger import logger
 ENV_PREFIX = 'PIPELESS'
 
 def prioritized_config(config, path, env_var_name, convert_to=str, required=False, default=None):
-    value = os.environ.get(env_var_name, default)
+    value = dict.get(config, path, default)
+    value = os.environ.get(env_var_name, value)
     if value is None:
-        try:
-            value = config[path]
-        except KeyError:
-            if required:
-                logger.error(f'{env_var_name} env var or {path} in config file option is required!')
-                sys.exit(1)
+        if required:
+            logger.error(f'{env_var_name} env var or {path} in config file option is required!')
+            sys.exit(1)
     else:
         value = convert_to(value)
 
@@ -110,6 +109,17 @@ class Worker():
     def get_recv_buffer_size(self):
         return self._recv_buffer_size
 
+class Plugins():
+    def __init__(self, plugins_dict):
+        self._dir = prioritized_config(plugins_dict, 'dir', f'{ENV_PREFIX}_PLUGINS_DIR', default='plugins')
+        order = prioritized_config(plugins_dict, 'order', f'{ENV_PREFIX}_PLUGINS_ORDER')
+        self._order = tuple(re.split(r'[;,|]', order))
+
+    def get_plugins_dir(self):
+        return self._dir
+    def get_plugins_order(self):
+        return self._order
+
 class Config(metaclass=Singleton):
     def __init__(self, config):
         logger.debug('Parsing configuration')
@@ -118,9 +128,13 @@ class Config(metaclass=Singleton):
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
+        plugins_section = dict.get(config, "plugins", {})
+        self._plugins = Plugins(plugins_section)
+
         self._input = Input(config['input'])
         self._output = Output(config['output'])
         self._worker = Worker(config['worker'])
+
         logger.debug('[green]Configuration parsed[/green]')
 
     def get_input(self):
@@ -131,3 +145,5 @@ class Config(metaclass=Singleton):
         return self._worker
     def get_log_level(self):
         return self._log_level
+    def get_plugins(self):
+        return self._plugins

@@ -1,3 +1,4 @@
+import types
 from pipeless_ai.lib.timer import timer
 
 class PipelessApp():
@@ -6,7 +7,8 @@ class PipelessApp():
     """
 
     def __init__(self):
-        pass
+        self.plugins = types.SimpleNamespace()
+        self.__plugins_exec_graph = ()
 
     @timer
     def __before(self):
