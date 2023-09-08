@@ -18,24 +18,29 @@ def get_plugins_registry():
         rprint(f"[red bold]An error occurred reading the registry:[/red bold] {e}")
         sys.exit(1)
 
-def clone_repo_from_tag(repo_url, tag_name, subdir, target_path):
+def download_plugin_from_repo_tag(repo_url, tag_name, subdir, target_path):
+    download_repo_dir = "/tmp/temp_repo"
     try:
-        repo_dir = os.path.join(target_path, "temp_repo")
-        git.Repo.clone_from(repo_url, repo_dir)
-        repo = git.Repo(repo_dir)
-    except git.GitCommandError:
-        rprint(f'[red]Unable to download plugin repository "{repo_url}" into "{repo_dir}"[/red]')
+        if shutil.os.path.exists(download_repo_dir):
+            shutil.rmtree(download_repo_dir)
+        git.Repo.clone_from(repo_url, download_repo_dir)
+        repo = git.Repo(download_repo_dir)
+    except git.GitCommandError as e:
+        rprint(f'[red]Unable to download plugin repository "{repo_url}" into "{download_repo_dir}"[/red]')
+        print(e)
         sys.exit(1)
     try:
         repo.git.checkout(tag_name)
-    except git.GitCommandError:
+    except git.GitCommandError as e:
         rprint(f'[red]The tag {tag_name} was not found on the target plugin repository[/red]')
-        shutil.rmtree(repo_dir) # Cleanup downloaded folders
+        shutil.rmtree(download_repo_dir) # Cleanup downloaded folders
+        print(e)
         sys.exit(1)
-    source_path = os.path.join(repo_dir, subdir)
-    target_subfolder_path = os.path.join(target_path, subdir)
-    shutil.copytree(source_path, target_subfolder_path)
-    shutil.rmtree(repo_dir)
+    source_path = os.path.join(download_repo_dir, subdir)
+    if shutil.os.path.exists(target_path):
+        shutil.rmtree(target_path)
+    shutil.copytree(source_path, target_path)
+    shutil.rmtree(download_repo_dir)
 
 def version_to_tuple(version_str):
     """

@@ -8,8 +8,8 @@
                 {
                     "version": "plugins-kafka-0.1.0",
                     "latest": "true",
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git/tree/plugins",
-                    "subdir": "plugins/src/pipeless_ai_plugins/kafka",
+                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "subdir": "plugins/kafka",
                     "plugin_dependencies": [],
                     "python_dependencies": ["confluent-kafka"],
                     "system_dependencies": []

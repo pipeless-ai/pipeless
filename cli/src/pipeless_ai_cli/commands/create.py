@@ -44,6 +44,9 @@ def create_project(name: str):
         'worker': {
             'n_workers': 1,
         },
+        'plugins': {
+            'order': ''
+        }
     }
 
     try:
