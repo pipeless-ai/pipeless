@@ -13,6 +13,7 @@ def list_plugins():
         rprint(f'\tID: {plugin.get("id")}')
         rprint(f'\tDescription: {plugin.get("description")}')
         version = get_latest_plugin_version_dict(plugin.get('versions'))
+        rprint(f'\tDocs URL: {version.get("docs_url")}')
         rprint(f'\tLatest version: {version.get("version")}')
         rprint(f'\tRepository URL: {version.get("repo_url")}')
         rprint(f'\tRepository subdirectory: {version.get("subdir")}')

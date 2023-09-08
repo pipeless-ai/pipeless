@@ -60,5 +60,5 @@ def get_latest_plugin_version_dict(plugin_versions: dict):
     """
     Takes the dict of versions of a plugin and returns the max version dict
     """
-    latest_version = next((v for v in plugin_versions if v["latest"] == "true"), None)
+    latest_version = next((v for v in plugin_versions if v["latest"]), None)
     return latest_version
