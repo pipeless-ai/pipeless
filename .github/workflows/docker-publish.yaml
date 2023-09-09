@@ -39,5 +39,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile
           push: true
-          tags: ${{ inputs.tag_override != '' && "miguelaeh/pipeless:" + inputs.tag_override || steps.meta.outputs.tags }}
+          tags: ${{ inputs.tag_override != '' && inputs.tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
