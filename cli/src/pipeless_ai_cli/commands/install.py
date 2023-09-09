@@ -39,7 +39,7 @@ def install_plugin(id: str, version: str = None, plugins_root: str = 'plugins'):
                     if len(system_deps) > 0:
                         rprint(f"[yellow]The plugin {id} requires the following system dependencies, please install them now: {system_deps}[/yellow]")
     if install_success:
-        rprint(f'[green]Plugin {id} sucessfully instaled![/green]')
+        rprint(f'[green]Plugin {id} sucessfully installed![/green]')
         rprint(f'[yellow]IMPORTANT: Remember to add "{id}" to the plugins execution order either in "config.yaml" or running:\n\t $ export PIPELESS_PLUGINS_ORDER=$PIPELESS_PLUGINS_ORDER,{id}[/yellow]')
     else:
         rprint('[red]The plugin (or plugin version) specified does not exit into the plugins registry[/red]')

@@ -7,11 +7,13 @@ set -o pipefail
 
 . /libpipeless.sh
 
-if [[ "$1" = "run" && ( "$2" = "worker" || "$2" = "all" ) ]]; then
+command="${1:-}"
+
+if [[ "$command" = "run" && ( "${2:-}" = "worker" || "${2:-}" = "all" ) ]]; then
     pipeless_install_user_python_deps
 fi
 
-if [[ "$1" = "pipeless" ]]; then
+if [[ "$command" = "pipeless" ]]; then
     exec "$@"
 else
     exec pipeless "$@"
