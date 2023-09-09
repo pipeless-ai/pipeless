@@ -38,5 +38,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile
           push: true
-          tags: ${{ coalesce(github.events.inputs.tag-override, steps.meta.outputs.tags) }}
+          tags: ${{ if github.events.inputs.tag-override != '' }}${{ github.events.inputs.tag-override }}${{ else }}${{ steps.meta.outputs.tags }}${{ endif }}
           labels: ${{ steps.meta.outputs.labels }}
