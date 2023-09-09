@@ -2,6 +2,8 @@
   <img src="assets/pipeless-logo-w300.png" alt="Pipeless logo" />
 </div>
 
+![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/pipeless_ai?color=%230000ff)
+
 Pipeless is an open source multimedia framework with focus on computer vision.
 
 With Pipeless, developers can create and deploy applications that analyze and manipulate audio and video in real time in just minutes, allowing them to focus on their applications instead of on creating and maintaining multimedia pipelines.
