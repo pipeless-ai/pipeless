@@ -219,21 +219,8 @@ We provide some modules containing a growing set of ready to use models for comm
 
 ## Plugins
 
-We also provide a [plugins package](plugins) that provides useful plugins for common tasks such as producing events to Kafka, skipping image processing when they are similar, etc.
-
-To install the plugins package run:
-
-```console
-pip install pipeless-ai-plugins
-```
-
-To import it on your Pipeless project use:
-
-```python
-from pipeless_ai_plugins.<plugin_name> import <plugin_class>
-```
-
-To get more information about a specific plugin, including how to use it please check the specific plugin README.
+The Pipeless plugin system allows you to add functionality to your application out-of-the-box.
+Find the whole documentation about the Pipeless plugin system [here](https://pipeless.ai/docs/v0/plugins).
 
 ### Available plugins
 
