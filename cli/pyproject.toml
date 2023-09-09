@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pipeless-ai-cli"
-version = "0.1.7"
+version = "0.1.8"
 description = "Pipeless is a framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
 license = "Apache-2.0"
