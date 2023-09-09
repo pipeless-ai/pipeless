@@ -10,8 +10,9 @@ on:
     branches:
       - main
     inputs:
-      tag-override:
+      tag_override:
         description: "Override the image tag. Useful to release revisions of the container when the Pipeless code has not changed"
+        type: string
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
@@ -38,5 +39,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile
           push: true
-          tags: ${{ github.events.inputs.tag-override != '' && github.events.inputs.tag-override || steps.meta.outputs.tags }}
+          tags: ${{ inputs.tag_override != '' && inputs.tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
