@@ -9,14 +9,13 @@ on:
   workflow_dispatch:
     branches:
       - main
-
+    inputs:
+      tag-override:
+        description: "Override the image tag. Useful to release revisions of the container when the Pipeless code has not changed"
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    inputs:
-      tag-override:
-        description: "Override the image tag. Useful to release revisions of the container when the Pipeless code has not changed"
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
@@ -39,5 +38,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile
           push: true
-          tags: ${{ coalesce(inputs.tag-override, steps.meta.outputs.tags) }}
+          tags: ${{ coalesce(github.events.inputs.tag-override, steps.meta.outputs.tags) }}
           labels: ${{ steps.meta.outputs.labels }}
