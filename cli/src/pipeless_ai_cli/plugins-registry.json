@@ -19,7 +19,7 @@
         },
         {
             "name": "Pipeless Drawing Plugin",
-            "id": "drawing",
+            "id": "draw",
             "description": "Draws data over the output video such as bounding boxes, segmentation masks or keypoints.",
             "versions": [
                 {
