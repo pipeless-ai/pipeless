@@ -20,7 +20,7 @@
         {
             "name": "Pipeless Drawing Plugin",
             "id": "drawing",
-            "description": "Automatically draw data over the output video such as bounding boxes, segmentation masks or keypoints.",
+            "description": "Draws data over the output video such as bounding boxes, segmentation masks or keypoints.",
             "versions": [
                 {
                     "version": "plugins-draw-0.1.0",
@@ -30,6 +30,23 @@
                     "subdir": "plugins/draw",
                     "plugin_dependencies": [],
                     "python_dependencies": ["opencv-python"],
+                    "system_dependencies": []
+                }
+            ]
+        },
+        {
+            "name": "Pipeless YOLOv8 Plugin",
+            "id": "yolov8",
+            "description": "Executes YOLOv8 models over video frames and expose the results to your Pipeless application.",
+            "versions": [
+                {
+                    "version": "plugins-yolov8-0.1.0",
+                    "latest": true,
+                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "docs_url": "https://pipeless.ai/docs/v0/plugins/yolov8",
+                    "subdir": "plugins/yolov8",
+                    "plugin_dependencies": [],
+                    "python_dependencies": ["ultralytics"],
                     "system_dependencies": []
                 }
             ]
