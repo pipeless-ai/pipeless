@@ -1,5 +1,6 @@
 import importlib
 import sys
+import time
 import traceback
 import numpy as np
 
@@ -19,6 +20,8 @@ def fetch_and_process(user_app):
     r_socket = InputPullSocket()
     raw_msg = r_socket.recv()
     if raw_msg is not None:
+        if config.get_worker().get_show_exec_time():
+            start_time = time.time()
         msg = deserialize(raw_msg)
         if config.get_output().get_video().is_enabled():
             s_socket = OutputPushSocket()
@@ -52,6 +55,9 @@ def fetch_and_process(user_app):
         else:
             logger.error(f'Unsupported message type: {msg.type}')
             sys.exit(1)
+
+        if config.get_worker().get_show_exec_time():
+            logger.info(f'Application took {(time.time() - start_time) * 1000:.3f} ms to run for the frame')
 
     return True # Continue the current worker execution
 

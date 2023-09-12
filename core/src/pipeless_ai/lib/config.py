@@ -103,11 +103,14 @@ class Worker():
             worker_dict, 'recv_buffer_size',
             f'{ENV_PREFIX}_WORKER_RECV_BUFFER_SIZE', convert_to=int,
             default=300) # 5 seconds of 60 pfs video
+        self._show_exec_time = prioritized_config(worker_dict, 'show_exec_time', f'{ENV_PREFIX}_WORKER_SHOW_EXEC_TIME', convert_to=bool, default=False)
 
     def get_n_workers(self):
         return self._n_workers
     def get_recv_buffer_size(self):
         return self._recv_buffer_size
+    def get_show_exec_time(self):
+        return self._show_exec_time
 
 class Plugins():
     def __init__(self, plugins_dict):
