@@ -4,7 +4,7 @@ input:
     port: 1234
   video:
     enable: true
-    uri: file:///home/miguelaeh/projects/pipeless-2/examples/text-overlay/book-video.mp4
+    uri: file:///home/example/path/book-video.mp4
 log_level: INFO
 output:
   address:
@@ -12,6 +12,6 @@ output:
     port: 1237
   video:
     enable: true
-    uri: rtmp://localhost:1935/twich/test
+    uri: screen
 worker:
   n_workers: 1

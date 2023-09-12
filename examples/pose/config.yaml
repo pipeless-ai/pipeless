@@ -4,7 +4,7 @@ input:
     port: 1234
   video:
     enable: true
-    uri: file:///home/miguelaeh/projects/pipeless-2/examples/pose/woman-walking.mp4
+    uri: file:///home/example/path/woman-walking.mp4
 log_level: INFO
 output:
   address:
@@ -12,6 +12,6 @@ output:
     port: 1237
   video:
     enable: true
-    uri: file:///home/miguelaeh/projects/pipeless-2/examples/pose/output.mp4
+    uri: file:///home/example/path/output.mp4
 worker:
   n_workers: 1

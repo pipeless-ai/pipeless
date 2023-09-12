@@ -5,15 +5,13 @@ input:
     port: 1234
   video:
     enable: true
-    uri: 'file:///home/miguelaeh/projects/pipeless/examples/cats/cats.mp4'
-      # uri: 'rtmp://localhost:1935/twich/input'
+    uri: file:///home/example/path/pipeless/examples/cats/cats.mp4
 output:
   address:
     host: localhost
     port: 1237
   video:
     enable: true
-    uri: file:///home/miguelaeh/projects/pipeless/examples/cats/cats-output.mp4
-      #uri: rtmp://localhost:1935/twich/output
+    uri: file:///home/example/path/pipeless/examples/cats/cats-output.mp4
 worker:
   n_workers: 1
