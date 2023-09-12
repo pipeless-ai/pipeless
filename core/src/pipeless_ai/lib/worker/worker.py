@@ -62,7 +62,11 @@ def load_user_module(path):
     """
     spec = importlib.util.spec_from_file_location('user_app', path)
     user_app_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(user_app_module)
+    try:
+        spec.loader.exec_module(user_app_module)
+    except Exception as e:
+        logger.error(e)
+        sys.exit(1)
     UserApp = getattr(user_app_module, 'App')
     user_app = UserApp()
     return user_app
@@ -79,6 +83,9 @@ def worker(config_dict, user_module_path):
     plugins_dir = config.get_plugins().get_plugins_dir()
     plugins_order = config.get_plugins().get_plugins_order()
 
+    user_app = load_user_module(user_module_path)
+    inject_plugins(user_app, plugins_dir, plugins_order)
+
     logger.info('Notifying worker ready to input')
     w_socket = WorkerReadySocket('worker')
     w_socket.send(b'ready') # Notify the input that a worker is available
@@ -89,14 +96,13 @@ def worker(config_dict, user_module_path):
             if config.get_output().get_video().is_enabled():
                 s_socket = OutputPushSocket()
 
-            # Infinite worker loop
-            continue_worker = True
-            # Reset user app on every new stream
-            user_app = load_user_module(user_module_path)
-            inject_plugins(user_app, plugins_dir, plugins_order)
             exec_hook_with_plugins(user_app, 'before')
+
+            # Stream loop
+            continue_worker = True
             while continue_worker:
                 continue_worker = fetch_and_process(user_app)
+
             exec_hook_with_plugins(user_app, 'after')
 
             if (config.get_output().get_video().get_uri_protocol() == 'file'

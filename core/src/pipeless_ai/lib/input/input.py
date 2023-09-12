@@ -119,7 +119,6 @@ def get_input_bin(uri):
             sys.exit(1)
 
         # Create ghost pads to be able to plug other components
-        #ghostpad_src = Gst.GhostPad.new("src", capsfilter.get_static_pad("src"))
         ghostpad_src = Gst.GhostPad.new("src", capsfilter.get_static_pad("src"))
         bin.add_pad(ghostpad_src)
 
