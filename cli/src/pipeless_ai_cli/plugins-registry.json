@@ -24,6 +24,16 @@
             "versions": [
                 {
                     "version": "plugins-draw-0.1.0",
+                    "latest": false,
+                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",
+                    "subdir": "plugins/draw",
+                    "plugin_dependencies": [],
+                    "python_dependencies": ["opencv-python"],
+                    "system_dependencies": []
+                },
+                {
+                    "version": "plugins-draw-0.1.1",
                     "latest": true,
                     "repo_url": "https://github.com/miguelaeh/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",

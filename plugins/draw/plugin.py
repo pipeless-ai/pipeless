@@ -76,7 +76,7 @@ class PipelessPlugin(PipelessApp):
         return frame
 
     def post_process(self, frame):
-        confidence_threshold = os.environ.get('PIPELESS_PLUGIN_DRAW_CONFIDENCE_THRESHOLD', None)
+        confidence_threshold = float(os.environ.get('PIPELESS_PLUGIN_DRAW_CONFIDENCE_THRESHOLD', None))
         exec_masks_loop = True
         for i, box in enumerate(self.boxes):
             x1, y1, x2, y2, label, score, color = box
