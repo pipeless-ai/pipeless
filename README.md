@@ -19,7 +19,7 @@
     <img alt="" src="https://img.shields.io/pypi/l/pipeless-ai?style=for-the-badge&labelColor=000000">
   </a>
   <a aria-label="Join the community on GitHub" href="https://github.com/miguelaeh/pipeless/discussions">
-    <img alt="" src="https://img.shields.io/badge/Join%20the%20community-blueviolet.svg?style=for-the-badge&labelColor=000000&logoWidth=20">
+    <img alt="" src="https://img.shields.io/badge/Join%20the%20community-black.svg?style=for-the-badge&logo=&labelColor=000000&logoWidth=20">
   </a>
 </p>
 
