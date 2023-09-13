@@ -38,7 +38,7 @@
    <br /><br />
 </div>
 
-Pipeless provides industry standard models that you can use out-of-the-box or easily bring your own custom model. Futhermore, you can deploy either on edge devices or to the cloud thanks to our container images.
+Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. Futhermore, you can deploy either on edge devices or to the cloud thanks to our container images.
 
 Pipeless also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing.
 
