@@ -25,7 +25,7 @@
 
 <div align="center">
    <p>An open source computer vision framework.</p>
-   <p>Easily create and deploy applications that analyze and manipulate real-time streams in just minutes, and forget about building and maintaining multimedia pipelines.</p>
+   <p>Easily create and deploy applications that analyze and manipulate streams in real-time, and forget about building and maintaining multimedia pipelines.</p>
    <p>Join us in our mission and contribute to make the day to day life of computer vision developers easier!</p>
 
    <br />
