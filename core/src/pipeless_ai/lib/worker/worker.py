@@ -9,8 +9,9 @@ from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket, WorkerReadySocket
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
+from pipeless_ai.lib.worker.inference.utils import get_inference_session, should_enable_inference_runtime
 
-def fetch_and_process(user_app):
+def fetch_and_process(user_app, inference_session):
     """
     Processes messages comming from the input
     Returns whether the current worker iteration should continue
@@ -35,11 +36,26 @@ def fetch_and_process(user_app):
                 shape=(height, width, 3),
                 dtype=np.uint8, buffer=data
             )
+            # We will work slicing the array to avoid copying, which is very slow.
+            # Set original frame as non writable to raise execption if modified
+            ndframe.flags.writeable = False
+            # TODO: add to the docs that you can always access the original frame in self.original_frame and clarify
+            #       that when runngin inference you need to output the original frame if you want to output video
+            user_app.original_frame = ndframe.view() # View of the original frame
 
             # Execute frame processing
-            updated_ndframe = ndframe
-            updated_ndframe = exec_hook_with_plugins(user_app, 'pre_process', updated_ndframe)
-            updated_ndframe = exec_hook_with_plugins(user_app, 'process', updated_ndframe)
+            # When an inference model is provided, the process hook is not invoked because logically it doesn't have sense.
+            # Also, the post-process hook will receive the original frame instead of the pre-process output since the
+            # pre-process output is usually not an image but the inference model input.
+            updated_ndframe = ndframe.view()
+            if inference_session:
+                # TODO: we could run inference in batches
+                inference_input = exec_hook_with_plugins(user_app, 'pre_process', updated_ndframe)
+                inference_result = inference_session.run(inference_input)
+                user_app.inference.results = inference_result # Embed the inference results into the user application
+            else:
+                updated_ndframe = exec_hook_with_plugins(user_app, 'pre_process', updated_ndframe)
+                updated_ndframe = exec_hook_with_plugins(user_app, 'process', updated_ndframe)
             updated_ndframe = exec_hook_with_plugins(user_app, 'post_process', updated_ndframe)
             msg.update_data(updated_ndframe)
 
@@ -89,8 +105,20 @@ def worker(config_dict, user_module_path):
     plugins_dir = config.get_plugins().get_plugins_dir()
     plugins_order = config.get_plugins().get_plugins_order()
 
+    inference_session = get_inference_session(config)
     user_app = load_user_module(user_module_path)
     inject_plugins(user_app, plugins_dir, plugins_order)
+
+    # It confuses people if you are able to implement process when
+    # using model inference because the inference is the processing
+    if inference_session and hasattr(user_app, 'process'):
+        logger.error("The process hook must not be implemented when using model inference. Use 'post_process' instead.")
+        sys.exit(1)
+    for plugin_id, plugin in vars(user_app.plugins).items():
+        logger.error(plugin)
+        if hasattr(plugin, 'process'):
+            logger.error(f"The plugin '{plugin_id}' implements the 'process' hook which must not be implemented when using model inference. You can remove it or contact the author of the plugin to evaluate moving the code into 'pre-process' or 'post-process'")
+            sys.exit(1)
 
     logger.info('Notifying worker ready to input')
     w_socket = WorkerReadySocket('worker')
@@ -107,7 +135,7 @@ def worker(config_dict, user_module_path):
             # Stream loop
             continue_worker = True
             while continue_worker:
-                continue_worker = fetch_and_process(user_app)
+                continue_worker = fetch_and_process(user_app, inference_session)
 
             exec_hook_with_plugins(user_app, 'after')
 

@@ -45,26 +45,37 @@ if __name__ == "__main__":
     # Adding this here just for easy of manual testing while developing.
     config = {
         'input': {
+            'address': {
+                'host': 'localhost',
+                'port': 1234,
+            },
             'video': {
                 'enable': True,
-                'uri': 'some_hardcoded-uri'
-            },
-            'address': { # address where the input component runs for the nng connections
-                'host': 'localhost',
-                'port': 1234
+                'uri': 'file:///home/miguelaeh/Downloads/WhatsApp Video 2023-09-11 at 23.51.34.mp4',
             },
         },
-        "output": {
-            'video': {
-                'enable': True,
-                'uri': 'file:///tmp/my-video.mp4'
-            },
-            'address': { # address where the input component runs for the nng connections
+        'log_level': 'INFO',
+        'output': {
+            'address': {
                 'host': 'localhost',
-                'port': 1236
+                'port': 1237,
             },
-        }
+            "video": {
+                'enable': True,
+                'uri': "file:///home/miguelaeh/projects/pipeless-2/examples/yolo/output.mp4"
+            }
+        },
+        "plugins": {
+          'order': 'yolov8,draw'
+        },
+        "worker": {
+          "n_workers": 1,
+          "inference": {
+            "model": "file:///home/miguelaeh/Downloads/resnet18-v1-7.onnx"
+          },
+        },
     }
+
 
     if len(sys.argv) < 2:
         logger.error('Missing parameter: component')

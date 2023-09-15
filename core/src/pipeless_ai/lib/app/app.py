@@ -7,6 +7,8 @@ class PipelessApp():
     """
 
     def __init__(self):
+        self.original_frame = None
+        self.inference = types.SimpleNamespace()
         self.plugins = types.SimpleNamespace()
         self.__plugins_exec_graph = ()
 

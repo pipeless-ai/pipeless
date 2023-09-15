@@ -69,7 +69,7 @@ class PipelessPlugin(PipelessApp):
     * [x1, y1] = [a, b]
     * [x2, y2] = [a + width, b + height]
     """
-    def process(self, frame):
+    def pre_process(self, frame):
         self.boxes = [] # Reset the bounding box on every frame
         self.masks = [] # Reset the mask on every frame
         self.keypoints = [] # Reset keypoints on every frame
