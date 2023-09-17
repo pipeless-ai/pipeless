@@ -15,6 +15,10 @@ class PipelessInferenceSession():
         force_opset_version = inference_config.get_force_opset_version()
         force_ir_version = inference_config.get_force_ir_version()
         self.input_image_shape_format = inference_config.get_image_shape_format()
+        self.force_input_image_width = inference_config.get_image_width()
+        self.force_input_image_height = inference_config.get_image_height()
+        self.force_input_image_channels = inference_config.get_image_channels()
+
         if not self.input_image_shape_format:
             logger.warning("worker.inference.image_shape_format not provided for inference model, using default 'height,width,channels")
 
@@ -24,8 +28,6 @@ class PipelessInferenceSession():
             main_model_path, "main",
             force_opset_version=force_opset_version, force_ir_version=force_ir_version
         )
-        # TODO: if we decide to install the onnxruntime on the fly, we must provide an option to use a specific version.
-        # TODO: leave clear on the docs that when you get a core dumped it is typically because of an error pre-processing the data, not an error from Pipeless
 
         pre_process_model_uri = inference_config.get_pre_process_model_uri()
         if pre_process_model_uri:
@@ -55,14 +57,17 @@ class PipelessInferenceSession():
         available_ep = self.session.get_providers()
         logger.info(f'Available ORT execution providers: {available_ep}')
 
-        # TODO: The copy of the input and outputs from/to devices (GPU) may be slow. We can use ONNX IO Bindings to solve that. We should perform profiling
+        # TODO: The copy of the input and outputs from/to devices (GPU) may be slow. We can use ONNX IO Bindings to solve that. We should perform profiling.
+        #       Test on CUDA
 
         input = self.session.get_inputs()[0]
         input_shape = input.shape
         try:
-            self.input_batch_size, self.input_img_channels, self.input_img_height, self.input_img_width = parse_input_shape(input_shape, self.input_image_shape_format)
+            force_tuple = (self.force_input_image_width, self.force_input_image_height, self.force_input_image_channels)
+            self.input_batch_size, self.input_img_channels, self.input_img_height, self.input_img_width = parse_input_shape(
+                input_shape, self.input_image_shape_format, force_tuple)
         except Exception as e:
-            logger.error(f"Error parsing model input shape: {e}")
+            logger.error(f"Error reading the model input shape automatically: {e}. Please provide the input shape via worker.inference.image_width, worker.inference.image_height, worker.inference.image_channels configuration parameters")
             sys.exit(1)
 
         self.input_name = input.name
@@ -84,7 +89,6 @@ class PipelessInferenceSession():
     def run(self, inference_input_frame):
         try:
             inference_input_frame = prepare_frame(inference_input_frame, self.input_dtype, self.input_image_shape_format, self.input_batch_size, target_height=self.input_img_height, target_width=self.input_img_width)
-            #results = self.session.run(None, {self.input_name: inference_input_frame}) # None retrieves all the outputs
             input_data = { self.input_name: inference_input_frame }
             # Using IO bindings we signifcantly remove overhead of copying input and outputs
             io_binding = self.session.io_binding()

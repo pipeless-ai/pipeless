@@ -116,6 +116,10 @@ class Inference():
         # The expected image shape format of the model input to automatically transpose it
         self._image_shape_format = prioritized_config(inference_dict, 'image_shape_format', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_SHAPE_FORMAT', default=None)
         self._image_shape_format = parse_transpose_order(self._image_shape_format)
+        # Allow thte user to force the image input size
+        self._image_width = prioritized_config(inference_dict, 'image_width', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_WIDTH', default=None)
+        self._image_height = prioritized_config(inference_dict, 'image_height', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_HEIGHT', default=None)
+        self._image_channels = prioritized_config(inference_dict, 'image_channels', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_CHANNELS', default=None)
 
     def get_model_uri(self):
         return self._model_uri
@@ -127,6 +131,12 @@ class Inference():
         return self._force_ir_version
     def get_image_shape_format(self):
         return self._image_shape_format
+    def get_image_width(self):
+        return self._image_width
+    def get_image_height(self):
+        return self._image_height
+    def get_image_channels(self):
+        return self._image_channels
 
 class Worker():
     def __init__(self, worker_dict):

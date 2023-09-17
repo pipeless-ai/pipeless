@@ -9,7 +9,7 @@ from pipeless_ai.lib.config import Config
 from pipeless_ai.lib.connection import InputPullSocket, OutputPushSocket, WorkerReadySocket
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
 from pipeless_ai.lib.messages import EndOfStreamMsg, RgbImageMsg, deserialize
-from pipeless_ai.lib.worker.inference.utils import get_inference_session, should_enable_inference_runtime
+from pipeless_ai.lib.worker.inference.utils import get_inference_session
 
 def fetch_and_process(user_app, inference_session):
     """

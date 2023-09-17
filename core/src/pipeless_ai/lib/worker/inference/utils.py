@@ -57,13 +57,16 @@ def get_model_path(uri: str, alias: str) -> str:
     Obtains the model from the provided URI.
     Returns the local path.
     """
+    # TODO: support download from private s3 buckets
     if uri.startswith('file'):
         model_file_path = uri.replace("file://", "")
-    if uri.startswith('http'):
+    elif uri.startswith('http'):
         url_response = requests.get(uri)
         model_file_path = f'/tmp/{alias}-model.onnx'
         with open(model_file_path, "wb") as model_file:
             model_file.write(url_response.content)
+    else:
+        raise ValueError("The model URI currently supports 'file://' and 'http(s)://'")
 
     return model_file_path
 
@@ -110,7 +113,7 @@ def transpose_image(image, format):
     transposed_image = np.transpose(image, permute_indexes)
     return transposed_image
 
-def parse_input_shape(input_shape, format):
+def parse_input_shape(input_shape, format, force_tuple):
     """
     Parse the image format from the model input using the format provided
     Returns batch_size, channels, height, width of the ONNX model input
@@ -126,8 +129,14 @@ def parse_input_shape(input_shape, format):
     else:
         raise ValueError(f'Unsupported model input shape: {input_shape}')
 
-    # Create a dictionary to map values to strings
+    force_width, force_height, force_channels = force_tuple
     key_to_value = dict(zip(format, sub_shape))
+    if force_width:
+        key_to_value['width'] = int(force_width)
+    if force_height:
+        key_to_value['height'] = int(force_height)
+    if force_channels:
+        key_to_value['channels'] = int(force_channels)
     new_sub_shape = tuple(key_to_value[key] for key in new_order)
     return batch_size, *new_sub_shape
 
