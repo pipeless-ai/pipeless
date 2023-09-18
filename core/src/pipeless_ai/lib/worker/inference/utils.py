@@ -2,55 +2,9 @@ import sys
 import cv2
 import numpy as np
 import onnx
-# IMPORTANT: do not import onnxruntime here because breaks the import logic
-import pkg_resources
-
-
-from pipeless_ai.lib.logger import logger
 import requests
 
-def is_package_installed(package_name):
-    try:
-        pkg_resources.get_distribution(package_name)
-        return True
-    except pkg_resources.DistributionNotFound:
-        return False
-
-def is_onnxruntime_available() -> bool:
-    '''
-    Check whether the user installed the onnxruntime or onnxruntime-gpu
-    '''
-    if is_package_installed("onnxruntime"):
-        logger.info('Enabling built in worker inference for CPU')
-        return True
-    elif is_package_installed("onnxruntime-gpu"):
-        logger.info('Enabling built in worker inference for GPU')
-        return True
-    else:
-        logger.info('Running without built in worker inference. To enable it install either onnxruntime or onnxruntime-gpu')
-        return False
-
-def should_enable_inference_runtime(config) -> bool:
-    if config.get_worker().get_inference().get_model_uri():
-        if is_onnxruntime_available():
-            return True
-        else:
-            logger.error("A model was provided for inference but the onnxruntime package is not installed. Run 'pip install onnxruntime or onnxruntime-gpu")
-            sys.exit(1)
-    else:
-        # The user is not trying to use the built-int inference since did not provide a model
-        return False
-
-def get_inference_session(config):
-    """
-    Returns an inference session when possible or None
-    """
-    if should_enable_inference_runtime(config):
-        from pipeless_ai.lib.worker.inference.runtime import PipelessInferenceSession
-        inference_config = config.get_worker().get_inference()
-        return PipelessInferenceSession(inference_config)
-    else:
-        return None
+from pipeless_ai.lib.logger import logger
 
 def get_model_path(uri: str, alias: str) -> str:
     """

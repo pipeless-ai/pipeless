@@ -109,3 +109,13 @@ class PipelessInferenceSession():
         except Exception as e:
             logger.error(f'There was an error running inference: {e}')
             return None
+
+def get_inference_session(config):
+    """
+    Returns an inference session when possible or None
+    """
+    if config.get_worker().get_inference().get_model_uri():
+        inference_config = config.get_worker().get_inference()
+        return PipelessInferenceSession(inference_config)
+    else:
+        return None
