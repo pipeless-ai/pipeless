@@ -4,6 +4,28 @@ This directory contains the source files to build the Pipeless container images.
 
 The container images provide a way to run Pipeless out-of-the box without having to deal with dependencies.
 
+
+## Using the CUDA image
+
+You need to install the Nvidia Container Toolkit to use the CUDA images. run with `--gpus all` option.
+
+```console
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list \
+  && \
+    sudo apt-get update
+```
+
+then reload the docker daemon to take the toolkit into account:
+
+```console
+systemctl restart docker
+```
+
+Finally, provide the `--gpus all` option to your `docker` command.
+
 ## Image Usage
 
 Print help command:
