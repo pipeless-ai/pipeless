@@ -24,8 +24,8 @@
 </p>
 
 <div align="center">
-   <p>An open source computer vision framework.</p>
-   <p>Easily create and deploy applications that analyze and manipulate streams in real-time, and forget about building and maintaining multimedia pipelines.</p>
+   <p>An open-source computer vision framework.</p>
+   <p>Easily create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines.</p>
    <p>Join us in our mission and contribute to make the day to day life of computer vision developers easier!</p>
 
    <br />
@@ -38,9 +38,13 @@
    <br /><br />
 </div>
 
-Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. Futhermore, you can deploy either on edge devices or to the cloud thanks to our container images.
+Pipeless ships all the features you need to create and deploy efficent computer vision applications that work in real-time. Just like you implement specific functions in serverless web applications, Pipeless simply requires you to implement certain hooks to process any stream from any source.
 
-Pipeless also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing.
+Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. The Pipeless worker contains a built-in ONNX Runtime allowing you to run inference using any compatible model.
+
+With Pipeless, you can deploy either on edge devices or to the cloud thanks to our container images, and it also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing.
+
+Futhermore, you can easily extend the feature set thanks to the plugins system. For example, there are plugins to handle events on real-time with Kafka, use YOLOv8 models, automatically draw inference results over the original video, and many others.
 
 ## Index 📚
 
@@ -128,7 +132,13 @@ pipeless run
 
 We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/configuration) the configuration section.
 
-## Supported formats 📌
+## Built-in ONNX Runtime
+
+With the built-in ONNX Runtime you can run inference over the video frames out-of-the box by simply providing a model.
+
+We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/inference) the documentation about running inference with the ONNX runtime.
+
+## Supported stream formats 📌
 
 We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/formats) the supported protocols and media formats.
 
