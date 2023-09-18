@@ -1,7 +1,6 @@
 # Pipeless Core
 
-Pipeless is a framework to build and deploy multimodal perception apps in minutes without worrying about multimedia pipelines.
-Pipeless Core is the core component of the framework.
+[Pipeless](https://www.pipeless.ai) is a computer vision framework to quickly create and deploy applications that process real time streams. Pipeless Core is the core component of the framework.
 
 The Pipeless core is split into several components:
 
@@ -25,10 +24,10 @@ pip install pipeless-ai
 
 ## Development
 
-To test your changes run the following command from the `src` directory:
+To test your changes run the following command from the project root directory:
 
 ```console
-python -m pipeless.pipeless <component> [app_path]
+python -m pipeless_ai.core <component> [app_file_path.py]
 ```
 
 * `<component>` can be `input`, `worker`, `output`, `all` (default)

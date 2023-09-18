@@ -96,6 +96,48 @@ class Output():
     def get_recv_buffer_size(self):
         return self._recv_buffer_size
 
+def parse_transpose_order(format):
+    """
+    Parses the transpose order provided by the user
+    """
+    transpose_order = format.split(",")
+    if len(transpose_order) != 3: raise ValueError("The worker.inference.image_shape_format parameter must contain 3 fields. Widht, Height and Channels")
+    transpose_order = [s.strip().lower() for s in transpose_order]
+    return transpose_order
+
+class Inference():
+    def __init__(self, inference_dict):
+        self._model_uri = prioritized_config(inference_dict, 'model_uri', f'{ENV_PREFIX}_WORKER_INFERENCE_MODEL_URI')
+        # It is a common practise to use a model to pre-process the input for the actual model.
+        self._pre_process_model_uri = prioritized_config(inference_dict, 'pre_process_model_uri', f'{ENV_PREFIX}_WORKER_INFERENCE_PRE_PROCESS_MODEL_URI', default=None)
+        # Force model versions conversion
+        self._force_ir_version = prioritized_config(inference_dict, 'force_ir_version', f'{ENV_PREFIX}_WORKER_INFERENCE_FORCE_IR_VERSION', default=None, convert_to=int)
+        self._force_opset_version = prioritized_config(inference_dict, 'force_opset_version', f'{ENV_PREFIX}_WORKER_INFERENCE_FORCE_OPSET_VERSION', default=None, convert_to=int)
+        # The expected image shape format of the model input to automatically transpose it
+        self._image_shape_format = prioritized_config(inference_dict, 'image_shape_format', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_SHAPE_FORMAT', default=None)
+        self._image_shape_format = parse_transpose_order(self._image_shape_format)
+        # Allow thte user to force the image input size
+        self._image_width = prioritized_config(inference_dict, 'image_width', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_WIDTH', default=None)
+        self._image_height = prioritized_config(inference_dict, 'image_height', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_HEIGHT', default=None)
+        self._image_channels = prioritized_config(inference_dict, 'image_channels', f'{ENV_PREFIX}_WORKER_INFERENCE_IMAGE_CHANNELS', default=None)
+
+    def get_model_uri(self):
+        return self._model_uri
+    def get_pre_process_model_uri(self):
+        return self._pre_process_model_uri
+    def get_force_opset_version(self):
+        return self._force_opset_version
+    def get_force_ir_version(self):
+        return self._force_ir_version
+    def get_image_shape_format(self):
+        return self._image_shape_format
+    def get_image_width(self):
+        return self._image_width
+    def get_image_height(self):
+        return self._image_height
+    def get_image_channels(self):
+        return self._image_channels
+
 class Worker():
     def __init__(self, worker_dict):
         self._n_workers = prioritized_config(worker_dict, 'n_workers', f'{ENV_PREFIX}_WORKER_N_WORKERS', convert_to=int, required=True)
@@ -105,12 +147,17 @@ class Worker():
             default=300) # 5 seconds of 60 pfs video
         self._show_exec_time = prioritized_config(worker_dict, 'show_exec_time', f'{ENV_PREFIX}_WORKER_SHOW_EXEC_TIME', convert_to=bool, default=False)
 
+        # Built in inference runtime configuration
+        self._inference = Inference(worker_dict.get("inference", {}))
+
     def get_n_workers(self):
         return self._n_workers
     def get_recv_buffer_size(self):
         return self._recv_buffer_size
     def get_show_exec_time(self):
         return self._show_exec_time
+    def get_inference(self):
+        return self._inference
 
 class Plugins():
     def __init__(self, plugins_dict):
