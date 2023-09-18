@@ -69,5 +69,5 @@ jobs:
           push: true
           flavor: |
             suffix=cuda,onlatest=true
-          tags: ${{ inputs.cuda_tag_override != '' && inputs.cuda_tag_override || steps.meta.outputs.tags }}
+          tags: ${{ inputs.tag_override != '' && inputs.tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
