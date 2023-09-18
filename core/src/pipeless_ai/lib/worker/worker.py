@@ -36,11 +36,9 @@ def fetch_and_process(user_app, inference_session):
                 shape=(height, width, 3),
                 dtype=np.uint8, buffer=data
             )
-            # We will work slicing the array to avoid copying, which is very slow.
+            # We work with numpy views of the array to avoid complete copying, which is very slow.
             # Set original frame as non writable to raise execption if modified
             ndframe.flags.writeable = False
-            # TODO: add to the docs that you can always access the original frame in self.original_frame and clarify
-            #       that when runngin inference you need to output the original frame if you want to output video
             user_app.original_frame = ndframe.view() # View of the original frame
 
             # Execute frame processing
