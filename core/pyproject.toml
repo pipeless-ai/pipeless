@@ -18,6 +18,8 @@ numpy = "^1.24.0 <1.25.0"
 pygobject = "^3.44.1"
 opencv-python = "^4.8.0.76"
 onnxruntime-gpu = "^1.15.1"
+requests = "^2.31.0"
+onnx = "^1.14.1"
 
 [build-system]
 requires = ["poetry-core"]
