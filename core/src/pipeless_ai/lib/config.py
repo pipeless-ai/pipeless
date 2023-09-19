@@ -50,8 +50,10 @@ class Video():
                     uri_split = self._uri.split('://')
                     self._protocol = uri_split[0]
                     self._location = uri_split[1]
-                except:
-                    logger.error(f'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc')
+                except Exception:
+                    logger.error(
+                        'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc'
+                    )
                     sys.exit(1)
         else:
             self._uri = None
@@ -88,6 +90,10 @@ class Output():
                 output_dict, 'recv_buffer_size',
                 f'{ENV_PREFIX}_OUTPUT_RECV_BUFFER_SIZE', convert_to=int,
                 default=300) # 5 seconds of 60 pfs video
+            if self._recv_buffer_size > 8192:
+                # This is a limitation of Pynng. Not documented, but it fails with higher numbers
+                logger.error("The buffer size can't be higher than 8192")
+                sys.exit(1)
 
     def get_video(self):
         return self._video
@@ -146,6 +152,10 @@ class Worker():
             worker_dict, 'recv_buffer_size',
             f'{ENV_PREFIX}_WORKER_RECV_BUFFER_SIZE', convert_to=int,
             default=300) # 5 seconds of 60 pfs video
+        if self._recv_buffer_size > 8192:
+            # This is a limitation of Pynng. Not documented, but it fails with higher numbers
+            logger.error("The buffer size can't be higher than 8192")
+            sys.exit(1)
         self._show_exec_time = prioritized_config(worker_dict, 'show_exec_time', f'{ENV_PREFIX}_WORKER_SHOW_EXEC_TIME', convert_to=bool, default=False)
 
         # Built in inference runtime configuration
@@ -175,12 +185,13 @@ class Config(metaclass=Singleton):
     def __init__(self, config):
         logger.debug('Parsing configuration')
         self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL', required=True)
-        if not self._log_level == 'INFO' and not self._log_level == 'DEBUG' and not self._log_level == 'WARN':
+        if self._log_level not in ['INFO', 'DEBUG', 'WARN']:
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
+        # This is not the same than defaulting to {} in dict.get, that produces None if plugins is empty in the YAML
+        plugins_section = dict.get(config, "plugins") or {}
         # TODO: we are assuming there is always a config file with all the sections, but a user could use just env vars
-        plugins_section = dict.get(config, "plugins", {})
         self._plugins = Plugins(plugins_section)
         self._input = Input(config['input'])
         self._output = Output(config['output'])

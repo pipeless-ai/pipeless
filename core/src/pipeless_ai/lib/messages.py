@@ -93,10 +93,7 @@ class RgbImageMsg(Msg):
         """
         The data is updated in raw
         """
-        if isinstance(new_raw_data, np.ndarray):
-            self._data = new_raw_data
-        else:
-            self._data = new_raw_data
+        self._data = new_raw_data
 
     def get_width(self):
         return self._width
@@ -119,7 +116,6 @@ def deserialize(_msg):
         if isinstance(r_data, bytes):
             # Ref: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.dumps.html#numpy.ndarray.dumps
             r_data = pickle.loads(msg["data"])
-            # TODO: are the frames correct? is the ndtype=np.uint8 properly decoded?
 
         return RgbImageMsg(
             msg["width"],

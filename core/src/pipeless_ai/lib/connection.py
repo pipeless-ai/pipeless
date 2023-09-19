@@ -30,7 +30,7 @@ def send_error_handler(func):
             return True # Inidicate data was sent
         except Timeout:
             logger.warning(f"Timeout sending message on socket: {socket_name}")
-            return False # Inidicate no data was sent
+            return False # Indicate no data was sent
         except TryAgain:
             # For non-blocking calls
             logger.debug(f"[bright_yellow]No data written, try again on: {socket_name}[/bright_yellow]")
@@ -216,7 +216,7 @@ class InputPullSocket(metaclass=Singleton):
     @recv_error_handler
     def recv(self):
         # Non blocking receive.
-        # Don't worry if we miss a message from time to time
+        # Returns data immediatly or raises TryAgain
         return self._socket.recv(block=False)
 
     def close(self):
@@ -243,7 +243,7 @@ class OutputPullSocket(metaclass=Singleton):
     @recv_error_handler
     def recv(self):
         # Non blocking receive.
-        # Don't worry if we miss a message from time to time
+        # Returns data immediatly or raises TryAgain
         return self._socket.recv(block=False)
 
     def close(self):

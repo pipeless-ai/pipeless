@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from pipeless_ai.lib.app.app import PipelessApp
+from pipeless_ai.lib.app.plugin import PipelessPlugin
 
 def box_label(image, box, label='', score=None, color=(255, 0, 255), txt_color=(255, 255, 255)):
     lw = max(round(sum(image.shape) / 2 * 0.003), 2)
@@ -44,11 +44,9 @@ def overlay_mask(image, mask, color=(255, 0, 255), alpha=0.5, resize=None):
         image = cv2.resize(image.transpose(1, 2, 0), resize)
         image_overlay = cv2.resize(image_overlay.transpose(1, 2, 0), resize)
 
-    image_combined = cv2.addWeighted(image, 1 - alpha, image_overlay, alpha, 0)
+    return cv2.addWeighted(image, 1 - alpha, image_overlay, alpha, 0)
 
-    return image_combined
-
-class PipelessPlugin(PipelessApp):
+class Plugin(PipelessPlugin):
     """
     Pipeless plugin to automatically draw results over frames
 
@@ -69,13 +67,13 @@ class PipelessPlugin(PipelessApp):
     * [x1, y1] = [a, b]
     * [x2, y2] = [a + width, b + height]
     """
-    def pre_process(self, frame):
+    def before_pre_process(self, frame):
         self.boxes = [] # Reset the bounding box on every frame
         self.masks = [] # Reset the mask on every frame
         self.keypoints = [] # Reset keypoints on every frame
         return frame
 
-    def post_process(self, frame):
+    def after_post_process(self, frame):
         confidence_threshold = os.environ.get('PIPELESS_PLUGIN_DRAW_CONFIDENCE_THRESHOLD', None)
         if confidence_threshold:
             confidence_threshold = float(confidence_threshold)

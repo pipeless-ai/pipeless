@@ -5,8 +5,7 @@ import gi
 gi.require_version('GLib', '2.0')
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-gi.require_version('GstPbutils', '1.0')
-from gi.repository import Gst, GstApp, GLib, GstPbutils
+from gi.repository import Gst, GstApp, GLib
 
 from pipeless_ai.lib.connection import InputOutputSocket, OutputPullSocket
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
@@ -20,7 +19,6 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
     if raw_msg is not None:
         logger.debug(f'[purple]New message of {len(raw_msg)} bytes[/purple]')
         msg = deserialize(raw_msg)
-
         if isinstance(msg, RgbImageMsg):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()
@@ -43,32 +41,30 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
 
     return True # Indicate the GLib timeout to retry on the next interval
 
+def get_sink(sink_type, location=None):
+    sink = Gst.ElementFactory.make(sink_type, "sink") # All are named sink
+    if location:
+        sink.set_property("location", location)
+    return sink
+
 def create_sink(protocol, location):
     """
     Create the appropiate sink based on the output protocol provided
     """
     if protocol == 'file':
-        sink = Gst.ElementFactory.make("filesink", "sink")
-        sink.set_property("location", location)
-        return sink
+        return get_sink("filesink", location=location)
     elif protocol == 'https':
-        sink = Gst.ElementFactory.make("souphttpsink", "sink")
-        sink.set_property("location", location)
-        return sink
+        return get_sink("souphttpsink", location=location)
     elif protocol == 'rtmp':
-        sink = Gst.ElementFactory.make("rtmpsink", "sink")
-        sink.set_property("location", f'{protocol}://{location}')
-        return sink
+        return get_sink("rtmpsink", location=f'{protocol}://{location}')
     elif protocol == 'rtsp':
-        sink = Gst.ElementFactory.make("rtspclientsink", "sink")
-        sink.set_property("location", location)
-        return sink
+        return get_sink("rtspclientsink", location=location)
     elif protocol == 'screen':
-        return Gst.ElementFactory.make("autovideosink", "autovideosink")
+        return get_sink("autovideosink")
     else:
         logger.warning(f'Unsupported output protocol {protocol}. Defaulting to autovideosink')
         # NOTE: the autovideosink output goes directly to the computer video output (screen mostly)
-        return Gst.ElementFactory.make("autovideosink", "autovideosink")
+        return get_sink("autovideosink")
 
 def get_processing_bin(protocol, location):
     """
@@ -78,7 +74,7 @@ def get_processing_bin(protocol, location):
     Note the output component will always receive x-raw RGB, so we just
     worry about what we have to produce for each destination
     """
-    bin = Gst.Bin.new("video-bin")
+    g_bin = Gst.Bin.new("video-bin")
     if protocol == 'file':
         """
         The pipeline will also depend on the file extension
@@ -90,18 +86,18 @@ def get_processing_bin(protocol, location):
             taginject = Gst.ElementFactory.make("taginject", "taginject")
             muxer = Gst.ElementFactory.make("mp4mux", "muxer")
             for elem in [videoconvert, capsfilter, encoder, taginject, muxer]:
-                bin.add(elem)
+                g_bin.add(elem)
 
             capsfilter.set_property("caps", Gst.Caps.from_string("video/x-raw,format=I420"))
 
             if not videoconvert.link(capsfilter):
-                logger.error("Error lining videoconvert to capsfilter")
+                logger.error("Error linking videoconvert to capsfilter")
                 sys.exit(1)
             if not capsfilter.link(encoder):
                 logger.error("Error linking capsfilter to encoder")
                 sys.exit(1)
             if not encoder.link(taginject):
-                logger.error("Failed to link encoder to taginject")
+                logger.error("Error linking encoder to taginject")
                 sys.exit(1)
             if not taginject.link(muxer):
                 logger.error("Error linking taginject to muxer")
@@ -109,9 +105,9 @@ def get_processing_bin(protocol, location):
 
             # Create ghost pads to be able to plug other components
             ghostpad_sink = Gst.GhostPad.new("sink", videoconvert.get_static_pad("sink"))
-            bin.add_pad(ghostpad_sink)
+            g_bin.add_pad(ghostpad_sink)
             ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
-            bin.add_pad(ghostpad_src)
+            g_bin.add_pad(ghostpad_src)
         else:
             logger.error('Unsupported file type. Try with a different extension.')
     elif protocol == "rtmp":
@@ -121,7 +117,7 @@ def get_processing_bin(protocol, location):
         taginject = Gst.ElementFactory.make("taginject", "taginject")
         muxer = Gst.ElementFactory.make("flvmux", "muxer")
         for elem in [videoconvert, queue, encoder, taginject, muxer]:
-            bin.add(elem)
+            g_bin.add(elem)
 
         muxer.set_property("streamable", True)
 
@@ -140,15 +136,15 @@ def get_processing_bin(protocol, location):
 
         # Create ghost pads to be able to plug other components
         ghostpad_sink = Gst.GhostPad.new("sink", videoconvert.get_static_pad("sink"))
-        bin.add_pad(ghostpad_sink)
+        g_bin.add_pad(ghostpad_sink)
         ghostpad_src = Gst.GhostPad.new("src", muxer.get_static_pad("src"))
-        bin.add_pad(ghostpad_src)
+        g_bin.add_pad(ghostpad_src)
 
     elif protocol == 'screen':
         queue1 = Gst.ElementFactory.make("queue", "queue1") # TODO: is this queue required?
         videoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         queue2 = Gst.ElementFactory.make("queue", "queue2")
-        for elem in [queue1, videoconvert, queue2]: bin.add(elem)
+        for elem in [queue1, videoconvert, queue2]: g_bin.add(elem)
 
         if not queue1.link(videoconvert):
             logger.error("Error linking queue1 to videoconvert")
@@ -158,23 +154,21 @@ def get_processing_bin(protocol, location):
             sys.exit(1)
 
         ghostpad_sink = Gst.GhostPad.new("sink", queue1.get_static_pad("sink"))
-        bin.add_pad(ghostpad_sink)
+        g_bin.add_pad(ghostpad_sink)
         ghostpad_src = Gst.GhostPad.new("src", queue2.get_static_pad("src"))
-        bin.add_pad(ghostpad_src)
+        g_bin.add_pad(ghostpad_src)
     else:
         logger.error("Unsupported output protocol")
         sys.exit(1)
 
-    return bin
+    return g_bin
 
 def update_encoder_property(pipeline, prop, value):
-    # NOTE: we expect an element called encoder
-    encoder = pipeline.get_by_name('encoder')
-    if not encoder:
-        logger.warning("No encoder found, properties won't be updated")
-    else:
+    if encoder := pipeline.get_by_name('encoder'):
         logger.info(f'Updating bitrate on encoder to {value}')
         encoder.set_property(prop, value)
+    else:
+        logger.warning("No encoder found, properties won't be updated")
 
 def merge_tags(old_tags: str, new_tags: str) -> str:
     """
@@ -296,7 +290,7 @@ class Output:
             logger.error("Unable to set the pipeline to the playing state.")
             sys.exit(1)
 
-        copy_timestamps = not out_protocol == 'screen'
+        copy_timestamps = out_protocol != 'screen'
         # Run on every cicle of the event loop
         self.__glib_fetch_and_send_timeout = GLib.timeout_add(
             0, lambda: fetch_and_send(pipeline_appsrc, copy_timestamps)
@@ -347,12 +341,12 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, output: Output):
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
-        logger.error(f"Debugging information: {debug if debug else 'none'}")
+        logger.error(f"Debugging information: {debug or 'none'}")
         output.get_mainloop().quit()
     elif mtype == Gst.MessageType.WARNING:
         err, debug = msg.parse_warning()
         logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
-        logger.warning(f"Debugging information: {debug if debug else 'none'}")
+        logger.warning(f"Debugging information: {debug or 'none'}")
 
     return True
 

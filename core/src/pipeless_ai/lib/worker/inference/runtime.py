@@ -29,8 +29,7 @@ class PipelessInferenceSession():
             force_opset_version=force_opset_version, force_ir_version=force_ir_version
         )
 
-        pre_process_model_uri = inference_config.get_pre_process_model_uri()
-        if pre_process_model_uri:
+        if pre_process_model_uri := inference_config.get_pre_process_model_uri():
             preproc_model_path = get_model_path(pre_process_model_uri, "pre-process")
             preproc_model = load_model(
                 preproc_model_path, "pre-process",

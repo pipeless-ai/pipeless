@@ -42,7 +42,7 @@ Pipeless ships all the features you need to create and deploy efficent computer 
 
 Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. The Pipeless worker contains a built-in ONNX Runtime allowing you to run inference using any compatible model.
 
-With Pipeless, you can deploy either on edge devices or to the cloud thanks to our container images, and it also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing.
+With Pipeless, you can deploy either on edge devices or to the cloud thanks to our container images, and it also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing without using brokers.
 
 Futhermore, you can easily extend the feature set thanks to the plugins system. For example, there are plugins to handle events on real-time with Kafka, use YOLOv8 models, automatically draw inference results over the original video, and many others.
 

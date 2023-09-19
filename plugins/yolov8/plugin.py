@@ -3,9 +3,9 @@ import os
 import numpy as np
 from ultralytics import YOLO
 from ultralytics.utils.ops import scale_image
-from pipeless_ai.lib.app.app import PipelessApp
+from pipeless_ai.lib.app.plugin import PipelessPlugin
 
-class PipelessPlugin(PipelessApp):
+class Plugin(PipelessPlugin):
     """
     Pipeless plugin to automatically load and execute YOLOv8 models.
     Using YOLO models you can perform image detection, segmentation, classification and pose estimation
@@ -26,7 +26,7 @@ class PipelessPlugin(PipelessApp):
         model_to_load = os.environ.get('PIPELESS_PLUGIN_YOLOV8_MODEL', 'yolov8n.pt')
         self.model = YOLO(model_to_load)
 
-    def process(self, frame):
+    def before_process(self, frame):
         original_shape = frame.shape
         self.prediction = next(self.model(frame, stream=True)) # It returns an array because we can provide several images at once
 
