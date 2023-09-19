@@ -12,7 +12,7 @@ def create_project(name: str):
 
     # TODO: support more templates
     base_dir = os.path.dirname(__file__)
-    project_template = base_dir + '/templates/default'
+    project_template = f'{base_dir}/templates/default'
     try:
         shutil.copytree(project_template, name) # Also creates the directory
     except Exception as e:
@@ -50,10 +50,8 @@ def create_project(name: str):
     }
 
     try:
-        # TODO: override default config with user provided args
-        new_config_file=open(f"{name}/config.yaml","w")
-        yaml.dump(default_config, new_config_file)
-        new_config_file.close()
+        with open(f"{name}/config.yaml","w") as new_config_file:
+            yaml.dump(default_config, new_config_file)
         rprint("[yellow]Config file created.[/yellow]")
     except Exception as e:
         rprint(f"[red bold]An error occurred setting up the project config file:[/red bold] {str(e)}")

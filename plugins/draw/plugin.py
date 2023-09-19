@@ -44,9 +44,7 @@ def overlay_mask(image, mask, color=(255, 0, 255), alpha=0.5, resize=None):
         image = cv2.resize(image.transpose(1, 2, 0), resize)
         image_overlay = cv2.resize(image_overlay.transpose(1, 2, 0), resize)
 
-    image_combined = cv2.addWeighted(image, 1 - alpha, image_overlay, alpha, 0)
-
-    return image_combined
+    return cv2.addWeighted(image, 1 - alpha, image_overlay, alpha, 0)
 
 class PipelessPlugin(PipelessApp):
     """

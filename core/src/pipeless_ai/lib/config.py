@@ -50,8 +50,10 @@ class Video():
                     uri_split = self._uri.split('://')
                     self._protocol = uri_split[0]
                     self._location = uri_split[1]
-                except:
-                    logger.error(f'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc')
+                except Exception:
+                    logger.error(
+                        'Wrong or missing video URI config! Ensure it starts with the protocol. Example: "file://", "https://", etc'
+                    )
                     sys.exit(1)
         else:
             self._uri = None
@@ -175,7 +177,7 @@ class Config(metaclass=Singleton):
     def __init__(self, config):
         logger.debug('Parsing configuration')
         self._log_level = prioritized_config(config, 'log_level', f'{ENV_PREFIX}_LOG_LEVEL', required=True)
-        if not self._log_level == 'INFO' and not self._log_level == 'DEBUG' and not self._log_level == 'WARN':
+        if self._log_level not in ['INFO', 'DEBUG', 'WARN']:
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 

@@ -258,12 +258,12 @@ def on_bus_message(bus: Gst.Bus, msg: Gst.Message, input: Input):
     elif mtype == Gst.MessageType.ERROR:
         err, debug = msg.parse_error()
         logger.error(f"Error received from element {msg.src.get_name()}: {err.message}")
-        logger.error(f"Debugging information: {debug if debug else 'none'}")
+        logger.error(f"Debugging information: {debug or 'none'}")
         input.get_mainloop().quit()
     elif mtype == Gst.MessageType.WARNING:
         err, debug = msg.parse_warning()
         logger.warning(f"Warning received from element {msg.src.get_name()}: {err.message}")
-        logger.warning(f"Debugging information: {debug if debug else 'none'}")
+        logger.warning(f"Debugging information: {debug or 'none'}")
     elif mtype == Gst.MessageType.STATE_CHANGED:
         old_state, new_state, pending_state = msg.parse_state_changed()
         logger.debug(f'New pipeline state: {new_state}')
@@ -284,16 +284,15 @@ def input(config_dict):
     update_logger_level(config.get_log_level())
 
     logger.info(f"Reading video from {config.get_input().get_video().get_uri()}")
-    if config.get_input().get_video().get_uri_protocol() == 'file':
-        if not os.path.isfile(config.get_input().get_video().get_uri_location()):
-            logger.error("[red]Input video file doesn't exist[/red]")
-            sys.exit(1)
+    if config.get_input().get_video().get_uri_protocol() == 'file' and not os.path.isfile(config.get_input().get_video().get_uri_location()):
+        logger.error("[red]Input video file doesn't exist[/red]")
+        sys.exit(1)
 
     Gst.init(None)
-    input = Input()
+    p_input = Input()
     loop = GLib.MainLoop()
-    input.set_mainloop(loop)
-    input.new_pipeline()
+    p_input.set_mainloop(loop)
+    p_input.new_pipeline()
 
     try:
         # Start socket to wait all components connections
@@ -305,7 +304,7 @@ def input(config_dict):
         if config.get_output().get_video().is_enabled():
             m_socket = InputOutputSocket('w') # Waits for output
 
-        input.start()
+        p_input.start()
 
         loop.run()
     except KeyboardInterrupt:

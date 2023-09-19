@@ -10,9 +10,8 @@ def get_plugins_registry():
     current_module_dir = os.path.dirname(__file__)
     json_file_path = os.path.join(current_module_dir, "../plugins-registry.json")
     try:
-        registry_json=open(json_file_path,"r")
-        registry_dict = json.load(registry_json)
-        registry_json.close()
+        with open(json_file_path,"r") as registry_json:
+            registry_dict = json.load(registry_json)
         return registry_dict
     except Exception as e:
         rprint(f"[red bold]An error occurred reading the registry:[/red bold] {e}")
@@ -60,5 +59,4 @@ def get_latest_plugin_version_dict(plugin_versions: dict):
     """
     Takes the dict of versions of a plugin and returns the max version dict
     """
-    latest_version = next((v for v in plugin_versions if v["latest"]), None)
-    return latest_version
+    return next((v for v in plugin_versions if v["latest"]), None)

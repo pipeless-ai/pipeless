@@ -93,10 +93,7 @@ class RgbImageMsg(Msg):
         """
         The data is updated in raw
         """
-        if isinstance(new_raw_data, np.ndarray):
-            self._data = new_raw_data
-        else:
-            self._data = new_raw_data
+        self._data = new_raw_data
 
     def get_width(self):
         return self._width

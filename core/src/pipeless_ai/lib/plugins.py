@@ -8,8 +8,7 @@ def load_plugin_module(path):
     plugin_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(plugin_module)
     Plugin = getattr(plugin_module, 'PipelessPlugin')
-    plugin_instance = Plugin()
-    return plugin_instance
+    return Plugin()
 
 def inject_plugins(user_app: PipelessApp, plugins_dir : str, plugins_order: list[str]):
     '''

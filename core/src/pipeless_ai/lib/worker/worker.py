@@ -88,8 +88,7 @@ def load_user_module(path):
         logger.error(e)
         sys.exit(1)
     UserApp = getattr(user_app_module, 'App')
-    user_app = UserApp()
-    return user_app
+    return UserApp()
 
 def worker(config_dict, user_module_path):
     update_logger_component('WORKER')
