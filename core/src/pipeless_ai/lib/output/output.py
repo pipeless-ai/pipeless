@@ -5,8 +5,7 @@ import gi
 gi.require_version('GLib', '2.0')
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-gi.require_version('GstPbutils', '1.0')
-from gi.repository import Gst, GstApp, GLib, GstPbutils
+from gi.repository import Gst, GstApp, GLib
 
 from pipeless_ai.lib.connection import InputOutputSocket, OutputPullSocket
 from pipeless_ai.lib.logger import logger, update_logger_component, update_logger_level
@@ -20,7 +19,6 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
     if raw_msg is not None:
         logger.debug(f'[purple]New message of {len(raw_msg)} bytes[/purple]')
         msg = deserialize(raw_msg)
-
         if isinstance(msg, RgbImageMsg):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()

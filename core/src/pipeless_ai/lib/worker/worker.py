@@ -108,16 +108,16 @@ def worker(config_dict, user_module_path):
 
     # It confuses people if you are able to implement process when
     # using model inference because the inference is the processing
-    if inference_session and hasattr(user_app, 'process'):
-        logger.error("The process hook must not be implemented when using model inference. Use 'post_process' instead.")
-        sys.exit(1)
-    for plugin_id, plugin in vars(user_app.plugins).items():
-        logger.error(plugin)
-        if hasattr(plugin, 'process'):
-            logger.error(f"The plugin '{plugin_id}' implements the 'process' hook which must not be implemented when using model inference. You can remove it or contact the author of the plugin to evaluate moving the code into 'pre-process' or 'post-process'")
+    if inference_session:
+        if hasattr(user_app, 'process'):
+            logger.error("The process hook must not be implemented when using model inference. Use 'post_process' instead.")
             sys.exit(1)
+        for plugin_id, plugin in vars(user_app.plugins).items():
+            if hasattr(plugin, 'before_process') or hasattr(plugin, 'after_process'):
+                logger.error(f"The plugin '{plugin_id}' implements hooks for 'process' hook which must not be implemented when using model inference. You can remove it or contact the author of the plugin to evaluate moving the code into 'pre-process' or 'post-process'")
+                sys.exit(1)
 
-    logger.info('Notifying worker ready to input')
+    logger.info('Worker ready! Notifying input')
     w_socket = WorkerReadySocket('worker')
     w_socket.send(b'ready') # Notify the input that a worker is available
 

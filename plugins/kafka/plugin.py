@@ -1,9 +1,9 @@
 import os
 import sys
 from confluent_kafka import Producer
-from pipeless_ai.lib.app.app import PipelessApp
+from pipeless_ai.lib.app.plugin import PipelessPlugin
 
-class PipelessPlugin(PipelessApp):
+class Plugin(PipelessPlugin):
     """
     This class allows to send the data extracted from the stream to a Kafka topic.
     It requires to call the produce method from the user application
