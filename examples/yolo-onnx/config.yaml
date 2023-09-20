@@ -1,0 +1,23 @@
+input:
+  address:
+    host: localhost
+    port: 1234
+  video:
+    enable: true
+    uri: 'file:///home/miguelaeh/projects/pipeless-2/examples/yolo-onnx/input.mp4'
+log_level: INFO
+output:
+  address:
+    host: localhost
+    port: 1237
+  video:
+    enable: true
+    uri: 'file:///home/miguelaeh/projects/pipeless-2/examples/yolo-onnx/output.mp4'
+plugins:
+  order: 'draw'
+worker:
+  n_workers: 1
+  inference:
+    model_uri: 'file:///home/miguelaeh/projects/pipeless-2/examples/yolo-onnx/yolov8n.onnx'
+    image_shape_format: 'channels, height, width'
+    
