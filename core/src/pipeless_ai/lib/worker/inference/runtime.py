@@ -65,6 +65,7 @@ class PipelessInferenceSession():
             force_tuple = (self.force_input_image_width, self.force_input_image_height, self.force_input_image_channels)
             self.input_batch_size, self.input_img_channels, self.input_img_height, self.input_img_width = parse_input_shape(
                 input_shape, self.input_image_shape_format, force_tuple)
+            logger.info(f"Input images automatically resized to w: {self.input_img_height}, h: {self.input_img_width}. If this is not correct you can force the witdh and height on the configuration.")
         except Exception as e:
             logger.error(f"Error reading the model input shape automatically: {e}. Please provide the input shape via worker.inference.image_width, worker.inference.image_height, worker.inference.image_channels configuration parameters")
             sys.exit(1)

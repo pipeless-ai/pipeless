@@ -22,7 +22,11 @@ def fetch_and_send(appsrc: GstApp.AppSrc, copy_timestamps: bool):
         if isinstance(msg, RgbImageMsg):
             # Convert the frame to a GStreamer buffer
             data = msg.get_data()
+            if data is None:
+                logger.error('The frame received was None. Did you forgot to return a frame from your application hooks?')
+                return True # Indicate GLib to retry on the next interval
             buffer = Gst.Buffer.new_wrapped(data.tobytes())
+
             if copy_timestamps:
                 buffer.pts = msg.get_pts()
                 buffer.dts = msg.get_dts()
