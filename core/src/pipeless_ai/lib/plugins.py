@@ -1,5 +1,6 @@
 import importlib
 import os
+import sys
 from pipeless_ai.lib.logger import logger
 from pipeless_ai.lib.app.app import PipelessApp
 from pipeless_ai.lib.app.plugin import PipelessPlugin
@@ -51,5 +52,8 @@ def exec_hook_with_plugins(user_app, hook_name, frame=None):
 
     frame = exec_plugins(user_app, f'before_{hook_name}', frame)
     frame = callable_method(frame) if frame is not None else callable_method()
+    if hook_name not in ['before', 'after'] and frame is None:
+        logger.error(f"Did you forget to return a frame from {hook_name}? Killing worker...")
+        sys.exit(1)
     frame = exec_plugins(user_app, f'after_{hook_name}', frame)
     return frame # Will return None when the frame is not passed. The hooks that do not return frames do no have return values

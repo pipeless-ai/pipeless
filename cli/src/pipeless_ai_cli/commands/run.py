@@ -1,3 +1,4 @@
+import sys
 from rich import print as rprint
 import yaml
 import os
@@ -14,6 +15,9 @@ def run_app(component: str):
 
     exec_dir = os.getcwd()
     config_file_path = os.path.join(exec_dir, 'config.yaml')
+    if not os.path.exists(config_file_path):
+        rprint("[red]Unable to find config file, are you running the command from your application directory?[/red]")
+        sys.exit(1)
 
     rprint('Loading config.yaml...')
     with open(config_file_path, "r") as config_file:
@@ -22,5 +26,8 @@ def run_app(component: str):
 
     app_filename = 'app.py'
     app_path = os.path.join(exec_dir, app_filename)
+    if not os.path.exists(app_path):
+        rprint("[red]Unable to find app.py file, are you running the command from your application directory?[/red]")
+        sys.exit(1)
 
     Pipeless(config, component, app_path)

@@ -11,7 +11,7 @@ class PipelessInferenceSession():
     Create a session of the inference runtime
     """
     def __init__(self, inference_config):
-        execution_providers = onnxruntime.get_available_providers() # TODO: document that you will see a warning when tensorrt or cuda requireemnets are not met, but is fine in cpu
+        execution_providers = onnxruntime.get_available_providers()
         force_opset_version = inference_config.get_force_opset_version()
         force_ir_version = inference_config.get_force_ir_version()
         self.input_image_shape_format = inference_config.get_image_shape_format()
@@ -55,9 +55,6 @@ class PipelessInferenceSession():
         # The ORT will leave only the supported providers and show a warning for the others
         available_ep = self.session.get_providers()
         logger.info(f'Available ORT execution providers: {available_ep}')
-
-        # TODO: The copy of the input and outputs from/to devices (GPU) may be slow. We can use ONNX IO Bindings to solve that. We should perform profiling.
-        #       Test on CUDA
 
         input = self.session.get_inputs()[0]
         input_shape = input.shape
