@@ -68,7 +68,7 @@ jobs:
         with:
           images: miguelaeh/pipeless
           flavor: |
-            suffix=cuda,onlatest=true
+            suffix=-cuda,onlatest=true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -98,7 +98,7 @@ jobs:
         with:
           images: miguelaeh/pipeless
           flavor: |
-            suffix=tensorrt,onlatest=true
+            suffix=-tensorrt,onlatest=true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
