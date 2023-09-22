@@ -14,7 +14,10 @@ on:
         description: "Override the image tag. Useful to release revisions of the container when the Pipeless code has not changed"
         type: string
       cuda_tag_override:
-        description: "Override the cuda image tag. Useful to release revisions of the container when the Pipeless code has not changed"
+        description: "Override the CUDA image tag. Useful to release revisions of the container when the Pipeless code has not changed"
+        type: string
+      tensorrt_tag_override:
+        description: "Override the TensorRT image tag. Useful to release revisions of the container when the Pipeless code has not changed"
         type: string
 
 jobs:
@@ -74,4 +77,34 @@ jobs:
           file: ./Dockerfile-cuda
           push: true
           tags: ${{ inputs.cuda_tag_override != '' && inputs.cuda_tag_override || steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  push_tensorrt_to_registry:
+    name: Push TensorRT Docker image to Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: miguelaeh/pipeless
+          flavor: |
+            suffix=tensorrt,onlatest=true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: "{{defaultContext}}:package"
+          file: ./Dockerfile-tensorrt
+          push: true
+          tags: ${{ inputs.tensorrt_tag_override != '' && inputs.tensorrt_tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
