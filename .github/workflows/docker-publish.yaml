@@ -13,6 +13,10 @@ on:
       tag_override:
         description: "Override the image tag. Useful to release revisions of the container when the Pipeless code has not changed"
         type: string
+      cuda_tag_override:
+        description: "Override the cuda image tag. Useful to release revisions of the container when the Pipeless code has not changed"
+        type: string
+
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
@@ -69,5 +73,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile-cuda
           push: true
-          tags: ${{ inputs.tag_override != '' && inputs.tag_override || steps.meta.outputs.tags }}
+          tags: ${{ inputs.cuda_tag_override != '' && inputs.cuda_tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
