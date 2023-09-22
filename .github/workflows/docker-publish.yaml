@@ -60,6 +60,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: miguelaeh/pipeless
+          flavor: |
+            suffix=cuda,onlatest=true
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -67,7 +69,5 @@ jobs:
           context: "{{defaultContext}}:package"
           file: ./Dockerfile-cuda
           push: true
-          flavor: |
-            suffix=cuda,onlatest=true
           tags: ${{ inputs.tag_override != '' && inputs.tag_override || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
