@@ -16,7 +16,7 @@ def inject_plugins(user_app: PipelessApp, plugins_dir : str, plugins_order: list
     '''
     Creates the tuple with the plugins sorted in execution order
     '''
-    exec_graph = () # A tuple of plugins IDs representing the plugins execution order
+    exec_graph : tuple[str, ...] = () # A tuple of plugins IDs representing the plugins execution order
     for plugin_id in plugins_order:
         plugin_file_path = os.path.join(plugins_dir, plugin_id, 'plugin.py')
         if os.path.exists(plugin_file_path):

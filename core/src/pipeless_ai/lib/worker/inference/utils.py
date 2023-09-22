@@ -24,7 +24,7 @@ def get_model_path(uri: str, alias: str) -> str:
 
     return model_file_path
 
-def load_model(file: str, alias: str, force_opset_version: int=None, force_ir_version: int = None):
+def load_model(file: str, alias: str, force_opset_version: int | None =None, force_ir_version: int | None = None):
     """
     Loads a model with onnx and checks it.
     Returns the model if correct. Finishes execution otherwise.

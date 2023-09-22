@@ -39,7 +39,7 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
     dts = buffer.dts
     pts = buffer.pts
     duration = buffer.duration
-    ndframe = np.ndarray(
+    ndframe : np.ndarray = np.ndarray(
         shape=(height, width, 3),
         dtype=np.uint8, buffer=info.data
     )
