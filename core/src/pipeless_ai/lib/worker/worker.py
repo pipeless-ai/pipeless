@@ -117,6 +117,9 @@ def worker(config_dict, user_module_path):
                 logger.error(f"The plugin '{plugin_id}' implements hooks for 'process' hook which must not be implemented when using model inference. You can remove it or contact the author of the plugin to evaluate moving the code into 'pre-process' or 'post-process'")
                 sys.exit(1)
 
+    if config.get_worker().get_enable_profiler():
+        user_app._PipelessApp__enable_profiler()
+
     logger.info('Worker ready! Notifying input')
     w_socket = WorkerReadySocket('worker')
     w_socket.send(b'ready') # Notify the input that a worker is available
@@ -142,11 +145,13 @@ def worker(config_dict, user_module_path):
                 # We do not want to override the output file
                 # and we can't get a new stream once the file ends
                break
+
     except KeyboardInterrupt:
         pass
     except Exception:
         traceback.print_exc()
     finally:
+        user_app._PipelessApp__print_profiler_stats()
         # Retrieve and close the sockets
         logger.debug('Cleaning sockets')
         r_socket.close()

@@ -157,10 +157,10 @@ class Worker():
             logger.error("The buffer size can't be higher than 8192")
             sys.exit(1)
         self._show_exec_time = prioritized_config(worker_dict, 'show_exec_time', f'{ENV_PREFIX}_WORKER_SHOW_EXEC_TIME', convert_to=bool, default=False)
-
         # Built in inference runtime configuration
-        self._inference = Inference(worker_dict.get("inference", {}))
-
+        self._inference = Inference(worker_dict.get("inference") or {})
+        # Allow the user to enable the line profiler for his code
+        self._enable_profiler = prioritized_config(worker_dict, 'enable_profiler', f'{ENV_PREFIX}_WORKER_ENABLE_PROFILER', convert_to=bool, default=False)
     def get_n_workers(self):
         return self._n_workers
     def get_recv_buffer_size(self):
@@ -169,6 +169,8 @@ class Worker():
         return self._show_exec_time
     def get_inference(self):
         return self._inference
+    def get_enable_profiler(self):
+        return self._enable_profiler
 
 class Plugins():
     def __init__(self, plugins_dict):
