@@ -7,6 +7,13 @@ from pipeless_ai.lib.logger import logger
 
 ENV_PREFIX = 'PIPELESS'
 
+def get_section_from_dict(_dict: dict, prop: str):
+    """
+    Securely parse a section from a dict returning.
+    Returns an empty dict if the value is None or is no specified
+    """
+    return _dict.get(prop) or {}
+
 def prioritized_config(config, path, env_var_name, convert_to=str, required=False, default=None):
     value = dict.get(config, path, default)
     value = os.environ.get(env_var_name, value)
@@ -71,9 +78,9 @@ class Video():
 
 class Input():
     def __init__(self, input_dict):
-        self._video = Video(input_dict['video'], f'{ENV_PREFIX}_INPUT_VIDEO')
+        self._video = Video(get_section_from_dict(input_dict, 'video'), f'{ENV_PREFIX}_INPUT_VIDEO')
         # Address where the output component is running
-        self._address = Address(input_dict['address'], f'{ENV_PREFIX}_INPUT_ADDRESS')
+        self._address = Address(get_section_from_dict(input_dict, 'address'), f'{ENV_PREFIX}_INPUT_ADDRESS')
 
     def get_video(self):
         return self._video
@@ -82,10 +89,10 @@ class Input():
 
 class Output():
     def __init__(self, output_dict):
-        self._video = Video(output_dict['video'], f'{ENV_PREFIX}_OUTPUT_VIDEO')
+        self._video = Video(get_section_from_dict(output_dict, 'video'), f'{ENV_PREFIX}_OUTPUT_VIDEO')
         if self._video.is_enabled():
             # Address where the output component is running
-            self._address = Address(output_dict['address'], f'{ENV_PREFIX}_OUTPUT_ADDRESS')
+            self._address = Address(get_section_from_dict(output_dict, 'address'), f'{ENV_PREFIX}_OUTPUT_ADDRESS')
             self._recv_buffer_size = prioritized_config(
                 output_dict, 'recv_buffer_size',
                 f'{ENV_PREFIX}_OUTPUT_RECV_BUFFER_SIZE', convert_to=int,
@@ -191,13 +198,11 @@ class Config(metaclass=Singleton):
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
-        # This is not the same than defaulting to {} in dict.get, that produces None if plugins is empty in the YAML
-        plugins_section = dict.get(config, "plugins") or {}
-        # TODO: we are assuming there is always a config file with all the sections, but a user could use just env vars
-        self._plugins = Plugins(plugins_section)
-        self._input = Input(config['input'])
-        self._output = Output(config['output'])
-        self._worker = Worker(config['worker'])
+        # TODO: we are assuming there is always a config file, but a user could use just env vars
+        self._plugins = Plugins(get_section_from_dict(config, 'plugins'))
+        self._input = Input(get_section_from_dict(config, 'input'))
+        self._output = Output(get_section_from_dict(config, 'output'))
+        self._worker = Worker(get_section_from_dict(config, 'worker'))
 
         logger.debug('[green]Configuration parsed[/green]')
 
