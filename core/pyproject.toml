@@ -20,6 +20,7 @@ opencv-python = "^4.8.0.76"
 onnxruntime-gpu = "^1.15.1"
 requests = "^2.31.0"
 onnx = "^1.14.1"
+line-profiler = "^4.1.1"
 
 [build-system]
 requires = ["poetry-core"]
