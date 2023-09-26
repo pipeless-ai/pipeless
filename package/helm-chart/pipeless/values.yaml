@@ -79,7 +79,7 @@ input:
   image:
     registry: docker.io
     repository: miguelaeh/pipeless
-    tag: pipeless
+    tag: latest
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -116,12 +116,12 @@ input:
   ## @param input.livenessProbe.successThreshold Success threshold for livenessProbe
   ##
   livenessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param input.readinessProbe.enabled Enable readinessProbe on input containers
   ## @param input.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
   ## @param input.readinessProbe.periodSeconds Period seconds for readinessProbe
@@ -130,12 +130,12 @@ input:
   ## @param input.readinessProbe.successThreshold Success threshold for readinessProbe
   ##
   readinessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param input.startupProbe.enabled Enable startupProbe on input containers
   ## @param input.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
   ## @param input.startupProbe.periodSeconds Period seconds for startupProbe
@@ -145,11 +145,11 @@ input:
   ##
   startupProbe:
     enabled: false
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param input.customLivenessProbe Custom livenessProbe that overrides the default one
   ##
   customLivenessProbe: {}
@@ -188,14 +188,75 @@ input:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
-  %%OTHER_PARAMETERS_RELATED_TO_THIS_CONTAINER/POD%%
+  ## Configure Pipeless input
+  ## @param input.video.enable Enable input video
+  ## @param input.video.uri Pipeless innput remote URI to read
+  ##
+  video:
+    enable: true
+    uri: some_uri
+
+  ## input service parameters
+  ##
+  service:
+    ## @param input.service.type input service type
+    ##
+    type: ClusterIP
+    ## @param input.service.ports.worker input service worker port
+    ##
+    ports:
+      worker: 1234
+    ## Node ports to expose
+    ## @param input.service.nodePorts.http Node port for HTTP
+    ## @param input.service.nodePorts.https Node port for HTTPS
+    ## NOTE: choose port between <30000-32767>
+    ##
+    nodePorts:
+      worker: ""
+    ## @param input.service.clusterIP input service Cluster IP
+    ## e.g.:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param input.service.loadBalancerIP input service Load Balancer IP
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerIP: ""
+    ## @param input.service.loadBalancerSourceRanges input service Load Balancer sources
+    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## e.g:
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param input.service.externalTrafficPolicy input service external traffic policy
+    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param input.service.annotations Additional custom annotations for input service
+    ##
+    annotations: {}
+    ## @param input.service.extraPorts Extra ports to expose in input service (normally used with the `sidecars` value)
+    ##
+    extraPorts: []
+    ## @param input.service.sessionAffinity Control where client requests go, to the same pod or round-robin
+    ## Values: ClientIP or None
+    ## ref: https://kubernetes.io/docs/user-guide/services/
+    ##
+    sessionAffinity: None
+    ## @param input.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
 
   ## @param input.existingConfigmap The name of an existing ConfigMap with your custom configuration for input
   ##
   existingConfigmap:
   ## @param input.command Override default container command (useful when using custom images)
   ##
-  command: []
+  command: ["pipeless", "run", "input"]
   ## @param input.args Override default container args (useful when using custom images)
   ##
   args: []
@@ -343,7 +404,7 @@ output:
   image:
     registry: docker.io
     repository: miguelaeh/pipeless
-    tag: pipeless
+    tag: latest
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -379,12 +440,12 @@ output:
   ## @param output.livenessProbe.successThreshold Success threshold for livenessProbe
   ##
   livenessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param output.readinessProbe.enabled Enable readinessProbe on output containers
   ## @param output.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
   ## @param output.readinessProbe.periodSeconds Period seconds for readinessProbe
@@ -393,12 +454,12 @@ output:
   ## @param output.readinessProbe.successThreshold Success threshold for readinessProbe
   ##
   readinessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param output.startupProbe.enabled Enable startupProbe on output containers
   ## @param output.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
   ## @param output.startupProbe.periodSeconds Period seconds for startupProbe
@@ -408,11 +469,11 @@ output:
   ##
   startupProbe:
     enabled: false
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param output.customLivenessProbe Custom livenessProbe that overrides the default one
   ##
   customLivenessProbe: {}
@@ -451,14 +512,79 @@ output:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
-  %%OTHER_PARAMETERS_RELATED_TO_THIS_CONTAINER/POD%%
+  ## Configure Pipeless output
+  ## @param output.video.enable Enable output video
+  ## @param output.video.uri Pipeless output remote URI to read
+  ##
+  video:
+    enable: true
+    uri: some_uri
+
+  ## @param output.recev_buffer_size Specify the output recv buffer
+  recv_buffer_size: 600
+
+  ## output service parameters
+  ##
+  service:
+    ## @param output,service.type output service type
+    ##
+    type: ClusterIP
+    ## @param output.service.ports.http worker service worker port
+    ##
+    ports:
+      worker: 1237
+    ## Node ports to expose
+    ## @param output.service.nodePorts.http Node port for HTTP
+    ## @param output.service.nodePorts.https Node port for HTTPS
+    ## NOTE: choose port between <30000-32767>
+    ##
+    nodePorts:
+      http: ""
+      https: ""
+    ## @param output.service.clusterIP output service Cluster IP
+    ## e.g.:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param output.service.loadBalancerIP output service Load Balancer IP
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerIP: ""
+    ## @param output.service.loadBalancerSourceRanges output service Load Balancer sources
+    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## e.g:
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param output.service.externalTrafficPolicy output service external traffic policy
+    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param output.service.annotations Additional custom annotations for output service
+    ##
+    annotations: {}
+    ## @param output.service.extraPorts Extra ports to expose in output service (normally used with the `sidecars` value)
+    ##
+    extraPorts: []
+    ## @param output.service.sessionAffinity Control where client requests go, to the same pod or round-robin
+    ## Values: ClientIP or None
+    ## ref: https://kubernetes.io/docs/user-guide/services/
+    ##
+    sessionAffinity: None
+    ## @param output.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
 
   ## @param output.existingConfigmap The name of an existing ConfigMap with your custom configuration for output
   ##
   existingConfigmap:
   ## @param output.command Override default container command (useful when using custom images)
   ##
-  command: []
+  command: ["pipeless", "run", "output"]
   ## @param output.args Override default container args (useful when using custom images)
   ##
   args: []
@@ -492,20 +618,7 @@ output:
     create: false
     minAvailable: 1
     maxUnavailable: ""
-  ## Autoscaling configuration
-  ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-  ## @param output.autoscaling.enabled Enable autoscaling for output
-  ## @param output.autoscaling.minReplicas Minimum number of output replicas
-  ## @param output.autoscaling.maxReplicas Maximum number of output replicas
-  ## @param output.autoscaling.targetCPU Target CPU utilization percentage
-  ## @param output.autoscaling.targetMemory Target Memory utilization percentage
-  ##
-  autoscaling:
-    enabled: false
-    minReplicas: ""
-    maxReplicas: ""
-    targetCPU: ""
-    targetMemory: ""
+
   ## Node output.affinity preset
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
   ##
@@ -604,7 +717,6 @@ output:
   ##
   initContainers: []
 
-
 ## Pipeless worker
 ##
 worker:
@@ -621,7 +733,7 @@ worker:
   image:
     registry: docker.io
     repository: bitnami/pipeless
-    tag: pipeless
+    tag: latest
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -658,12 +770,12 @@ worker:
   ## @param worker.livenessProbe.successThreshold Success threshold for livenessProbe
   ##
   livenessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param worker.readinessProbe.enabled Enable readinessProbe on worker containers
   ## @param worker.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
   ## @param worker.readinessProbe.periodSeconds Period seconds for readinessProbe
@@ -672,12 +784,12 @@ worker:
   ## @param worker.readinessProbe.successThreshold Success threshold for readinessProbe
   ##
   readinessProbe:
-    enabled: true
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param worker.startupProbe.enabled Enable startupProbe on worker containers
   ## @param worker.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
   ## @param worker.startupProbe.periodSeconds Period seconds for startupProbe
@@ -687,11 +799,11 @@ worker:
   ##
   startupProbe:
     enabled: false
-    initialDelaySeconds: foo
-    periodSeconds: bar
-    timeoutSeconds: foo
-    failureThreshold: bar
-    successThreshold: foo
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
   ## @param worker.customLivenessProbe Custom livenessProbe that overrides the default one
   ##
   customLivenessProbe: {}
@@ -709,6 +821,20 @@ worker:
   resources:
     limits: {}
     requests: {}
+  ## Autoscaling configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+  ## @param worker.autoscaling.enabled Enable autoscaling for output
+  ## @param worker.autoscaling.minReplicas Minimum number of output replicas
+  ## @param worker.autoscaling.maxReplicas Maximum number of output replicas
+  ## @param worker.autoscaling.targetCPU Target CPU utilization percentage
+  ## @param worker.autoscaling.targetMemory Target Memory utilization percentage
+  ##
+  autoscaling:
+    enabled: false
+    minReplicas: ""
+    maxReplicas: ""
+    targetCPU: ""
+    targetMemory: ""
   ## Configure Pods Security Context
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
   ## @param worker.podSecurityContext.enabled Enabled worker pods' Security Context
@@ -730,14 +856,46 @@ worker:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
-  %%OTHER_PARAMETERS_RELATED_TO_THIS_CONTAINER/POD%%
+  ## @param worker.recv_buffer_size Size of the worker reception buffer
+  recv_buffer_size: 600
+  ## @param worker.show_exec_time Show the execution time of the user hooks.
+  show_exec_time: false
+  ## @param worker.enable_profiler Show user code execution time line by line
+  enable_profiler: false
+  ## @param worker.inference.model_uri Load a model from the URI into the built-in ONNX runtime
+  ## @param worker.inference.pre_process_model_uri Load a pre-process model from the URI into the ONNX Runtime
+  ## @param worker.inference.force_opset_version Force the operation set version of the model to automatically migrate it
+  ## @param worker.inference.force_ir_version Force the intermediate representation version to migrate the model automatically
+  ## @param worker.inference.image_shape_format Specify the image shape format of the model input
+  ## @param worker.inference.image_width Force the model input image width
+  ## @param worker.inference.image_height Force the model input image hieght
+  ## @param worker.inference.image_channels Force the model input image channels
+  inference:
+    model_uri: ""
+    pre_process_model_uri: ""
+    force_opset_version: ""
+    force_ir_version: ""
+    image_shape_format: ""
+    image_width: ""
+    image_height: ""
+    image_channels: ""
+  # @param worker.plugins.dir Directory to load plugins from
+  # @param worker.plugins.order Execution order of the plugins
+  plugins:
+    dir: ""
+    order: ""
 
+  # @param worker.application.git_repo Git repo URL to download the Pipeless application
+  # @param worker.application.subPath Sub-path of the application within the git repository
+  application:
+    git_repo: 'https://github.com/pipeless-ai/pipeless.git'
+    subPath: 'examples/onnx-yolo'
   ## @param worker.existingConfigmap The name of an existing ConfigMap with your custom configuration for worker
   ##
   existingConfigmap:
   ## @param worker.command Override default container command (useful when using custom images)
   ##
-  command: []
+  command: ["pipeless", "run", "worker"]
   ## @param worker.args Override default container args (useful when using custom images)
   ##
   args: []
@@ -771,20 +929,7 @@ worker:
     create: false
     minAvailable: 1
     maxUnavailable: ""
-  ## Autoscaling configuration
-  ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-  ## @param worker.autoscaling.enabled Enable autoscaling for worker
-  ## @param worker.autoscaling.minReplicas Minimum number of worker replicas
-  ## @param worker.autoscaling.maxReplicas Maximum number of worker replicas
-  ## @param worker.autoscaling.targetCPU Target CPU utilization percentage
-  ## @param worker.autoscaling.targetMemory Target Memory utilization percentage
-  ##
-  autoscaling:
-    enabled: false
-    minReplicas: ""
-    maxReplicas: ""
-    targetCPU: ""
-    targetMemory: ""
+
   ## Node worker.affinity preset
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
   ##
@@ -883,66 +1028,51 @@ worker:
   ##
   initContainers: []
 
-  ## @section Traffic Exposure Parameters
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: https://kubernetes.io/docs/user-guide/persistent-volumes/
   ##
-
-  ## worker service parameters
-  ##
-  service:
-    ## @param service.type worker service type
+  persistence:
+    ## @param worker.persistence.enabled Enable persistence using Persistent Volume Claims
     ##
-    type: LoadBalancer
-    ## @param service.ports.http worker service HTTP port
-    ## @param service.ports.https worker service HTTPS port
+    enabled: true
+    ## @param worker.persistence.mountPath Path to mount the volume at.
     ##
-    ports:
-      http: 80
-      https: 443
-    ## Node ports to expose
-    ## @param service.nodePorts.http Node port for HTTP
-    ## @param service.nodePorts.https Node port for HTTPS
-    ## NOTE: choose port between <30000-32767>
+    mountPath: /app
+    ## @param worker.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
     ##
-    nodePorts:
-      http: ""
-      https: ""
-    ## @param service.clusterIP worker service Cluster IP
-    ## e.g.:
-    ## clusterIP: None
+    subPath: ""
+    ## @param persistence.storageClass Storage class of backing PVC
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
     ##
-    clusterIP: ""
-    ## @param service.loadBalancerIP worker service Load Balancer IP
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
-    ##
-    loadBalancerIP: ""
-    ## @param service.loadBalancerSourceRanges worker service Load Balancer sources
-    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
-    ## e.g:
-    ## loadBalancerSourceRanges:
-    ##   - 10.10.10.0/24
-    ##
-    loadBalancerSourceRanges: []
-    ## @param service.externalTrafficPolicy worker service external traffic policy
-    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
-    ##
-    externalTrafficPolicy: Cluster
-    ## @param service.annotations Additional custom annotations for worker service
+    storageClass: ""
+    ## @param worker.persistence.annotations Persistent Volume Claim annotations
     ##
     annotations: {}
-    ## @param service.extraPorts Extra ports to expose in worker service (normally used with the `sidecars` value)
+    ## @param worker.persistence.accessModes Persistent Volume Access Modes
     ##
-    extraPorts: []
-    ## @param service.sessionAffinity Control where client requests go, to the same pod or round-robin
-    ## Values: ClientIP or None
-    ## ref: https://kubernetes.io/docs/user-guide/services/
+    accessModes:
+      - ReadWriteOnce
+    ## @param worker.persistence.size Size of data volume
     ##
-    sessionAffinity: None
-    ## @param service.sessionAffinityConfig Additional settings for the sessionAffinity
-    ## sessionAffinityConfig:
-    ##   clientIP:
-    ##     timeoutSeconds: 300
+    size: 8Gi
+    ## @param worker.persistence.existingClaim The name of an existing PVC to use for persistence
     ##
-    sessionAffinityConfig: {}
+    existingClaim: ""
+    ## @param worker.persistence.selector Selector to match an existing Persistent Volume for WordPress data PVC
+    ## If set, the PVC can't have a PV dynamically provisioned for it
+    ## E.g.
+    ## selector:
+    ##   matchLabels:
+    ##     app: my-app
+    ##
+    selector: {}
+    ## @param worker.persistence.dataSource Custom PVC data source
+    ##
+    dataSource: {}
 
 ## @section Init Container Parameters
 ##

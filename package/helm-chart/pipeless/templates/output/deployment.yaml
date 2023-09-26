@@ -2,7 +2,7 @@
 apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ template "common.names.fullname" . }}-output
+  name: {{ include "common.names.fullname" . }}-output
   namespace: {{ include "common.names.namespace" . | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: output
@@ -10,9 +10,7 @@ metadata:
   annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.output.autoscaling.enabled }}
   replicas: {{ .Values.output.replicaCount }}
-  {{- end }}
   {{- if .Values.output.updateStrategy }}
   strategy: {{- toYaml .Values.output.updateStrategy | nindent 4 }}
   {{- end }}
@@ -83,8 +81,22 @@ spec:
           args: {{- include "common.tplvalues.render" (dict "value" .Values.output.args "context" $) | nindent 12 }}
           {{- end }}
           env:
-            - name: foo
-              value: bar
+            - name: PIPELESS_INPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-input"
+            - name: PIPELESS_INPUT_ADDRESS_PORT
+              value: "{{ .Values.input.service.ports.worker }}"
+            - name: PIPELESS_INPUT_VIDEO_URI
+              value: "{{ .Values.input.video.uri }}"
+            - name: PIPELESS_OUTPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-output"
+            - name: PIPELESS_OUTPUT_ADDRESS_PORT
+              value: "{{ .Values.output.service.ports.worker }}"
+            - name: PIPELESS_OUTPUT_VIDEO_ENABLE
+              value: "{{ .Values.output.video.enable }}"
+            - name: PIPELESS_OUTPUT_VIDEO_URI
+              value: "{{ .Values.output.video.uri }}"
+            - name: PIPELESS_OUTPUT_RECV_BUFFER_SIZE
+              value: "{{ .Values.output.recv_buffer_size }}"
             {{- if .Values.output.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.output.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

@@ -1,7 +1,7 @@
 apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ template "common.names.fullname" . }}-worker
+  name: {{ include "common.names.fullname" . }}-worker
   namespace: {{ include "common.names.namespace" . | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: worker
@@ -61,7 +61,19 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
       {{- end }}
       initContainers:
-        {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
+        - name: download-app
+          image: bitnami/minideb
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "/scripts/download-application.sh"]
+          volumeMounts:
+            - name: app
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
+              {{- end }}
+            - name: download-app
+              mountPath: /scripts
+        {{- if and .Values.volumePermissions.enabled .Values.worker.persistence.enabled }}
         - name: volume-permissions
           image: {{ include "output.volumePermissions.image" . }}
           imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
@@ -75,7 +87,7 @@ spec:
         {{- end }}
       containers:
         - name: worker
-          image: {{ template "worker.image" . }}
+          image: {{ include "worker.image" . }}
           imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
           {{- if .Values.worker.containerSecurityContext.enabled }}
           securityContext: {{- omit .Values.worker.containerSecurityContext "enabled" | toYaml | nindent 12 }}
@@ -91,8 +103,46 @@ spec:
           args: {{- include "common.tplvalues.render" (dict "value" .Values.worker.args "context" $) | nindent 12 }}
           {{- end }}
           env:
-            - name: foo
-              value: bar
+            - name: PIPELESS_INPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-input"
+            - name: PIPELESS_INPUT_ADDRESS_PORT
+              value: "{{ .Values.input.service.ports.worker }}"
+            - name: PIPELESS_INPUT_VIDEO_URI
+              value: "{{ .Values.input.video.uri }}"
+            - name: PIPELESS_OUTPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-output"
+            - name: PIPELESS_OUTPUT_ADDRESS_PORT
+              value: "{{ .Values.output.service.ports.worker }}"
+            - name: PIPELESS_OUTPUT_VIDEO_ENABLE
+              value: "{{ .Values.output.video.enable }}"
+            - name: PIPELESS_OUTPUT_VIDEO_URI
+              value: "{{ .Values.output.video.uri }}"
+            - name: PIPELESS_WORKER_RECV_BUFFER_SIZE
+              value: "{{ .Values.worker.recv_buffer_size }}"
+            - name: PIPELESS_WORKER_SHOW_EXEC_TIME
+              value: "{{ .Values.worker.show_exec_time }}"
+            - name: PIPELESS_WORKER_ENABLE_PROFILER
+              value: "{{ .Values.worker.enable_profiler }}"
+            - name: PIPELESS_WORKER_INFERENCE_MODEL_URI
+              value: "{{ .Values.worker.inference.model_uri }}"
+            - name: PIPELESS_WORKER_INFERENCE_PRE_PROCESS_MODEL_URI
+              value: "{{ .Values.worker.inference.pre_process_model_uri }}"
+            - name: PIPELESS_WORKER_INFERENCE_FORCE_OPSET_VERSION
+              value: "{{ .Values.worker.inference.force_opset_version }}"
+            - name: PIPELESS_WORKER_INFERENCE_FORCE_IR_VERSION
+              value: "{{ .Values.worker.inference.force_ir_version }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_SHAPE_FORMAT
+              value: "{{ .Values.worker.inference.image_shape_format }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_WIDTH
+              value: "{{ .Values.worker.inference.image_width }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_HEIGHT
+              value: "{{ .Values.worker.inference.image_height }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_CHANNELS
+              value: "{{ .Values.worker.inference.image_channels }}"
+            - name: PIPELESS_PLUGINS_DIR
+              value: "{{ .Values.worker.plugins.dir }}"
+            - name: PIPELESS_PLUGINS_ORDER
+              value: "{{ .Values.worker.plugins.order }}"
             {{- if .Values.worker.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -130,9 +180,9 @@ spec:
           {{- end }}
           volumeMounts:
             - name: app
-              mountPath: {{ .Values.persistence.mountPath }}
-              {{- if .Values.persistence.subPath }}
-              subPath: {{ .Values.persistence.subPath }}
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
               {{- end }}
           {{- if .Values.worker.extraVolumeMounts }}
           {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraVolumeMounts "context" $) | nindent 12 }}
@@ -141,10 +191,13 @@ spec:
         {{- include "common.tplvalues.render" ( dict "value" .Values.worker.sidecars "context" $) | nindent 8 }}
         {{- end }}
       volumes:
+        - name: download-app
+          configMap:
+            name: {{ include "common.names.fullname" . }}-scripts-configmap
         - name: app
-        {{- if .Values.persistence.enabled }}
+        {{- if .Values.worker.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ default (include "common.names.fullname" .) .Values.persistence.existingClaim }}
+            claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
         {{- else }}
           emptyDir: {}
         {{- end }}

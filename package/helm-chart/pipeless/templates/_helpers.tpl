@@ -1,62 +1,62 @@
 {{/*
-Expand the name of the chart.
+Return the proper input image name
 */}}
-{{- define "pipeless.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- define "input.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.input.image "global" .Values.global) }}
+{{- end -}}
 
 {{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
+Return the proper image name (for the init container volume-permissions image)
 */}}
-{{- define "pipeless.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
-{{- end }}
+{{- define "input.volumePermissions.image" -}}
+{{- include "common.images.image" ( dict "imageRoot" .Values.volumePermissions.image "global" .Values.global ) -}}
+{{- end -}}
 
 {{/*
-Create chart name and version as used by the chart label.
+Return the proper Docker Image Registry Secret Names
 */}}
-{{- define "pipeless.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- define "input.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.input.image .Values.input.image .Values.volumePermissions.image) "global" .Values.global) -}}
+{{- end -}}
 
 {{/*
-Common labels
+Return the proper output image name
 */}}
-{{- define "pipeless.labels" -}}
-helm.sh/chart: {{ include "pipeless.chart" . }}
-{{ include "pipeless.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
+{{- define "output.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.output.image "global" .Values.global) }}
+{{- end -}}
 
 {{/*
-Selector labels
+Return the proper image name (for the init container volume-permissions image)
 */}}
-{{- define "pipeless.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "pipeless.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
+{{- define "output.volumePermissions.image" -}}
+{{- include "common.images.image" ( dict "imageRoot" .Values.volumePermissions.image "global" .Values.global ) -}}
+{{- end -}}
 
 {{/*
-Create the name of the service account to use
+Return the proper Docker Image Registry Secret Names
 */}}
-{{- define "pipeless.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "pipeless.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
+{{- define "output.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.output.image .Values.output.image .Values.volumePermissions.image) "global" .Values.global) -}}
+{{- end -}}
+
+{{/*
+Return the proper worker image name
+*/}}
+{{- define "worker.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.worker.image "global" .Values.global) }}
+{{- end -}}
+
+{{/*
+Return the proper image name (for the init container volume-permissions image)
+*/}}
+{{- define "worker.volumePermissions.image" -}}
+{{- include "common.images.image" ( dict "imageRoot" .Values.volumePermissions.image "global" .Values.global ) -}}
+{{- end -}}
+
+{{/*
+Return the proper Docker Image Registry Secret Names
+*/}}
+{{- define "worker.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.worker.image .Values.worker.image .Values.volumePermissions.image) "global" .Values.global) -}}
+{{- end -}}

@@ -2,7 +2,7 @@
 apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
 metadata:
-  name: {{ template "common.names.fullname" . }}-input
+  name: {{ include "common.names.fullname" . }}-input
   namespace: {{ include "common.names.namespace" . | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: input
@@ -10,9 +10,7 @@ metadata:
   annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.input.autoscaling.enabled }}
   replicas: {{ .Values.input.replicaCount }}
-  {{- end }}
   {{- if .Values.input.updateStrategy }}
   strategy: {{- toYaml .Values.input.updateStrategy | nindent 4 }}
   {{- end }}
@@ -67,7 +65,7 @@ spec:
         {{- end }}
       containers:
         - name: input
-          image: {{ template "input.image" . }}
+          image: {{ include "input.image" . }}
           imagePullPolicy: {{ .Values.input.image.pullPolicy }}
           {{- if .Values.input.containerSecurityContext.enabled }}
           securityContext: {{- omit .Values.input.containerSecurityContext "enabled" | toYaml | nindent 12 }}
@@ -84,21 +82,23 @@ spec:
           {{- end }}
           env:
             - name: PIPELESS_INPUT_ADDRESS_HOST
-              value: {{ template "common.names.fullname" . }}-input
+              value: "{{ include "common.names.fullname" . }}-input"
             - name: PIPELESS_INPUT_ADDRESS_PORT
-              value: {{ .Values.input.service.ports.worker }}
+              value: "{{ .Values.input.service.ports.worker }}"
             - name: PIPELESS_INPUT_VIDEO_ENABLE
-              value: bar
+              value: "{{ .Values.input.video.enable }}"
             - name: PIPELESS_INPUT_VIDEO_URI
-              value: bar
+              value: "{{ .Values.input.video.uri }}"
             - name: PIPELESS_OUTPUT_ADDRESS_HOST
-              value: bar
+              value: "{{ include "common.names.fullname" . }}-output"
             - name: PIPELESS_OUTPUT_ADDRESS_PORT
-              value: bar
+              value: "{{ .Values.output.service.ports.worker }}"
             - name: PIPELESS_OUTPUT_VIDEO_ENABLE
-              value: bar
+              value: "{{ .Values.output.video.enable }}"
+            - name: PIPELESS_OUTPUT_VIDEO_URI
+              value: "{{ .Values.output.video.uri }}"
             - name: PIPELESS_WORKER_N_WORKERS
-              value: bar
+              value: "{{ .Values.worker.replicas }}"
             {{- if .Values.input.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.input.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

@@ -2,46 +2,46 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "common.names.fullname" . }}
+  name: {{ template "common.names.fullname" . }}-input
   namespace: {{ include "common.names.namespace" . | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: input
-  {{- if or .Values.service.annotations .Values.commonAnnotations }}
-  {{- $annotations := include "common.tplvalues.merge" (dict "values" .Values.service.annotations .Values.commonAnnotations "context" .) | fromYaml }}
+  {{- if or .Values.input.service.annotations .Values.commonAnnotations }}
+  {{- $annotations := include "common.tplvalues.merge" (dict "values" .Values.input.service.annotations .Values.commonAnnotations "context" .) | fromYaml }}
   annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $ ) | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type }}
-  {{- if and .Values.service.clusterIP (eq .Values.service.type "ClusterIP") }}
-  clusterIP: {{ .Values.service.clusterIP }}
+  type: {{ .Values.input.service.type }}
+  {{- if and .Values.input.service.clusterIP (eq .Values.input.service.type "ClusterIP") }}
+  clusterIP: {{ .Values.input.service.clusterIP }}
   {{- end }}
-  {{- if .Values.service.sessionAffinity }}
-  sessionAffinity: {{ .Values.service.sessionAffinity }}
+  {{- if .Values.input.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.input.service.sessionAffinity }}
   {{- end }}
-  {{- if .Values.service.sessionAffinityConfig }}
-  sessionAffinityConfig: {{- include "common.tplvalues.render" (dict "value" .Values.service.sessionAffinityConfig "context" $) | nindent 4 }}
+  {{- if .Values.input.service.sessionAffinityConfig }}
+  sessionAffinityConfig: {{- include "common.tplvalues.render" (dict "value" .Values.input.service.sessionAffinityConfig "context" $) | nindent 4 }}
   {{- end }}
-  {{- if or (eq .Values.service.type "LoadBalancer") (eq .Values.service.type "NodePort") }}
-  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy | quote }}
+  {{- if or (eq .Values.input.service.type "LoadBalancer") (eq .Values.input.service.type "NodePort") }}
+  externalTrafficPolicy: {{ .Values.input.service.externalTrafficPolicy | quote }}
   {{- end }}
-  {{- if and (eq .Values.service.type "LoadBalancer") (not (empty .Values.service.loadBalancerSourceRanges)) }}
-  loadBalancerSourceRanges: {{ .Values.service.loadBalancerSourceRanges }}
+  {{- if and (eq .Values.input.service.type "LoadBalancer") (not (empty .Values.input.service.loadBalancerSourceRanges)) }}
+  loadBalancerSourceRanges: {{ .Values.input.service.loadBalancerSourceRanges }}
   {{- end }}
-  {{- if and (eq .Values.service.type "LoadBalancer") (not (empty .Values.service.loadBalancerIP)) }}
-  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{- if and (eq .Values.input.service.type "LoadBalancer") (not (empty .Values.input.service.loadBalancerIP)) }}
+  loadBalancerIP: {{ .Values.input.service.loadBalancerIP }}
   {{- end }}
   ports:
     - name: worker
-      port: {{ .Values.service.ports.http }}
-      protocol: bar
-      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePorts.http)) }}
-      nodePort: {{ .Values.service.nodePorts.http }}
-      {{- else if eq .Values.service.type "ClusterIP" }}
+      port: {{ .Values.input.service.ports.worker }}
+      protocol: TCP
+      {{- if and (or (eq .Values.input.service.type "NodePort") (eq .Values.input.service.type "LoadBalancer")) (not (empty .Values.input.service.nodePorts.worker)) }}
+      nodePort: {{ .Values.input.service.nodePorts.worker }}
+      {{- else if eq .Values.input.service.type "ClusterIP" }}
       nodePort: null
       {{- end }}
-    {{- if .Values.service.extraPorts }}
-    {{- include "common.tplvalues.render" (dict "value" .Values.service.extraPorts "context" $) | nindent 4 }}
+    {{- if .Values.input.service.extraPorts }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.input.service.extraPorts "context" $) | nindent 4 }}
     {{- end }}
-  {{- $podLabels := include "common.tplvalues.merge (dict "values" .Values.input.podLabels .Values.commonLabels "context" .) | fromYaml }}
+  {{- $podLabels := include "common.tplvalues.merge" (dict "values" .Values.input.podLabels .Values.commonLabels "context" .) | fromYaml }}
   selector: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/component: input
