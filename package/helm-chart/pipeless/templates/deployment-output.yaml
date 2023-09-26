@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pipeless.fullname" . }}
+  labels:
+    {{- include "pipeless.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "pipeless.output.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.output.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pipeless.output.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.ipnut.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.output.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-output
+          securityContext:
+            {{- toYaml .Values.output.securityContext | nindent 12 }}
+          image: "{{ .Values.output.image.repository }}:{{ .Values.output.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.output.image.pullPolicy }}
+          ports:
+            - name: output-port
+              containerPort: {{ .Values.output.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.output.resources | nindent 12 }}
+      {{- with .Values.output.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.output.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.output.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

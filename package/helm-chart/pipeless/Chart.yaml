@@ -1,0 +1,6 @@
+apiVersion: v2
+name: pipeless
+description: Pipeless is an open-source computer vision framework to easily build and deploy applications that work in real-time
+type: application
+version: 0.1.0
+appVersion: "1.16.0"
