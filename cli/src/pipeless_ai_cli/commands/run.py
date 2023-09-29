@@ -26,8 +26,10 @@ def run_app(component: str):
 
     app_filename = 'app.py'
     app_path = os.path.join(exec_dir, app_filename)
-    if not os.path.exists(app_path):
-        rprint("[red]Unable to find app.py file, are you running the command from your application directory?[/red]")
-        sys.exit(1)
+    if component in ['worker', 'all']:
+        # We only load the application into the worker
+        if not os.path.exists(app_path):
+            rprint("[red]Unable to find app.py file, are you running the command from your application directory?[/red]")
+            sys.exit(1)
 
     Pipeless(config, component, app_path)
