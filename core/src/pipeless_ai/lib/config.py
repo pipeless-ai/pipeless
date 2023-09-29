@@ -198,7 +198,6 @@ class Config(metaclass=Singleton):
             logger.warning(f'Unrecognized log level: {self._log_level}. Must be INFO, WARN or DEBUG. Falling back to DEBUG')
             self._log_level = 'DEBUG' # Changing this requires to change the default value in logger too.
 
-        # TODO: we are assuming there is always a config file, but a user could use just env vars
         self._plugins = Plugins(get_section_from_dict(config, 'plugins'))
         self._input = Input(get_section_from_dict(config, 'input'))
         self._output = Output(get_section_from_dict(config, 'output'))
