@@ -75,26 +75,35 @@ spec:
           {{- else if .Values.output.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.output.command "context" $) | nindent 12 }}
           {{- end }}
+          workingDir: '/app'
           {{- if .Values.diagnosticMode.enabled }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
           {{- else if .Values.output.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.output.args "context" $) | nindent 12 }}
           {{- end }}
           env:
+            # TODO: the required config must be for each componetn. Right now the logic forces every component to require the whole configuration even if it does not use the values.
+            - name: PIPELESS_INPUT_VIDEO_ENABLE
+              value: "{{ .Values.input.video.enable }}"
+            - name: PIPELESS_WORKER_N_WORKERS
+              value: "{{ .Values.worker.replicaCount }}"
+            # Required by the output
+            - name: PIPELESS_LOG_LEVEL
+              value: "{{ .Values.output.log_level }}"
             - name: PIPELESS_INPUT_ADDRESS_HOST
               value: "{{ include "common.names.fullname" . }}-input"
             - name: PIPELESS_INPUT_ADDRESS_PORT
               value: "{{ .Values.input.service.ports.worker }}"
             - name: PIPELESS_INPUT_VIDEO_URI
-              value: "{{ .Values.input.video.uri }}"
+              value: "{{ include "input.video.uri" . }}"
             - name: PIPELESS_OUTPUT_ADDRESS_HOST
-              value: "{{ include "common.names.fullname" . }}-output"
+              value: localhost
             - name: PIPELESS_OUTPUT_ADDRESS_PORT
               value: "{{ .Values.output.service.ports.worker }}"
             - name: PIPELESS_OUTPUT_VIDEO_ENABLE
               value: "{{ .Values.output.video.enable }}"
             - name: PIPELESS_OUTPUT_VIDEO_URI
-              value: "{{ .Values.output.video.uri }}"
+              value: "{{ include "output.video.uri" . }}"
             - name: PIPELESS_OUTPUT_RECV_BUFFER_SIZE
               value: "{{ .Values.output.recv_buffer_size }}"
             {{- if .Values.output.extraEnvVars }}

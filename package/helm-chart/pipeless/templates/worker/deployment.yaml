@@ -62,9 +62,9 @@ spec:
       {{- end }}
       initContainers:
         - name: download-app
-          image: bitnami/minideb
+          image: bitnami/git
           imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "-c", "/scripts/download-application.sh"]
+          command: ["/bin/bash", "-c", "/scripts/download-application.sh"]
           volumeMounts:
             - name: app
               mountPath: {{ .Values.worker.persistence.mountPath }}
@@ -73,6 +73,11 @@ spec:
               {{- end }}
             - name: download-app
               mountPath: /scripts
+          env:
+            - name: APP_REPO
+              value: "{{ .Values.worker.application.git_repo }}"
+            - name: APP_SUBPATH
+              value: "{{ .Values.worker.application.subPath }}"
         {{- if and .Values.volumePermissions.enabled .Values.worker.persistence.enabled }}
         - name: volume-permissions
           image: {{ include "output.volumePermissions.image" . }}
@@ -97,18 +102,25 @@ spec:
           {{- else if .Values.worker.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.worker.command "context" $) | nindent 12 }}
           {{- end }}
+          workingDir: '/app'
           {{- if .Values.diagnosticMode.enabled }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
           {{- else if .Values.worker.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.worker.args "context" $) | nindent 12 }}
           {{- end }}
           env:
+            # Not used by the worker but required for config verification
+            - name: PIPELESS_WORKER_N_WORKERS
+              value: "{{ .Values.worker.replicaCount }}"
+            # Actually used by the worker
+            - name: PIPELESS_LOG_LEVEL
+              value: "{{ .Values.worker.log_level }}"
             - name: PIPELESS_INPUT_ADDRESS_HOST
               value: "{{ include "common.names.fullname" . }}-input"
             - name: PIPELESS_INPUT_ADDRESS_PORT
               value: "{{ .Values.input.service.ports.worker }}"
             - name: PIPELESS_INPUT_VIDEO_URI
-              value: "{{ .Values.input.video.uri }}"
+              value: "{{ include "input.video.uri" . }}"
             - name: PIPELESS_OUTPUT_ADDRESS_HOST
               value: "{{ include "common.names.fullname" . }}-output"
             - name: PIPELESS_OUTPUT_ADDRESS_PORT
@@ -116,7 +128,7 @@ spec:
             - name: PIPELESS_OUTPUT_VIDEO_ENABLE
               value: "{{ .Values.output.video.enable }}"
             - name: PIPELESS_OUTPUT_VIDEO_URI
-              value: "{{ .Values.output.video.uri }}"
+              value: "{{ include "output.video.uri" . }}"
             - name: PIPELESS_WORKER_RECV_BUFFER_SIZE
               value: "{{ .Values.worker.recv_buffer_size }}"
             - name: PIPELESS_WORKER_SHOW_EXEC_TIME
@@ -127,10 +139,16 @@ spec:
               value: "{{ .Values.worker.inference.model_uri }}"
             - name: PIPELESS_WORKER_INFERENCE_PRE_PROCESS_MODEL_URI
               value: "{{ .Values.worker.inference.pre_process_model_uri }}"
+            # TODO: fix the condition for running convert_to in config when empty string
+            {{- if .Values.worker.inference.force_opset_version }}
             - name: PIPELESS_WORKER_INFERENCE_FORCE_OPSET_VERSION
               value: "{{ .Values.worker.inference.force_opset_version }}"
+            {{- end }}
+            # TODO: fix the condition for running convert_to in config when empty string
+            {{- if .Values.worker.inference.force_ir_version }}
             - name: PIPELESS_WORKER_INFERENCE_FORCE_IR_VERSION
               value: "{{ .Values.worker.inference.force_ir_version }}"
+            {{- end }}
             - name: PIPELESS_WORKER_INFERENCE_IMAGE_SHAPE_FORMAT
               value: "{{ .Values.worker.inference.image_shape_format }}"
             - name: PIPELESS_WORKER_INFERENCE_IMAGE_WIDTH
@@ -194,13 +212,11 @@ spec:
         - name: download-app
           configMap:
             name: {{ include "common.names.fullname" . }}-scripts-configmap
+            defaultMode: 0755
         - name: app
-        {{- if .Values.worker.persistence.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
-        {{- else }}
           emptyDir: {}
-        {{- end }}
+      #    persistentVolumeClaim:
+      #      claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
         {{- if .Values.worker.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraVolumes "context" $) | nindent 8 }}
         {{- end }}

@@ -60,3 +60,46 @@ Return the proper Docker Image Registry Secret Names
 {{- define "worker.imagePullSecrets" -}}
 {{- include "common.images.pullSecrets" (dict "images" (list .Values.worker.image .Values.worker.image .Values.volumePermissions.image) "global" .Values.global) -}}
 {{- end -}}
+
+{{/*
+Return the proper proxy image name
+*/}}
+{{- define "proxy.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.proxy.image "global" .Values.global) }}
+{{- end -}}
+
+{{/*
+Return the proper image name (for the init container volume-permissions image)
+*/}}
+{{- define "proxy.volumePermissions.image" -}}
+{{- include "common.images.image" ( dict "imageRoot" .Values.volumePermissions.image "global" .Values.global ) -}}
+{{- end -}}
+
+{{/*
+Return the proper Docker Image Registry Secret Names
+*/}}
+{{- define "proxy.imagePullSecrets" -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.proxy.image .Values.proxy.image .Values.volumePermissions.image) "global" .Values.global) -}}
+{{- end -}}
+
+{{/*
+Return the proper input URI
+*/}}"
+{{- define "input.video.uri" -}}
+{{- if .Values.input.video.uri -}}
+{{- .Values.input.video.uri -}}
+{{- else -}}
+rtmp://{{- include "common.names.fullname" . }}-proxy:{{- .Values.proxy.service.ports.video -}}/pipeless/input
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the proper output URI
+*/}}"
+{{- define "output.video.uri" -}}
+{{- if .Values.output.video.uri -}}
+{{- .Values.output.video.uri -}}
+{{- else -}}
+rtmp://{{- include "common.names.fullname" . }}-proxy:{{- .Values.proxy.service.ports.video -}}/pipeless/output
+{{- end -}}
+{{- end -}}

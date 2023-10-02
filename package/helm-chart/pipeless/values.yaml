@@ -60,7 +60,7 @@ diagnosticMode:
   args:
     - infinity
 
-## @section Pipeless Input Parameters
+## @section Pipeless proxy Parameters
 ##
 
 ## Pipeless input
@@ -105,6 +105,8 @@ input:
   ##
   containerPorts:
     worker: 1234
+    # The ready port must be 2 ports over the above port
+    worker_ready: 1236
 
   ## Configure extra options for input containers' liveness and readiness probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
@@ -188,13 +190,16 @@ input:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
+  ## @param input.log_level Worker log level
+  log_level: INFO
+
   ## Configure Pipeless input
   ## @param input.video.enable Enable input video
-  ## @param input.video.uri Pipeless innput remote URI to read
+  ## @param input.video.uri Pipeless innput remote URI to read. Leave empty to use RTMP server
   ##
   video:
     enable: true
-    uri: some_uri
+    uri: ""
 
   ## input service parameters
   ##
@@ -206,6 +211,8 @@ input:
     ##
     ports:
       worker: 1234
+      # Worker ready port is the above plus 2 on the code
+      worker_ready: 1236
     ## Node ports to expose
     ## @param input.service.nodePorts.http Node port for HTTP
     ## @param input.service.nodePorts.https Node port for HTTPS
@@ -490,7 +497,8 @@ output:
   ##
   resources:
     limits: {}
-    requests: {}
+    requests:
+      cpu: 1
   ## Configure Pods Security Context
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
   ## @param output.podSecurityContext.enabled Enabled output pods' Security Context
@@ -512,13 +520,17 @@ output:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
+
+  ## @param output.log_level Output log level
+  log_level: INFO
+
   ## Configure Pipeless output
   ## @param output.video.enable Enable output video
-  ## @param output.video.uri Pipeless output remote URI to read
+  ## @param output.video.uri Pipeless output remote URI to read. Leave empty to use RTMP server
   ##
   video:
     enable: true
-    uri: some_uri
+    uri: ""
 
   ## @param output.recev_buffer_size Specify the output recv buffer
   recv_buffer_size: 600
@@ -539,8 +551,7 @@ output:
     ## NOTE: choose port between <30000-32767>
     ##
     nodePorts:
-      http: ""
-      https: ""
+      worker: ""
     ## @param output.service.clusterIP output service Cluster IP
     ## e.g.:
     ## clusterIP: None
@@ -721,7 +732,7 @@ output:
 ##
 worker:
   ## Bitnami worker image
-  ## ref: https://hub.docker.com/r/bitnami/pipeless/tags/
+  ## ref: https://hub.docker.com/r/miguelaeh/pipeless/tags/
   ## @param worker.image.registry worker image registry
   ## @param worker.image.repository worker image repository
   ## @param worker.image.tag worker image tag (immutable tags are recommended)
@@ -732,7 +743,7 @@ worker:
   ##
   image:
     registry: docker.io
-    repository: bitnami/pipeless
+    repository: miguelaeh/pipeless
     tag: latest
     digest: ""
     ## Specify a imagePullPolicy
@@ -754,12 +765,7 @@ worker:
   ## @param worker.replicaCount Number of worker replicas to deploy
   ##
   replicaCount: 1
-  ## @param worker.containerPorts.http worker HTTP container port
-  ## @param worker.containerPorts.https worker HTTPS container port
-  ##
-  containerPorts:
-    http: 80
-    https: 443
+
   ## Configure extra options for worker containers' liveness and readiness probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
   ## @param worker.livenessProbe.enabled Enable livenessProbe on worker containers
@@ -856,6 +862,8 @@ worker:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
 
+  ## @param worker.log_level Worker log level
+  log_level: INFO
   ## @param worker.recv_buffer_size Size of the worker reception buffer
   recv_buffer_size: 600
   ## @param worker.show_exec_time Show the execution time of the user hooks.
@@ -873,8 +881,8 @@ worker:
   inference:
     model_uri: ""
     pre_process_model_uri: ""
-    force_opset_version: ""
-    force_ir_version: ""
+    force_opset_version: null
+    force_ir_version: null
     image_shape_format: ""
     image_width: ""
     image_height: ""
@@ -888,8 +896,8 @@ worker:
   # @param worker.application.git_repo Git repo URL to download the Pipeless application
   # @param worker.application.subPath Sub-path of the application within the git repository
   application:
-    git_repo: 'https://github.com/pipeless-ai/pipeless.git'
-    subPath: 'examples/onnx-yolo'
+    git_repo: https://github.com/pipeless-ai/pipeless.git
+    subPath: examples/yolo
   ## @param worker.existingConfigmap The name of an existing ConfigMap with your custom configuration for worker
   ##
   existingConfigmap:
@@ -1058,7 +1066,7 @@ worker:
       - ReadWriteOnce
     ## @param worker.persistence.size Size of data volume
     ##
-    size: 8Gi
+    size: 200Mi
     ## @param worker.persistence.existingClaim The name of an existing PVC to use for persistence
     ##
     existingClaim: ""
@@ -1143,3 +1151,323 @@ serviceAccount:
   ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
   ##
   automountServiceAccountToken: true
+
+## @section RTMP proxy Parameters
+##
+
+## Video proxy
+##
+proxy:
+  ## Video proxy image
+  ## ref: https://hub.docker.com/r/miguelaeh/pipeless/tags/
+  ## @param proxy.image.registry proxy image registry
+  ## @param proxy.image.repository proxy image repository
+  ## @param proxy.image.tag proxy image tag (immutable tags are recommended)
+  ## @param proxy.image.digest proxy image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
+  ## @param proxy.image.pullPolicy proxy image pull policy
+  ## @param proxy.image.pullSecrets proxy image pull secrets
+  ## @param proxy.image.debug Enable proxy image debug mode
+  ##
+  image:
+    registry: docker.io
+    repository: miguelaeh/rtmp
+    tag: latest
+    digest: ""
+    ## Specify a imagePullPolicy
+    ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+    ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+    ##
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+    ## Enable debug mode
+    ##
+    debug: false
+  ## @param proxy.replicaCount Number of proxy replicas to deploy
+  ##
+  replicaCount: 1
+  ## @param proxy.containerPorts.http proxy HTTP container port
+  ## @param proxy.containerPorts.https proxy HTTPS container port
+  ##
+  containerPorts:
+    video: 1234
+
+  ## Configure extra options for proxy containers' liveness and readiness probes
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param proxy.livenessProbe.enabled Enable livenessProbe on proxy containers
+  ## @param proxy.livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param proxy.livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param proxy.livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param proxy.livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param proxy.livenessProbe.successThreshold Success threshold for livenessProbe
+  ##
+  livenessProbe:
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
+  ## @param proxy.readinessProbe.enabled Enable readinessProbe on proxy containers
+  ## @param proxy.readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param proxy.readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param proxy.readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param proxy.readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param proxy.readinessProbe.successThreshold Success threshold for readinessProbe
+  ##
+  readinessProbe:
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
+  ## @param proxy.startupProbe.enabled Enable startupProbe on proxy containers
+  ## @param proxy.startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  ## @param proxy.startupProbe.periodSeconds Period seconds for startupProbe
+  ## @param proxy.startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  ## @param proxy.startupProbe.failureThreshold Failure threshold for startupProbe
+  ## @param proxy.startupProbe.successThreshold Success threshold for startupProbe
+  ##
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 10
+    successThreshold: 10
+  ## @param proxy.customLivenessProbe Custom livenessProbe that overrides the default one
+  ##
+  customLivenessProbe: {}
+  ## @param proxy.customReadinessProbe Custom readinessProbe that overrides the default one
+  ##
+  customReadinessProbe: {}
+  ## @param proxy.customStartupProbe Custom startupProbe that overrides the default one
+  ##
+  customStartupProbe: {}
+  ## proxy resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ## @param proxy.resources.limits The resources limits for the proxy containers
+  ## @param proxy.resources.requests The requested resources for the proxy containers
+  ##
+  resources:
+    limits: {}
+    requests: {}
+  ## Configure Pods Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param proxy.podSecurityContext.enabled Enabled proxy pods' Security Context
+  ## @param proxy.podSecurityContext.fsGroup Set proxy pod's Security Context fsGroup
+  ##
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+  ## Configure Container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param proxy.containerSecurityContext.enabled Enabled proxy containers' Security Context
+  ## @param proxy.containerSecurityContext.runAsUser Set proxy containers' Security Context runAsUser
+  ## @param proxy.containerSecurityContext.runAsNonRoot Set proxy containers' Security Context runAsNonRoot
+  ## @param proxy.containerSecurityContext.readOnlyRootFilesystem Set proxy containers' Security Context runAsNonRoot
+  ##
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsNonRoot: true
+    readOnlyRootFilesystem: false
+
+  ## proxy service parameters
+  ##
+  service:
+    ## @param proxy.service.type proxy service type
+    ##
+    type: ClusterIP
+    ## @param proxy.service.ports.video proxy service video port
+    ##
+    ports:
+      video: 1935
+    ## Node ports to expose
+    ## @param proxy.service.nodePorts.http Node port for HTTP
+    ## @param proxy.service.nodePorts.https Node port for HTTPS
+    ## NOTE: choose port between <30000-32767>
+    ##
+    nodePorts:
+      video: ""
+    ## @param proxy.service.clusterIP proxy service Cluster IP
+    ## e.g.:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param proxy.service.loadBalancerIP proxy service Load Balancer IP
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerIP: ""
+    ## @param proxy.service.loadBalancerSourceRanges proxy service Load Balancer sources
+    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## e.g:
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param proxy.service.externalTrafficPolicy proxy service external traffic policy
+    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param proxy.service.annotations Additional custom annotations for proxy service
+    ##
+    annotations: {}
+    ## @param proxy.service.extraPorts Extra ports to expose in proxy service (normally used with the `sidecars` value)
+    ##
+    extraPorts: []
+    ## @param proxy.service.sessionAffinity Control where client requests go, to the same pod or round-robin
+    ## Values: ClientIP or None
+    ## ref: https://kubernetes.io/docs/user-guide/services/
+    ##
+    sessionAffinity: None
+    ## @param proxy.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
+
+  ## @param proxy.existingConfigmap The name of an existing ConfigMap with your custom configuration for proxy
+  ##
+  existingConfigmap:
+  ## @param proxy.command Override default container command (useful when using custom images)
+  ##
+  command: []
+  ## @param proxy.args Override default container args (useful when using custom images)
+  ##
+  args: []
+  ## @param proxy.hostAliases proxy pods host aliases
+  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+  ##
+  hostAliases: []
+  ## @param proxy.podLabels Extra labels for proxy pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  ##
+  podLabels: {}
+  ## @param proxy.podAnnotations Annotations for proxy pods
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  ##
+  podAnnotations: {}
+  ## @param proxy.podAffinityPreset Pod affinity preset. Ignored if `proxy.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAffinityPreset: ""
+  ## @param proxy.podAntiAffinityPreset Pod anti-affinity preset. Ignored if `proxy.affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAntiAffinityPreset: soft
+  ## Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb
+  ## @param proxy.pdb.create Enable/disable a Pod Disruption Budget creation
+  ## @param proxy.pdb.minAvailable Minimum number/percentage of pods that should remain scheduled
+  ## @param proxy.pdb.maxUnavailable Maximum number/percentage of pods that may be made unavailable
+  ##
+  pdb:
+    create: false
+    minAvailable: 1
+    maxUnavailable: ""
+  ## Node proxy.affinity preset
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  ##
+  nodeAffinityPreset:
+    ## @param proxy.nodeAffinityPreset.type Node affinity preset type. Ignored if `proxy.affinity` is set. Allowed values: `soft` or `hard`
+    ##
+    type: ""
+    ## @param proxy.nodeAffinityPreset.key Node label key to match. Ignored if `proxy.affinity` is set
+    ##
+    key: ""
+    ## @param proxy.nodeAffinityPreset.values Node label values to match. Ignored if `proxy.affinity` is set
+    ## E.g.
+    ## values:
+    ##   - e2e-az1
+    ##   - e2e-az2
+    ##
+    values: []
+  ## @param proxy.affinity Affinity for proxy pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## NOTE: `proxy.podAffinityPreset`, `proxy.podAntiAffinityPreset`, and `proxy.nodeAffinityPreset` will be ignored when it's set
+  ##
+  affinity: {}
+  ## @param proxy.nodeSelector Node labels for proxy pods assignment
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+  ## @param proxy.tolerations Tolerations for proxy pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  ## @param proxy.updateStrategy.type proxy statefulset strategy type
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+  ##
+  updateStrategy:
+    ## StrategyType
+    ## Can be set to RollingUpdate or OnDelete
+    ##
+    type: RollingUpdate
+
+  ## @param proxy.priorityClassName proxy pods' priorityClassName
+  ##
+  priorityClassName: ""
+  ## @param proxy.topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
+  ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
+  ##
+  topologySpreadConstraints: []
+  ## @param proxy.schedulerName Name of the k8s scheduler (other than default) for proxy pods
+  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+  ##
+  schedulerName: ""
+  ## @param proxy.terminationGracePeriodSeconds Seconds Redmine pod needs to terminate gracefully
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
+  ##
+  terminationGracePeriodSeconds: ""
+  ## @param proxy.lifecycleHooks for the proxy container(s) to automate configuration before or after startup
+  ##
+  lifecycleHooks: {}
+  ## @param proxy.extraEnvVars Array with extra environment variables to add to proxy nodes
+  ## e.g:
+  ## extraEnvVars:
+  ##   - name: FOO
+  ##     value: "bar"
+  ##
+  extraEnvVars: []
+  ## @param proxy.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for proxy nodes
+  ##
+  extraEnvVarsCM: ""
+  ## @param proxy.extraEnvVarsSecret Name of existing Secret containing extra env vars for proxy nodes
+  ##
+  extraEnvVarsSecret: ""
+  ## @param proxy.extraVolumes Optionally specify extra list of additional volumes for the proxy pod(s)
+  ##
+  extraVolumes: []
+  ## @param proxy.extraVolumeMounts Optionally specify extra list of additional volumeMounts for the proxy container(s)
+  ##
+  extraVolumeMounts: []
+  ## @param proxy.sidecars Add additional sidecar containers to the proxy pod(s)
+  ## e.g:
+  ## sidecars:
+  ##   - name: your-image-name
+  ##     image: your-image
+  ##     imagePullPolicy: Always
+  ##     ports:
+  ##       - name: portname
+  ##         containerPort: 1234
+  ##
+  sidecars: []
+  ## @param proxy.initContainers Add additional init containers to the proxy pod(s)
+  ## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+  ## e.g:
+  ## initContainers:
+  ##  - name: your-image-name
+  ##    image: your-image
+  ##    imagePullPolicy: Always
+  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##
+  initContainers: []

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common.names.fullname" . }}-scripts-configmap
+data:
+  download-application.sh: |
+    #!/bin/bash
+    if [[ -z "${APP_REPO:-}" ]]; then
+      echo "Missing worker.application.git_repo URL"
+      exit 1
+    fi
+    git clone "$APP_REPO" /tmp/app
+    if [[ -n "$APP_SUBPATH" ]]; then
+      cp -R "/tmp/app/${APP_SUBPATH}"/* /app
+    else
+      cp -R /tmp/app /app
+    fi

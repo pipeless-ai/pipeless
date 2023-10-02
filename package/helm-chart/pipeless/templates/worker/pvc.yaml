@@ -1,0 +1,37 @@
+{{- if false }}
+{{- if not .Values.worker.persistence.existingClaim }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+  annotations:
+    {{- if .Values.worker.persistence.resourcePolicy }}
+    helm.sh/resource-policy: {{ .Values.worker.persistence.resourcePolicy | quote }}
+    {{- end }}
+    {{- if or .Values.worker.persistence.annotations .Values.commonAnnotations }}
+    {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .Values.worker.persistence.annotations .Values.commonAnnotations ) "context" . ) }}
+    {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
+    {{- end }}
+spec:
+  accessModes:
+  {{- if not (empty .Values.worker.persistence.accessModes) }}
+  {{- range .Values.worker.persistence.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  {{- else }}
+    - {{ .Values.worker.persistence.accessMode | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.worker.persistence.size | quote }}
+  {{- if .Values.worker.persistence.selector }}
+  selector: {{- include "common.tplvalues.render" (dict "value" .Values.worker.persistence.selector "context" $) | nindent 4 }}
+  {{- end -}}
+  {{- if .Values.worker.persistence.dataSource }}
+  dataSource: {{- include "common.tplvalues.render" (dict "value" .Values.worker.persistence.dataSource "context" $) | nindent 4 }}
+  {{- end }}
+  {{- include "common.storage.class" (dict "persistence" .Values.worker.persistence "global" .Values.global) | nindent 2 }}
+{{- end }}
+{{- end }}
