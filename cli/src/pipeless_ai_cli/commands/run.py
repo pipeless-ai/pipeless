@@ -32,4 +32,4 @@ def run_app(component: str):
             rprint("[red]Unable to find app.py file, are you running the command from your application directory?[/red]")
             sys.exit(1)
 
-    Pipeless(config, component, app_path)
+    Pipeless(config, component, exec_dir)

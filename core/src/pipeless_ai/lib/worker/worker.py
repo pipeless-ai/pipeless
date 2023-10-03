@@ -77,10 +77,11 @@ def fetch_and_process(user_app, inference_session):
 
 def load_user_module(path):
     """
-    Load the user app module from the path.
+    Load the user app module from the path. The path must be a directory containing app.py
     Returns an instance of the user defined App class
     """
-    spec = importlib.util.spec_from_file_location('user_app', path)
+    sys.path.append(path) # Add to the Python path to allow imports
+    spec = importlib.util.spec_from_file_location('user_app', f'{path}/app.py')
     user_app_module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(user_app_module)
