@@ -19,7 +19,10 @@
     <img alt="" src="https://img.shields.io/pypi/l/pipeless-ai?style=for-the-badge&labelColor=000000">
   </a>
   <a aria-label="Join the community on GitHub" href="https://github.com/miguelaeh/pipeless/discussions">
-    <img alt="" src="https://img.shields.io/badge/Join%20the%20community-black.svg?style=for-the-badge&logo=&labelColor=000000&logoWidth=20">
+    <img alt="" src="https://img.shields.io/badge/Join%20the%20discussions-black.svg?style=for-the-badge&logo=&labelColor=000000&logoWidth=20">
+  </a>
+  <a aria-label="Join the community on Discord" href="https://discord.gg/K2qxQ8uedG">
+    <img alt="" src="https://img.shields.io/discord/1156923628831649873?style=for-the-badge&logo=discord&logoColor=FFFFFF&label=Chat%20on%20discord&labelColor=black">
   </a>
 </p>
 
