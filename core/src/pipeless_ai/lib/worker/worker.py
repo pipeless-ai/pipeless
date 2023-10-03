@@ -123,7 +123,7 @@ def worker(config_dict, user_module_path):
 
     logger.info('Worker ready! Notifying input')
     w_socket = WorkerReadySocket('worker')
-    w_socket.send(b'ready') # Notify the input that a worker is available
+    w_socket.ensure_send(b'ready') # Notify the input that a worker is available
 
     try:
         while True:
