@@ -282,9 +282,15 @@ class WorkerReadySocket(metaclass=Singleton):
 
     @send_error_handler
     def send(self, msg):
-        # Blocking send call. We always want to ensure the messages
-        # from input to output arrive because they change the pipelines
+        # Best effort send
+        self._socket.send(msg, block=False)
+
+    @send_error_handler
+    def __block_send(self, msg):
+        # Blocking send, we must be sure the message is sent
         self._socket.send(msg)
+    def ensure_send(self, msg):
+        while not self.__block_send(msg): logger.warning('Retrying send...')
 
     @recv_error_handler
     def recv(self):
