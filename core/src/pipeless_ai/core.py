@@ -1,3 +1,4 @@
+import multiprocessing
 import concurrent.futures
 import sys
 import time
@@ -7,14 +8,22 @@ from pipeless_ai.lib.output import output
 from pipeless_ai.lib.worker import worker
 from pipeless_ai.lib.logger import logger
 
-def run_all(config_dict, user_app_class):
+def run_all(config_dict, user_app_module):
     executor = concurrent.futures.ProcessPoolExecutor()
     t_output = executor.submit(output.output, config_dict)
     time.sleep(1) # Allow to create sockets
-    t_worker = executor.submit(worker.worker, config_dict, user_app_class)
-    time.sleep(1) # Allow to create sockets
     t_input = executor.submit(input.input, config_dict)
-    concurrent.futures.wait([t_output, t_worker, t_input])
+    time.sleep(1) # Allow to create sockets
+    n_workers = config_dict.get('worker', {}).get('n_workers', 1)
+    cpu_count = multiprocessing.cpu_count()
+    if n_workers > cpu_count - 2:
+        print(f'WARNING: Your device only supports {cpu_count} processes at a time')
+        print(f'\tUsing {cpu_count - 2} workers instead of the requested {n_workers}')
+        n_workers = cpu_count - 2
+    t_workers = []
+    for i in range(n_workers):
+        t_workers.append(executor.submit(worker.worker, config_dict, user_app_module))
+    concurrent.futures.wait([t_output, *t_workers, t_input])
 
 class Pipeless():
     """
