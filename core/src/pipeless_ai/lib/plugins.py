@@ -20,6 +20,7 @@ def inject_plugins(user_app: PipelessApp, plugins_dir : str, plugins_order: list
     for plugin_id in plugins_order:
         plugin_file_path = os.path.join(plugins_dir, plugin_id, 'plugin.py')
         if os.path.exists(plugin_file_path):
+            sys.path.append(plugins_dir) # Allow imports in the plugin.py file
             plugin_instance = load_plugin_module(plugin_file_path)
             exec_graph += (plugin_id,)
             # Insert plugin into the user app so the user have access to plugin defined methods
