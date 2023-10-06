@@ -237,9 +237,9 @@ spec:
             defaultMode: 0755
         - name: app
           emptyDir: {}
-      # TODO: by using a volume here we save downloading the app on new workers
-      #    persistentVolumeClaim:
-      #      claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
+          # TODO: by using a volume here we save downloading the app when scaling or restarting workers
+          #    persistentVolumeClaim:
+          #      claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
         {{- if .Values.worker.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraVolumes "context" $) | nindent 8 }}
         {{- end }}
