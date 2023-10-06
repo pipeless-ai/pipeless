@@ -168,7 +168,9 @@ input:
   ##
   resources:
     limits: {}
-    requests: {}
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
   ## Configure Pods Security Context
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
   ## @param input.podSecurityContext.enabled Enabled input pods' Security Context
@@ -437,6 +439,8 @@ output:
   ##
   containerPorts:
     worker: 1237
+    # The input output port is the above +1
+    input: 1238
   ## Configure extra options for output containers' liveness and readiness probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
   ## @param output.livenessProbe.enabled Enable livenessProbe on output containers
@@ -498,7 +502,8 @@ output:
   resources:
     limits: {}
     requests:
-      cpu: 1
+      memory: "2Gi"
+      cpu: "1000m"
   ## Configure Pods Security Context
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
   ## @param output.podSecurityContext.enabled Enabled output pods' Security Context
@@ -545,6 +550,8 @@ output:
     ##
     ports:
       worker: 1237
+      # The input-output port is the above + 1
+      input: 1238
     ## Node ports to expose
     ## @param output.service.nodePorts.http Node port for HTTP
     ## @param output.service.nodePorts.https Node port for HTTPS
@@ -552,6 +559,7 @@ output:
     ##
     nodePorts:
       worker: ""
+      input: ""
     ## @param output.service.clusterIP output service Cluster IP
     ## e.g.:
     ## clusterIP: None
@@ -826,7 +834,9 @@ worker:
   ##
   resources:
     limits: {}
-    requests: {}
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
   ## Autoscaling configuration
   ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
   ## @param worker.autoscaling.enabled Enable autoscaling for output
@@ -887,8 +897,12 @@ worker:
     image_width: ""
     image_height: ""
     image_channels: ""
-  # @param worker.plugins.dir Directory to load plugins from
-  # @param worker.plugins.order Execution order of the plugins
+
+  # @param worker.extra_python.packages Install extra packages required by the application automatcaiily
+  user_python_packages: ""
+
+  # @param worker.plugins.dir Directory to load plugins from. Relative to the app directory
+  # @param worker.plugins.order Execution order of the plugins. PLugins specified here will be automatically installed.
   plugins:
     dir: ""
     order: ""
@@ -896,8 +910,8 @@ worker:
   # @param worker.application.git_repo Git repo URL to download the Pipeless application
   # @param worker.application.subPath Sub-path of the application within the git repository
   application:
-    git_repo: https://github.com/pipeless-ai/pipeless.git
-    subPath: examples/yolo
+    git_repo: ""
+    subPath: ""
   ## @param worker.existingConfigmap The name of an existing ConfigMap with your custom configuration for worker
   ##
   existingConfigmap:
@@ -1196,7 +1210,7 @@ proxy:
   ## @param proxy.containerPorts.https proxy HTTPS container port
   ##
   containerPorts:
-    video: 1234
+    video: 1935
 
   ## Configure extra options for proxy containers' liveness and readiness probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
@@ -1285,7 +1299,7 @@ proxy:
   service:
     ## @param proxy.service.type proxy service type
     ##
-    type: ClusterIP
+    type: LoadBalancer
     ## @param proxy.service.ports.video proxy service video port
     ##
     ports:

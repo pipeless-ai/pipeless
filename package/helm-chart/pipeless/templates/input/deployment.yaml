@@ -85,7 +85,7 @@ spec:
             - name: PIPELESS_LOG_LEVEL
               value: "{{ .Values.input.log_level }}"
             - name: PIPELESS_INPUT_ADDRESS_HOST
-              value: localhost
+              value: "0.0.0.0"
             - name: PIPELESS_INPUT_ADDRESS_PORT
               value: "{{ .Values.input.service.ports.worker }}"
             - name: PIPELESS_INPUT_VIDEO_ENABLE

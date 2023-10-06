@@ -15,3 +15,9 @@ data:
     else
       cp -R /tmp/app /app
     fi
+  install-plugins.sh: |
+    #!/bin/bash
+    IFS=$' \t,;' read -r -a plugins <<< "$(tr ',;' ' ' <<< "$PIPELESS_PLUGINS_ORDER")"
+    for plugin in "${plugins[@]}"; do
+      pipeless install plugin "$plugin"
+    done

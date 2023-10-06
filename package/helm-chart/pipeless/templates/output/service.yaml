@@ -39,6 +39,14 @@ spec:
       {{- else if eq .Values.output.service.type "ClusterIP" }}
       nodePort: null
       {{- end }}
+    - name: input
+      port: {{ .Values.output.service.ports.input }}
+      protocol: TCP
+      {{- if and (or (eq .Values.output.service.type "NodePort") (eq .Values.output.service.type "LoadBalancer")) (not (empty .Values.output.service.nodePorts.input)) }}
+      nodePort: {{ .Values.output.service.nodePorts.input }}
+      {{- else if eq .Values.output.service.type "ClusterIP" }}
+      nodePort: null
+      {{- end }}
     {{- if .Values.output.service.extraPorts }}
     {{- include "common.tplvalues.render" (dict "value" .Values.output.service.extraPorts "context" $) | nindent 4 }}
     {{- end }}

@@ -81,8 +81,6 @@ spec:
           args: {{- include "common.tplvalues.render" (dict "value" .Values.proxy.args "context" $) | nindent 12 }}
           {{- end }}
           env:
-            - name: PIPELESS_LOG_LEVEL
-              value: "{{ .Values.proxy.log_level }}"
             {{- if .Values.proxy.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.proxy.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

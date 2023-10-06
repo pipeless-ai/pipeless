@@ -71,13 +71,30 @@ spec:
               {{- if .Values.worker.persistence.subPath }}
               subPath: {{ .Values.worker.persistence.subPath }}
               {{- end }}
-            - name: download-app
+            - name: scripts
               mountPath: /scripts
           env:
             - name: APP_REPO
               value: "{{ .Values.worker.application.git_repo }}"
             - name: APP_SUBPATH
               value: "{{ .Values.worker.application.subPath }}"
+        {{- if .Values.worker.plugins.order }}
+        - name: install-plugins
+          image: {{ include "worker.image" . }}
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          command: ["/bin/bash", "-c", /scripts/install-plugins.sh]
+          volumeMounts:
+            - name: app
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
+              {{- end }}
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: PIPELESS_PLUGINS_ORDER
+              value: "{{ .Values.worker.plugins.order }}"
+        {{- end }}
         {{- if and .Values.volumePermissions.enabled .Values.worker.persistence.enabled }}
         - name: volume-permissions
           image: {{ include "output.volumePermissions.image" . }}
@@ -157,10 +174,15 @@ spec:
               value: "{{ .Values.worker.inference.image_height }}"
             - name: PIPELESS_WORKER_INFERENCE_IMAGE_CHANNELS
               value: "{{ .Values.worker.inference.image_channels }}"
+            # TODO: the default to 'plugins' is not working properly when adding the env var as empty string
+            {{- if .Values.worker.plugins.dir }}
             - name: PIPELESS_PLUGINS_DIR
               value: "{{ .Values.worker.plugins.dir }}"
+            {{- end }}
             - name: PIPELESS_PLUGINS_ORDER
               value: "{{ .Values.worker.plugins.order }}"
+            - name: PIPELESS_USER_PYTHON_PACKAGES
+              value: "{{ .Values.worker.user_python_packages }}"
             {{- if .Values.worker.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -209,12 +231,13 @@ spec:
         {{- include "common.tplvalues.render" ( dict "value" .Values.worker.sidecars "context" $) | nindent 8 }}
         {{- end }}
       volumes:
-        - name: download-app
+        - name: scripts
           configMap:
             name: {{ include "common.names.fullname" . }}-scripts-configmap
             defaultMode: 0755
         - name: app
           emptyDir: {}
+      # TODO: by using a volume here we save downloading the app on new workers
       #    persistentVolumeClaim:
       #      claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
         {{- if .Values.worker.extraVolumes }}
