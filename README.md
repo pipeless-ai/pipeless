@@ -97,6 +97,22 @@ The following command installs the core (`pipeless-ai`) and the CLI (`pipeless-a
 pip install pipeless-ai pipeless-ai-cli
 ```
 
+By default it installs the default flavor, which does not ship any inference runtime.
+
+You can also install the ONNX flavor for CPU or GPU usage as follows:
+
+```console
+# Install for CPU
+pip install pipeless-ai[onnx-cpu] pipeless-ai-cli
+```
+
+or
+
+```console
+# Install for GPU
+pip install pipeless-ai[onnx-gpu] pipeless-ai-cli
+```
+
 Test the installation with:
 
 ```console

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pipeless-ai"
-version = "0.1.15"
+version = "0.1.16"
 description = "An open-source computer vision framework to create and deploy computer vision applications that scale in minutes"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
 license = "Apache-2.0"
@@ -17,10 +17,21 @@ pynng = "^0.7.2"
 numpy = "^1.24.0 <1.25.0"
 pygobject = "^3.44.1"
 opencv-python = "^4.8.0.76"
-onnxruntime-gpu = "^1.15.1"
 requests = "^2.31.0"
-onnx = "^1.14.1"
 line-profiler = "^4.1.1"
+onnx = {version = "^1.14.1", optional = true}
+onnxruntime = {version = "^1.16.0", optional = true}
+onnxruntime-gpu = {version = "^1.16.0", optional = true}
+
+[tool.poetry.extras]
+onnx-cpu = [
+    "onnxruntime",
+    "onnx"
+]
+onnx-gpu = [
+    "onnxruntime-gpu",
+    "onnx"
+]
 
 [build-system]
 requires = ["poetry-core"]

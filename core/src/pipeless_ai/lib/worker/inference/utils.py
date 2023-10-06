@@ -1,10 +1,31 @@
 import sys
 import cv2
 import numpy as np
-import onnx
 import requests
 
 from pipeless_ai.lib.logger import logger
+
+def get_inference_session(config):
+    """
+    Returns an inference session when possible or None
+    """
+    if config.get_worker().get_inference().get_model_uri():
+        try:
+            # Do not import by default since we have different flavors for CPU and GPU
+            from pipeless_ai.lib.worker.inference.runtime import PipelessInferenceSession
+            inference_config = config.get_worker().get_inference()
+            return PipelessInferenceSession(inference_config)
+        except ImportError or ModuleNotFoundError as e:
+            logger.error('''Unable to import the ONNX Runtime.
+Did you install the ONNX Pipeless flavor?
+To install the ONNX Pipeless flavor for CPU use:
+    "pip install pipeless-ai\[onnx-cpu]"
+To install the ONNX Pipeless flavor for GPU use:
+    "pip install pipeless-ai\[onnx-gpu]"
+''')
+            raise e
+
+    return None
 
 def get_model_path(uri: str, alias: str) -> str:
     """
@@ -23,30 +44,6 @@ def get_model_path(uri: str, alias: str) -> str:
         raise ValueError("The model URI currently supports 'file://' and 'http(s)://'")
 
     return model_file_path
-
-def load_model(file: str, alias: str, force_opset_version: int | None =None, force_ir_version: int | None = None):
-    """
-    Loads a model with onnx and checks it.
-    Returns the model if correct. Finishes execution otherwise.
-    """
-    # TODO: convert the model on the fly checking the extensions from the most common frameworks. Or implement conversion in the CLI instead.
-    try:
-        logger.info(f'Checking {alias} inference model')
-        model = onnx.load(file)
-        if force_opset_version:
-            logger.info(f'Converting from OpSet version {model.opset_import[0].version} to {force_opset_version}')
-            model = onnx.version_converter.convert_version(model, force_opset_version)
-        if force_ir_version:
-            logger.info(f'Converting from IR version {model.ir_version} to {force_opset_version}')
-            model.ir_version = force_ir_version
-        onnx.checker.check_model(model)
-        logger.info(f'Model operation set (OpSet) version: {model.opset_import[0].version}')
-        logger.info(f'Model intermediate representation (IR) version: {model.ir_version}')
-    except Exception as e:
-        logger.error(f'Error loading the {alias} model: {e}')
-        sys.exit(1)
-
-    return model
 
 def get_transpose_indexes(format):
     """
