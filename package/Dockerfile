@@ -20,7 +20,7 @@ USER 1001
 # Allow to execute commands installed with pip
 ENV PATH="${PATH}:/.local/bin"
 
-RUN pip install pipeless-ai pipeless-ai-cli pipeless-ai-tf-models
+RUN pip install pipeless-ai[onnx-cpu] pipeless-ai-cli pipeless-ai-tf-models
 
 WORKDIR /app
 
