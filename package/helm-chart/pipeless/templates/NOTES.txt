@@ -1,0 +1,37 @@
+Pipeless was deployed!
+
+You can now start processing video.
+
+1. Send an input video stream from your webcam via the RTMP proxy using the following commands:
+
+{{- if contains "NodePort" .Values.proxy.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "common.names.fullname" . }}-proxy)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  export URL="rtmp://${NODE_IP}:${NODE_PORT}/pipeless/input"
+  echo "RTMP server input URL: rtmp://$NODE_IP:$NODE_PORT/pipeless/input"
+
+{{- else if contains "LoadBalancer" .Values.proxy.service.type }}
+
+** Please ensure an external IP is associated to the {{ include "common.names.fullname" . }}-proxy service before proceeding **
+** Watch the status using: kubectl get svc --namespace {{ .Release.Namespace }} -w  {{ include "common.names.fullname" . }}-proxy **
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "common.names.fullname" . }}-proxy --template "{{ "{{ range (index .status.loadBalancer.ingress 0) }}{{ . }}{{ end }}" }}")
+  export URL="rtmp://${SERVICE_IP}:{{ .Values.proxy.service.ports.video }}/pipeless/input"
+  echo "RTMP server input URL: rtmp://$SERVICE_IP:{{ .Values.proxy.service.ports.video }}/pipeless/input"
+
+{{- else if contains "ClusterIP" .Values.proxy.service.type }}
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "common.names.fullname" . }}-proxy 1935:{{ .Values.proxy.service.ports.video }} &
+  export URL=rtmp://127.0.0.1:1935/pipeless/input
+  echo "RTMP server input URL: rtmp://127.0.0.1:1935/pipeless/input"
+{{- end }}
+
+  ffmpeg -re -i /dev/video0 -c:v libx264 -preset ultrafast -tune zerolatency -c:a aac -f flv "$URL"
+
+  Feel free to change /dev/video0 by a video file path.
+
+2. Read the output from the RTMP proxy with the following command:
+
+   mpv "rtmp://localhost:1935/pipeless/output" --no-cache --untimed --no-demuxer-thread --video-sync=audio --vd-lavc-threads=1
+
+   Feel free to use any other media player like VLC. OR even directly config the deployment to not use the RTMP server and disable the output video or send it to an external endpoint.

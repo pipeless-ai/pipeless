@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "common.names.fullname" . }}-input
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/component: input
+  {{- if or .Values.input.service.annotations .Values.commonAnnotations }}
+  {{- $annotations := include "common.tplvalues.merge" (dict "values" .Values.input.service.annotations .Values.commonAnnotations "context" .) | fromYaml }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.input.service.type }}
+  {{- if and .Values.input.service.clusterIP (eq .Values.input.service.type "ClusterIP") }}
+  clusterIP: {{ .Values.input.service.clusterIP }}
+  {{- end }}
+  {{- if .Values.input.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.input.service.sessionAffinity }}
+  {{- end }}
+  {{- if .Values.input.service.sessionAffinityConfig }}
+  sessionAffinityConfig: {{- include "common.tplvalues.render" (dict "value" .Values.input.service.sessionAffinityConfig "context" $) | nindent 4 }}
+  {{- end }}
+  {{- if or (eq .Values.input.service.type "LoadBalancer") (eq .Values.input.service.type "NodePort") }}
+  externalTrafficPolicy: {{ .Values.input.service.externalTrafficPolicy | quote }}
+  {{- end }}
+  {{- if and (eq .Values.input.service.type "LoadBalancer") (not (empty .Values.input.service.loadBalancerSourceRanges)) }}
+  loadBalancerSourceRanges: {{ .Values.input.service.loadBalancerSourceRanges }}
+  {{- end }}
+  {{- if and (eq .Values.input.service.type "LoadBalancer") (not (empty .Values.input.service.loadBalancerIP)) }}
+  loadBalancerIP: {{ .Values.input.service.loadBalancerIP }}
+  {{- end }}
+  ports:
+    - name: worker
+      port: {{ .Values.input.service.ports.worker }}
+      protocol: TCP
+      {{- if and (or (eq .Values.input.service.type "NodePort") (eq .Values.input.service.type "LoadBalancer")) (not (empty .Values.input.service.nodePorts.worker)) }}
+      nodePort: {{ .Values.input.service.nodePorts.worker }}
+      {{- else if eq .Values.input.service.type "ClusterIP" }}
+      nodePort: null
+      {{- end }}
+    - name: worker-ready
+      port: {{ .Values.input.service.ports.worker_ready }}
+      protocol: TCP
+      {{- if and (or (eq .Values.input.service.type "NodePort") (eq .Values.input.service.type "LoadBalancer")) (not (empty .Values.input.service.nodePorts.worker_ready)) }}
+      nodePort: {{ .Values.input.service.nodePorts.worker_ready }}
+      {{- else if eq .Values.input.service.type "ClusterIP" }}
+      nodePort: null
+      {{- end }}
+    {{- if .Values.input.service.extraPorts }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.input.service.extraPorts "context" $) | nindent 4 }}
+    {{- end }}
+  {{- $podLabels := include "common.tplvalues.merge" (dict "values" .Values.input.podLabels .Values.commonLabels "context" .) | fromYaml }}
+  selector: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/component: input

@@ -1,0 +1,245 @@
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}-worker
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/component: worker
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  {{- if .Values.worker.updateStrategy }}
+  strategy: {{- toYaml .Values.worker.updateStrategy | nindent 4 }}
+  {{- end }}
+  {{- $podLabels := include "common.tplvalues.merge" (dict "values" .Values.worker.podLabels .Values.commonLabels "context" .) | fromYaml }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      {{- if .Values.worker.podAnnotations }}
+      annotations: {{- include "common.tplvalues.render" (dict "value" .Values.worker.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      {{- include "worker.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.worker.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.worker.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.worker.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.worker.podAffinityPreset "component" "worker" "customLabels" $podLabels "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.worker.podAntiAffinityPreset "component" "worker" "customLabels" $podLabels "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.worker.nodeAffinityPreset.type "key" .Values.worker.nodeAffinityPreset.key "values" .Values.worker.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.worker.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.worker.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.worker.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.priorityClassName }}
+      priorityClassName: {{ .Values.worker.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.worker.schedulerName }}
+      schedulerName: {{ .Values.worker.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.worker.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.worker.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.worker.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+      {{- end }}
+      initContainers:
+        - name: download-app
+          image: bitnami/git
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c", "/scripts/download-application.sh"]
+          volumeMounts:
+            - name: app
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
+              {{- end }}
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: APP_REPO
+              value: "{{ .Values.worker.application.git_repo }}"
+            - name: APP_SUBPATH
+              value: "{{ .Values.worker.application.subPath }}"
+        {{- if .Values.worker.plugins.order }}
+        - name: install-plugins
+          image: {{ include "worker.image" . }}
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          command: ["/bin/bash", "-c", /scripts/install-plugins.sh]
+          volumeMounts:
+            - name: app
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
+              {{- end }}
+            - name: scripts
+              mountPath: /scripts
+          env:
+            - name: PIPELESS_PLUGINS_ORDER
+              value: "{{ .Values.worker.plugins.order }}"
+        {{- end }}
+        {{- if and .Values.volumePermissions.enabled .Values.worker.persistence.enabled }}
+        - name: volume-permissions
+          image: {{ include "output.volumePermissions.image" . }}
+          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
+          securityContext: {{- include "common.tplvalues.render" (dict "value" .Values.volumePermissions.containerSecurityContext "context" $) | nindent 12 }}
+          {{- if .Values.volumePermissions.resources }}
+          resources: {{- toYaml .Values.volumePermissions.resources | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.worker.initContainers }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.worker.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: worker
+          image: {{ include "worker.image" . }}
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          {{- if .Values.worker.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.worker.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if .Values.worker.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.worker.command "context" $) | nindent 12 }}
+          {{- end }}
+          workingDir: '/app'
+          {{- if .Values.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if .Values.worker.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.worker.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            # Not used by the worker but required for config verification
+            - name: PIPELESS_WORKER_N_WORKERS
+              value: "{{ .Values.worker.replicaCount }}"
+            # Actually used by the worker
+            - name: PIPELESS_LOG_LEVEL
+              value: "{{ .Values.worker.log_level }}"
+            - name: PIPELESS_INPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-input"
+            - name: PIPELESS_INPUT_ADDRESS_PORT
+              value: "{{ .Values.input.service.ports.worker }}"
+            - name: PIPELESS_INPUT_VIDEO_URI
+              value: "{{ include "input.video.uri" . }}"
+            - name: PIPELESS_OUTPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-output"
+            - name: PIPELESS_OUTPUT_ADDRESS_PORT
+              value: "{{ .Values.output.service.ports.worker }}"
+            - name: PIPELESS_OUTPUT_VIDEO_ENABLE
+              value: "{{ .Values.output.video.enable }}"
+            - name: PIPELESS_OUTPUT_VIDEO_URI
+              value: "{{ include "output.video.uri" . }}"
+            - name: PIPELESS_WORKER_RECV_BUFFER_SIZE
+              value: "{{ .Values.worker.recv_buffer_size }}"
+            - name: PIPELESS_WORKER_SHOW_EXEC_TIME
+              value: "{{ .Values.worker.show_exec_time }}"
+            - name: PIPELESS_WORKER_ENABLE_PROFILER
+              value: "{{ .Values.worker.enable_profiler }}"
+            - name: PIPELESS_WORKER_INFERENCE_MODEL_URI
+              value: "{{ .Values.worker.inference.model_uri }}"
+            - name: PIPELESS_WORKER_INFERENCE_PRE_PROCESS_MODEL_URI
+              value: "{{ .Values.worker.inference.pre_process_model_uri }}"
+            # TODO: fix the condition for running convert_to in config when empty string
+            {{- if .Values.worker.inference.force_opset_version }}
+            - name: PIPELESS_WORKER_INFERENCE_FORCE_OPSET_VERSION
+              value: "{{ .Values.worker.inference.force_opset_version }}"
+            {{- end }}
+            # TODO: fix the condition for running convert_to in config when empty string
+            {{- if .Values.worker.inference.force_ir_version }}
+            - name: PIPELESS_WORKER_INFERENCE_FORCE_IR_VERSION
+              value: "{{ .Values.worker.inference.force_ir_version }}"
+            {{- end }}
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_SHAPE_FORMAT
+              value: "{{ .Values.worker.inference.image_shape_format }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_WIDTH
+              value: "{{ .Values.worker.inference.image_width }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_HEIGHT
+              value: "{{ .Values.worker.inference.image_height }}"
+            - name: PIPELESS_WORKER_INFERENCE_IMAGE_CHANNELS
+              value: "{{ .Values.worker.inference.image_channels }}"
+            # TODO: the default to 'plugins' is not working properly when adding the env var as empty string
+            {{- if .Values.worker.plugins.dir }}
+            - name: PIPELESS_PLUGINS_DIR
+              value: "{{ .Values.worker.plugins.dir }}"
+            {{- end }}
+            - name: PIPELESS_PLUGINS_ORDER
+              value: "{{ .Values.worker.plugins.order }}"
+            - name: PIPELESS_USER_PYTHON_PACKAGES
+              value: "{{ .Values.worker.user_python_packages }}"
+            {{- if .Values.worker.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.worker.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.worker.extraEnvVarsCM "context" $) }}
+            {{- end }}
+            {{- if .Values.worker.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.worker.extraEnvVarsSecret "context" $) }}
+            {{- end }}
+          {{- if .Values.worker.resources }}
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+          {{- end }}
+          {{- if not .Values.diagnosticMode.enabled }}
+          {{- if .Values.worker.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.worker.livenessProbe.enabled }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.worker.livenessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.worker.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.worker.readinessProbe.enabled }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.worker.readinessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.worker.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.worker.startupProbe.enabled }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.worker.startupProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.worker.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.worker.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: app
+              mountPath: {{ .Values.worker.persistence.mountPath }}
+              {{- if .Values.worker.persistence.subPath }}
+              subPath: {{ .Values.worker.persistence.subPath }}
+              {{- end }}
+          {{- if .Values.worker.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+        {{- if .Values.worker.sidecars }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.worker.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "common.names.fullname" . }}-scripts-configmap
+            defaultMode: 0755
+        - name: app
+          emptyDir: {}
+          # TODO: by using a volume here we save downloading the app when scaling or restarting workers
+          #    persistentVolumeClaim:
+          #      claimName: {{ default (include "common.names.fullname" .) .Values.worker.persistence.existingClaim }}
+        {{- if .Values.worker.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}

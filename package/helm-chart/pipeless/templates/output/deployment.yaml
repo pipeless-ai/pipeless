@@ -1,0 +1,158 @@
+apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}-output
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/component: output
+  {{- if .Values.commonAnnotations }}
+  annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.output.replicaCount }}
+  {{- if .Values.output.updateStrategy }}
+  strategy: {{- toYaml .Values.output.updateStrategy | nindent 4 }}
+  {{- end }}
+  {{- $podLabels := include "common.tplvalues.merge" (dict "values" .Values.output.podLabels .Values.commonLabels "context" .) | fromYaml }}
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" ( dict "customLabels" $podLabels "context" $ ) | nindent 6 }}
+      app.kubernetes.io/component: output
+  template:
+    metadata:
+      {{- if .Values.output.podAnnotations }}
+      annotations: {{- include "common.tplvalues.render" (dict "value" .Values.output.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
+        app.kubernetes.io/component: output
+    spec:
+      {{- include "output.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.output.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.output.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.output.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.output.affinity "context" $) | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAffinity: {{- include "common.affinities.pods" (dict "type" .Values.output.podAffinityPreset "component" "output" "customLabels" $podLabels "context" $) | nindent 10 }}
+        podAntiAffinity: {{- include "common.affinities.pods" (dict "type" .Values.output.podAntiAffinityPreset "component" "output" "customLabels" $podLabels "context" $) | nindent 10 }}
+        nodeAffinity: {{- include "common.affinities.nodes" (dict "type" .Values.output.nodeAffinityPreset.type "key" .Values.output.nodeAffinityPreset.key "values" .Values.output.nodeAffinityPreset.values) | nindent 10 }}
+      {{- end }}
+      {{- if .Values.output.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.output.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.output.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.output.tolerations "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.output.priorityClassName }}
+      priorityClassName: {{ .Values.output.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.output.schedulerName }}
+      schedulerName: {{ .Values.output.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.output.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.output.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.output.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.output.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if .Values.output.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.output.terminationGracePeriodSeconds }}
+      {{- end }}
+      initContainers:
+        {{- if .Values.output.initContainers }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.output.initContainers "context" $) | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: output
+          image: {{ template "output.image" . }}
+          imagePullPolicy: {{ .Values.output.image.pullPolicy }}
+          {{- if .Values.output.containerSecurityContext.enabled }}
+          securityContext: {{- omit .Values.output.containerSecurityContext "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if .Values.output.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.output.command "context" $) | nindent 12 }}
+          {{- end }}
+          workingDir: '/app'
+          {{- if .Values.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if .Values.output.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.output.args "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            # TODO: the required config must be for each componetn. Right now the logic forces every component to require the whole configuration even if it does not use the values.
+            - name: PIPELESS_INPUT_VIDEO_ENABLE
+              value: "{{ .Values.input.video.enable }}"
+            - name: PIPELESS_WORKER_N_WORKERS
+              value: "{{ .Values.worker.replicaCount }}"
+            # Required by the output
+            - name: PIPELESS_LOG_LEVEL
+              value: "{{ .Values.output.log_level }}"
+            - name: PIPELESS_INPUT_ADDRESS_HOST
+              value: "{{ include "common.names.fullname" . }}-input"
+            - name: PIPELESS_INPUT_ADDRESS_PORT
+              value: "{{ .Values.input.service.ports.worker }}"
+            - name: PIPELESS_INPUT_VIDEO_URI
+              value: "{{ include "input.video.uri" . }}"
+            - name: PIPELESS_OUTPUT_ADDRESS_HOST
+              value: "0.0.0.0"
+            - name: PIPELESS_OUTPUT_ADDRESS_PORT
+              value: "{{ .Values.output.service.ports.worker }}"
+            - name: PIPELESS_OUTPUT_VIDEO_ENABLE
+              value: "{{ .Values.output.video.enable }}"
+            - name: PIPELESS_OUTPUT_VIDEO_URI
+              value: "{{ include "output.video.uri" . }}"
+            - name: PIPELESS_OUTPUT_RECV_BUFFER_SIZE
+              value: "{{ .Values.output.recv_buffer_size }}"
+            {{- if .Values.output.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.output.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.output.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.output.extraEnvVarsCM "context" $) }}
+            {{- end }}
+            {{- if .Values.output.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ include "common.tplvalues.render" (dict "value" .Values.output.extraEnvVarsSecret "context" $) }}
+            {{- end }}
+          {{- if .Values.output.resources }}
+          resources: {{- toYaml .Values.output.resources | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: worker
+              containerPort: {{ .Values.output.containerPorts.worker }}
+            - name: input
+              containerPort: {{ .Values.output.containerPorts.input }}
+          {{- if not .Values.diagnosticMode.enabled }}
+          {{- if .Values.output.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.output.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.output.livenessProbe.enabled }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.output.livenessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.output.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.output.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.output.readinessProbe.enabled }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.output.readinessProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.output.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.output.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.output.startupProbe.enabled }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" (omit .Values.output.startupProbe "enabled") "context" $) | nindent 12 }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.output.lifecycleHooks }}
+          lifecycle: {{- include "common.tplvalues.render" (dict "value" .Values.output.lifecycleHooks "context" $) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          {{- if .Values.output.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" .Values.output.extraVolumeMounts "context" $) | nindent 12 }}
+          {{- end }}
+        {{- if .Values.output.sidecars }}
+        {{- include "common.tplvalues.render" ( dict "value" .Values.output.sidecars "context" $) | nindent 8 }}
+        {{- end }}
+      volumes:
+        {{- if .Values.output.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.output.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
