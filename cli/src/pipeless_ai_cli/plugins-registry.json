@@ -8,7 +8,7 @@
                 {
                     "version": "plugins-kafka-0.1.0",
                     "latest": true,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/kafka",
                     "subdir": "plugins/kafka",
                     "plugin_dependencies": [],
@@ -25,7 +25,7 @@
                 {
                     "version": "plugins-draw-0.1.0",
                     "latest": false,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",
                     "subdir": "plugins/draw",
                     "plugin_dependencies": [],
@@ -35,7 +35,7 @@
                 {
                     "version": "plugins-draw-0.1.1",
                     "latest": false,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",
                     "subdir": "plugins/draw",
                     "plugin_dependencies": [],
@@ -45,7 +45,7 @@
                 {
                     "version": "plugins-draw-0.1.2",
                     "latest": false,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",
                     "subdir": "plugins/draw",
                     "plugin_dependencies": [],
@@ -55,7 +55,7 @@
                 {
                     "version": "plugins-draw-0.1.3",
                     "latest": true,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/draw",
                     "subdir": "plugins/draw",
                     "plugin_dependencies": [],
@@ -72,7 +72,7 @@
                 {
                     "version": "plugins-yolov8-0.1.0",
                     "latest": false,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/yolov8",
                     "subdir": "plugins/yolov8",
                     "plugin_dependencies": [],
@@ -82,7 +82,7 @@
                 {
                     "version": "plugins-yolov8-0.1.1",
                     "latest": true,
-                    "repo_url": "https://github.com/miguelaeh/pipeless.git",
+                    "repo_url": "https://github.com/pipeless-ai/pipeless.git",
                     "docs_url": "https://pipeless.ai/docs/v0/plugins/yolov8",
                     "subdir": "plugins/yolov8",
                     "plugin_dependencies": [],

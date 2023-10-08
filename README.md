@@ -29,7 +29,7 @@
 <div align="center">
    <p>An open-source computer vision framework.</p>
    <p>Easily create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines.</p>
-   <p>Join us in our mission and contribute to make the day to day life of computer vision developers easier!</p>
+   <p>Join us in our mission and contribute to making the day to day life of computer vision developers easier!</p>
 
    <br />
 
@@ -41,13 +41,13 @@
    <br /><br />
 </div>
 
-Pipeless ships all the features you need to create and deploy efficent computer vision applications that work in real-time. Just like you implement specific functions in serverless web applications, Pipeless simply requires you to implement certain hooks to process any stream from any source.
+Pipeless ships all the features you need to create and deploy efficient computer vision applications that work in real-time. Just like you implement specific functions in serverless web applications, Pipeless simply requires you to implement certain hooks to process any stream from any source.
 
 Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. The Pipeless worker contains a built-in ONNX Runtime allowing you to run inference using any compatible model.
 
 With Pipeless, you can deploy either on edge devices or to the cloud thanks to our container images, and it also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing without using brokers.
 
-Futhermore, you can easily extend the feature set thanks to the plugins system. For example, there are plugins to handle events on real-time with Kafka, use YOLOv8 models, automatically draw inference results over the original video, and many others.
+Furthermore, you can easily extend the feature set thanks to the plugin system. For example, there are plugins to handle events in real-time with Kafka, use YOLOv8 models, automatically draw inference results over the original video, and many others.
 
 ## Index 📚
 
@@ -97,7 +97,7 @@ The following command installs the core (`pipeless-ai`) and the CLI (`pipeless-a
 pip install pipeless-ai pipeless-ai-cli
 ```
 
-By default it installs the default flavor, which does not ship any inference runtime.
+By default, it installs the default flavor, which does not ship any inference runtime.
 
 You can also install the ONNX flavor for CPU or GPU usage as follows:
 
@@ -153,7 +153,7 @@ We are moving the documentation to its own site to improve the search experience
 
 ## Built-in ONNX Runtime
 
-With the built-in ONNX Runtime you can run inference over the video frames out-of-the box by simply providing a model.
+With the built-in ONNX Runtime, you can run inference over the video frames out-of-the box by simply providing a model.
 
 We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/inference) the documentation about running inference with the ONNX runtime.
 
@@ -206,4 +206,4 @@ For the full license text, please refer to the [Apache License 2.0](LICENSE).
 
 ## Notable Changes
 
-Notable changes indicate important changes between versions. Please check the [whole list notable changes](https://pipeless.ai/docs/v0/changes).
+Notable changes indicate important changes between versions. Please check the [whole list of notable changes](https://pipeless.ai/docs/v0/changes).

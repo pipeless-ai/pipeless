@@ -11,7 +11,7 @@ services:
       - PIPELESS_INPUT_ADDRESS_PORT=1234
       - PIPELESS_OUTPUT_ADDRESS_HOST=output
       - PIPELESS_OUTPUT_ADDRESS_PORT=1237
-      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/pipeless-ai/pipeless/raw/main/examples/cats/cats.mp4
       - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
 
   output:
@@ -24,7 +24,7 @@ services:
       - PIPELESS_INPUT_ADDRESS_PORT=1234
       - PIPELESS_OUTPUT_ADDRESS_HOST=output
       - PIPELESS_OUTPUT_ADDRESS_PORT=1237
-      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/pipeless-ai/pipeless/raw/main/examples/cats/cats.mp4
       - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
 
   worker:
@@ -37,6 +37,6 @@ services:
       - PIPELESS_INPUT_ADDRESS_PORT=1234
       - PIPELESS_OUTPUT_ADDRESS_HOST=output
       - PIPELESS_OUTPUT_ADDRESS_PORT=1237
-      - PIPELESS_INPUT_VIDEO_URI=https://github.com/miguelaeh/pipeless/raw/main/examples/cats/cats.mp4
+      - PIPELESS_INPUT_VIDEO_URI=https://github.com/pipeless-ai/pipeless/raw/main/examples/cats/cats.mp4
       - PIPELESS_OUTPUT_VIDEO_URI=file:///app/output.mp4
       - PIPELESS_USER_PYTHON_PACKAGES=opencv-python

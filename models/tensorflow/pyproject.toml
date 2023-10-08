@@ -6,8 +6,8 @@ authors = ["Miguel A. Cabrera Minagorri <devgorri@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://pipeless.ai"
-repository = "https://github.com/miguelaeh/pipeless"
-documentation = "https://github.com/miguelaeh/pipeless"
+repository = "https://github.com/pipeless-ai/pipeless"
+documentation = "https://github.com/pipeless-ai/pipeless"
 keywords = ["multimedia", "framework", "artificial-intelligence", "pipeline", "developer-tools"]
 
 [tool.poetry.dependencies]

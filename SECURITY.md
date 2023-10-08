@@ -11,6 +11,6 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-If you find a vulnerability, please report it as soon as possible with discretion. If possible, do not report it publicly, since it could lead to attacks to other users applications, instead send us an email or contact via the website contact form.  
+If you find a vulnerability, please report it as soon as possible with discretion. If possible, do not report it publicly, since it could lead to attacks on other users' applications, instead send us an email or contact us via the website contact form.  
 
-Once we confirm the vulnerability, we will take actions to fix, with a timeline that depends on the risk level.
+Once we confirm the vulnerability, we will take actions to fix it, with a timeline that depends on the risk level.

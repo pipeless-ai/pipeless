@@ -1,6 +1,6 @@
 # Kafka plugin for Pipeless
 
-This plugin makes easy to connect to a Kafka cluster using Pipeless.
+This plugin makes it easy to connect to a Kafka cluster using Pipeless.
 It works as a Kafka producer to send information to Kafka topics that can later be used to take actions on events.
 
 ## Install the plugin
@@ -36,4 +36,4 @@ Sends information to a Kafka topic. Supports the following parameters:
 - `value` (str|bytes): Message payload.
 - `key` (srt|bytes): optional. Message key
 - `partition` (int): optional. Partition to produce to
-- `on_delivery` (err,msg)(function): optional. Callback to call after success or failed delivery
+- `on_delivery` (err,msg)(function): optional. Callback to call after successful or failed delivery
