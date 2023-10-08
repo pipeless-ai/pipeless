@@ -1,6 +1,6 @@
 # Pipeless Core
 
-[Pipeless](https://www.pipeless.ai) is a computer vision framework to quickly create and deploy applications that process real time streams. Pipeless Core is the core component of the framework.
+[Pipeless](https://www.pipeless.ai) is a computer vision framework to quickly create and deploy applications that process real time streams. The Pipeless Core is the core component of the framework.
 
 The Pipeless core is split into several components:
 
@@ -30,14 +30,14 @@ To test your changes run the following command from the project root directory:
 python -m pipeless_ai.core <component> [app_file_path.py]
 ```
 
-* `<component>` can be `input`, `worker`, `output`, `all` (default)
-* `app_path` is required for `worker` component and must be the path to the `app.py` (including `app.py`)
+* `<component>` can be `input`, `worker`, `output`, or `all` (default)
+* `app_path` is required for the `worker` component and must be the path to the `app.py` (including `app.py`)
 
 For simplicity, it will load a mock configuration (hardcoded) at `src/pipeless/pipeless.py` that you can edit for your use case.
-The hardcoded configuration will only be used when launching the components with the command above, it won't affect if testing with the CLI.
+The hardcoded configuration will only be used when launching the components with the command above, it won't affect testing with the CLI.
 
 In order to debug, you can set the configuration `log_level` to `DEBUG`.
-If you find an error related to GStreamer and no usefull information has been logged, try using the env var `GST_DEBUG=5` to enable GStreamer debug logs. Refer to this [page](https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=python) for more information about GStreamer debugging.
+If you find an error related to GStreamer and no useful information has been logged, try using the env var `GST_DEBUG=5` to enable GStreamer to debug logs. Refer to this [page](https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=python) for more information about GStreamer debugging.
 
 ## Manual Testing
 
@@ -48,9 +48,9 @@ poetry shell
 ```
 
 After that, go to the `cli` directory and run `poetry install` to install the `pipeless-ai-cli` (CLI) component.
-Then go to the `core` directory and run `poetry install` to install the `pipeless-ai` module. This will override the upstream dependency from the CLi componet to use your local one.
+Then go to the `core` directory and run `poetry install` to install the `pipeless-ai` module. This will override the upstream dependency from the CLI component to use your local one.
 
-Verify you environment by ensuring the pipeless modules are pointing to your local directories instead of the PyPi public modules:
+Verify your environment by ensuring the pipeless modules are pointing to your local directories instead of the PyPi public modules:
 
 ```console
 pip list | grep pipeless

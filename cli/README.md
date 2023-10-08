@@ -17,13 +17,13 @@ pip install pipeless-ai-cli
 pipeless --help
 ```
 
-See the main docs for the [getting started](https://github.com/miguelaeh/pipeless) guide.
+See the main docs for the [getting started](https://github.com/pipeless-ai/pipeless) guide.
 
 ## Development
 
 We use `poetry` to manage dependencies.
 
-The CLI depends on the core component. Both components are released separatedly.
+The CLI depends on the core component. Both components are released separately.
 
 The `commands` directory contains all the commands that the CLI supports.
-The `templates` directory contains default application templates that users can select for their app scafolding.
+The `templates` directory contains default application templates that users can select for their app scaffolding.
