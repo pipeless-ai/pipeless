@@ -1,16 +1,11 @@
 apiVersion: v2
-name: pipeless
-type: application
-version: 0.1.0
-appVersion: "1.16.0"
+appVersion: 0.1.16
 annotations:
   category: Infrastructure
   licenses: Apache-2.0
   images: |
     - name: pipeless
       image: docker.io/miguelaeh/pipeless:latest
-apiVersion: v2
-appVersion: 0.1.0
 dependencies:
 - name: common
   repository: oci://registry-1.docker.io/bitnamicharts
@@ -19,6 +14,7 @@ dependencies:
   version: 2.x.x
 description: Pipeless is an open-source computer vision framework to easily build and deploy applications that work in real-time
 home: https://pipeless.ai
+icon: https://github.com/pipeless-ai/docs/blob/main/public/logo-400x400-rounded.png
 keywords:
 - pipeless
 - computer-vision
@@ -30,4 +26,4 @@ maintainers:
 name: pipeless
 sources:
 - https://github.com/pipeless-ai/pipeless/tree/main/package/helm-chart/pipeless
-version: 0.1.0
+version: 0.1.1
