@@ -26,4 +26,4 @@ maintainers:
 name: pipeless
 sources:
 - https://github.com/pipeless-ai/pipeless/tree/main/package/helm-chart/pipeless
-version: 0.1.0
+version: 0.1.1
