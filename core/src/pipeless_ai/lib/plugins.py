@@ -8,6 +8,8 @@ from pipeless_ai.lib.app.plugin import PipelessPlugin
 def load_plugin_module(path):
     spec = importlib.util.spec_from_file_location('plugin', path)
     plugin_module = importlib.util.module_from_spec(spec)
+    # TODO: does the following work when using several plugins without overriding the previous ones?
+    sys.modules['plugin'] = plugin_module # Allows to pickle the Plugin class.
     spec.loader.exec_module(plugin_module)
     Plugin = getattr(plugin_module, 'Plugin')
     return Plugin()

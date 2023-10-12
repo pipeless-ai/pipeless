@@ -91,37 +91,36 @@ def parse_input_shape(input_shape, format, force_tuple):
     new_sub_shape = tuple(key_to_value[key] for key in new_order)
     return batch_size, *new_sub_shape
 
-def prepare_frame(frame, input_dtype, input_shape_format, batch_size, target_height=None, target_width=None):
-    if target_height and target_width:
-        # Scale the image maintaining aspect ratio
-        width_ratio = target_width / frame.shape[1]
-        height_ratio = target_height / frame.shape[0]
-        # Choose the minimum scaling factor to maintain aspect ratio
-        scale_factor = min(width_ratio, height_ratio)
-        # Calculate new dimensions after resizing
-        new_width = int(frame.shape[1] * scale_factor)
-        new_height = int(frame.shape[0] * scale_factor)
-        # Calculate padding dimensions
-        pad_width = (target_width - new_width) // 2
-        pad_height = (target_height - new_height) // 2
-        # Create a canvas with the desired dimensions and padding
-        canvas = np.zeros((target_height, target_width, frame.shape[2]), dtype=np.uint8)
-        # Resize the image and place it on the canvas
-        resized_image = cv2.resize(frame, (new_width, new_height))
-        canvas[pad_height:pad_height+new_height, pad_width:pad_width+new_width] = resized_image
-        frame = canvas
-    elif (target_width and not target_height) or (target_height and not target_width):
-        logger.error("Can't resize to a single dimmension. Please provide both tagert_width and target_height")
-        sys.exit(1)
+def prepare_frames(frames, input_dtype, input_shape_format, batch_size, target_height=None, target_width=None):
+    out_frames = []
+    for frame in frames:
+        if target_height and target_width:
+            # Scale the image maintaining aspect ratio
+            width_ratio = target_width / frame.shape[1]
+            height_ratio = target_height / frame.shape[0]
+            # Choose the minimum scaling factor to maintain aspect ratio
+            scale_factor = min(width_ratio, height_ratio)
+            # Calculate new dimensions after resizing
+            new_width = int(frame.shape[1] * scale_factor)
+            new_height = int(frame.shape[0] * scale_factor)
+            # Calculate padding dimensions
+            pad_width = (target_width - new_width) // 2
+            pad_height = (target_height - new_height) // 2
+            # Create a canvas with the desired dimensions and padding
+            canvas = np.zeros((target_height, target_width, frame.shape[2]), dtype=np.uint8)
+            # Resize the image and place it on the canvas
+            resized_image = cv2.resize(frame, (new_width, new_height))
+            canvas[pad_height:pad_height+new_height, pad_width:pad_width+new_width] = resized_image
+            frame = canvas
+        elif (target_width and not target_height) or (target_height and not target_width):
+            logger.error("Can't resize to a single dimmension. Please provide both tagert_width and target_height")
+            sys.exit(1)
 
-    if input_dtype == 'tensor(float)':
-        frame = frame.astype(np.float32)
+        if input_dtype == 'tensor(float)':
+            frame = frame.astype(np.float32)
 
-    if input_shape_format:
-        frame = transpose_image(frame, input_shape_format) # [h,w,channels] to the specified shape
+        if input_shape_format:
+            frame = transpose_image(frame, input_shape_format) # [h,w,channels] to the specified shape
 
-    if batch_size:
-        # Since this is a single frame just expand the dims
-        frame = np.expand_dims(frame, axis=0)
-
-    return frame
+        out_frames.append(frame)
+    return np.array(out_frames)

@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import traceback
 import numpy as np
 
@@ -33,18 +34,21 @@ def on_new_sample(sink: GstApp.AppSink) -> Gst.FlowReturn:
         logger.error('Getting multimedia data from the buffer did not success.')
         return Gst.FlowReturn.ERROR
 
+    frame_input_time = time.time()
     caps = sample.get_caps()
     width = caps.get_structure(0).get_value("width")
     height = caps.get_structure(0).get_value("height")
     dts = buffer.dts
     pts = buffer.pts
     duration = buffer.duration
+    framerate = caps.get_structure(0).get_fraction('framerate')
+    fps = float(framerate.value_numerator) / float(framerate.value_denominator)
     ndframe : np.ndarray = np.ndarray(
         shape=(height, width, 3),
         dtype=np.uint8, buffer=info.data
     )
 
-    msg = RgbImageMsg(width, height, ndframe, dts, pts, duration)
+    msg = RgbImageMsg(width, height, ndframe, dts, pts, duration, fps, frame_input_time)
     s_msg = msg.serialize()
 
     # Pass msg to the workers
