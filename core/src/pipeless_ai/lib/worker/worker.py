@@ -49,7 +49,7 @@ def fetch_and_process(user_app, inference_session):
             if inference_session:
                 # TODO: we could run inference in batches
                 inference_input = exec_hook_with_plugins(user_app, 'pre_process', updated_ndframe)
-                inference_result = inference_session.run(inference_input)
+                inference_result = inference_session.run([inference_input])
                 user_app.inference.results = inference_result # Embed the inference results into the user application
             else:
                 updated_ndframe = exec_hook_with_plugins(user_app, 'pre_process', updated_ndframe)
@@ -83,6 +83,7 @@ def load_user_module(path):
     sys.path.append(path) # Add to the Python path to allow imports
     spec = importlib.util.spec_from_file_location('user_app', f'{path}/app.py')
     user_app_module = importlib.util.module_from_spec(spec)
+    sys.modules['user_app'] = user_app_module # Allows to pickle the App class
     try:
         spec.loader.exec_module(user_app_module)
     except Exception as e:

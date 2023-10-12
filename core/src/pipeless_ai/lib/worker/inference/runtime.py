@@ -1,10 +1,11 @@
 import sys
+import traceback
 import numpy as np
 import onnx
 import onnxruntime
 
 from pipeless_ai.lib.logger import logger
-from pipeless_ai.lib.worker.inference.utils import get_model_path, parse_input_shape, prepare_frame
+from pipeless_ai.lib.worker.inference.utils import get_model_path, parse_input_shape, prepare_frames
 
 def load_model(file: str, alias: str, force_opset_version: int | None = None, force_ir_version: int | None = None):
     """
@@ -99,7 +100,7 @@ class PipelessInferenceSession():
         try:
             # Run a first testing inference that usually takes longer than the rest
             test_image = np.zeros((self.input_img_height, self.input_img_width, self.input_img_channels), dtype=np.uint8)
-            test_image = prepare_frame(test_image, self.input_dtype, self.input_image_shape_format, self.input_batch_size)
+            test_image = prepare_frames([test_image], self.input_dtype, self.input_image_shape_format, self.input_batch_size)
             self.session.run(None, {self.input_name: test_image})
         except Exception as e:
             logger.error(f'There was an error running the testing inference: {e}')
@@ -107,10 +108,10 @@ class PipelessInferenceSession():
 
         logger.info("ORT session ready!")
 
-    def run(self, inference_input_frame):
+    def run(self, inference_input_frames):
         try:
-            inference_input_frame = prepare_frame(inference_input_frame, self.input_dtype, self.input_image_shape_format, self.input_batch_size, target_height=self.input_img_height, target_width=self.input_img_width)
-            input_data = { self.input_name: inference_input_frame }
+            inference_input_frames = prepare_frames(inference_input_frames, self.input_dtype, self.input_image_shape_format, self.input_batch_size, target_height=self.input_img_height, target_width=self.input_img_width)
+            input_data = { self.input_name: inference_input_frames }
             # Using IO bindings we signifcantly remove overhead of copying input and outputs
             io_binding = self.session.io_binding()
             # Bind inputs
@@ -129,4 +130,8 @@ class PipelessInferenceSession():
             return outputs
         except Exception as e:
             logger.error(f'There was an error running inference: {e}')
+            traceback.print_exc()
             return None
+
+    def get_batch_size(self):
+        return self.input_batch_size
