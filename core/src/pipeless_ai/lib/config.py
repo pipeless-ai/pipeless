@@ -168,6 +168,7 @@ class Worker():
         self._inference = Inference(worker_dict.get("inference") or {})
         # Allow the user to enable the line profiler for his code
         self._enable_profiler = prioritized_config(worker_dict, 'enable_profiler', f'{ENV_PREFIX}_WORKER_ENABLE_PROFILER', convert_to=bool, default=False)
+        self._skip_frames = prioritized_config(worker_dict, 'skip_frames', f'{ENV_PREFIX}_WORKER_SKIP_FRAMES', convert_to=bool, default=False)
     def get_n_workers(self):
         return self._n_workers
     def get_recv_buffer_size(self):
@@ -178,6 +179,8 @@ class Worker():
         return self._inference
     def get_enable_profiler(self):
         return self._enable_profiler
+    def get_skip_frames(self):
+        return self._skip_frames
 
 class Plugins():
     def __init__(self, plugins_dict):

@@ -66,14 +66,16 @@ class RgbImageMsg(Msg):
     """
     Raw RGB image data and basic information
     """
-    def __init__(self, width, height, raw_data, dts, pts, duration):
+    def __init__(self, width, height, raw_data, dts, pts, duration, fps, input_time):
         self._type = MsgType.RGB_IMAGE
+        self._input_time = input_time
         self._dts = dts
         self._pts = pts
         self._duration = duration
         self._width = width
         self._height = height
         self._data = raw_data
+        self._fps = fps
 
     def serialize(self):
         s_data = self._data
@@ -86,7 +88,9 @@ class RgbImageMsg(Msg):
             "duration": self._duration,
             "width": self._width,
             "height": self._height,
-            "data": s_data
+            "data": s_data,
+            "fps": self._fps,
+            "input_time": self._input_time
         })
 
     def update_data(self, new_raw_data):
@@ -105,6 +109,10 @@ class RgbImageMsg(Msg):
         return self._pts
     def get_duration(self):
         return self._duration
+    def get_fps(self):
+        return self._fps
+    def get_input_time(self):
+        return self._input_time
 
 def deserialize(_msg):
     """
@@ -116,7 +124,6 @@ def deserialize(_msg):
         if isinstance(r_data, bytes):
             # Ref: https://numpy.org/doc/stable/reference/generated/numpy.ndarray.dumps.html#numpy.ndarray.dumps
             r_data = pickle.loads(msg["data"])
-
         return RgbImageMsg(
             msg["width"],
             msg["height"],
@@ -124,6 +131,8 @@ def deserialize(_msg):
             msg["dts"],
             msg["pts"],
             msg["duration"],
+            msg["fps"],
+            msg["input_time"]
         )
     elif msg["type"] == MsgType.CAPABILITIES:
         return StreamCapsMsg(msg["caps"])
