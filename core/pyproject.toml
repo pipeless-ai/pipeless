@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pipeless-ai"
-version = "0.1.16"
+version = "0.1.17"
 description = "An open-source computer vision framework to create and deploy computer vision applications that scale in minutes"
 authors = ["Miguel Angel Cabrera Minagorri <devgorri@gmail.com>"]
 license = "Apache-2.0"
