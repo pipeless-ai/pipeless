@@ -22,6 +22,7 @@ class ProcessingMetrics():
         # FIFO queue of 4 values to only take into account the most recent processing times
         self.fifo_list = deque([], maxlen=4)
         self.n_frames_skipped = 0
+        self.previous_inference_results = None
     def add_proc_time(self, proc_time):
         self.fifo_list.append(proc_time)
         self.n_frames_skipped = 0
