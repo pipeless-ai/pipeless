@@ -17,8 +17,6 @@ categories = ["computer-vision", "development-tools", "multimedia", "science"]
 
 [dependencies]
 ndarray = "0.15.4"
-chrono = "0.4.19"
-wasmtime = "1.0.0"
 pyo3 = { version = "0.20" }
 numpy = "0.20"
 gstreamer = "0.21.1"
@@ -31,7 +29,6 @@ warp = "0.3.6"
 serde_derive = "1.0.189"
 serde = "1.0.189"
 serde_json = "1.0.107"
-async-channel = "2.0.0"
 tokio-stream = "0.1.14"
 futures = "0.3.28"
 clap = { version = "4.4.7", features = ["derive"] }
