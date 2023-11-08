@@ -5,7 +5,7 @@ use gstreamer as gst;
 use glib;
 use tokio;
 
-use crate as pipeless;
+use crate::{self as pipeless, dispatcher};
 
 pub fn start_pipeless_node(stages_dir: &str) {
     pipeless::setup_logger();
@@ -24,12 +24,13 @@ pub fn start_pipeless_node(stages_dir: &str) {
     let tokio_rt = tokio::runtime::Runtime::new().expect("Unable to create Tokio runtime");
     tokio_rt.block_on(async {
         let streams_table = Arc::new(RwLock::new(pipeless::config::streams::StreamsTable::new()));
-        let mut dispatcher = pipeless::dispatcher::Dispatcher::new(streams_table.clone());
-        dispatcher.start(frame_path_executor);
+        let dispatcher = pipeless::dispatcher::Dispatcher::new(streams_table.clone());
+        let dispatcher_sender = dispatcher.get_sender().clone();
+        pipeless::dispatcher::start(dispatcher, frame_path_executor);
 
         // Use the REST adapter to manage streams
         let rest_adapter = pipeless::config::adapters::rest::RestAdapter::new(streams_table.clone());
-        rest_adapter.start(dispatcher.get_sender().clone());
+        rest_adapter.start(dispatcher_sender);
     });
 
     glib_main_loop.run();

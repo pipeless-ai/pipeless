@@ -1,6 +1,6 @@
 use std::{sync::Arc, convert::Infallible};
 use tokio::sync::RwLock;
-use log::{info, error};
+use log::info;
 use serde_json::json;
 use warp::Filter;
 use serde_derive::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ async fn handle_get_streams(
 async fn handle_add_stream(
     stream: StreamBody,
     streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>,
-    dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>
+    dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>
 ) -> Result<warp::reply::WithStatus<warp::reply::Json>, Infallible> {
     let input_uri: String;
     if let Some(uri) = stream.clone().input_uri {
@@ -59,7 +59,7 @@ async fn handle_add_stream(
             .expect("Error adding new stream to the table");
     }
 
-    match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange).await {
+    match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
         Err(err) => {
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"error": err.to_string()})),
@@ -79,7 +79,7 @@ async fn handle_update_stream(
     id: uuid::Uuid,
     stream: StreamBody,
     streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>,
-    dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>
+    dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>
 ) -> Result<warp::reply::WithStatus<warp::reply::Json>, Infallible> {
     let input_uri: String;
     if let Some(uri) = stream.clone().input_uri {
@@ -133,7 +133,7 @@ async fn handle_update_stream(
             .update_by_entry_id(id, pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path));
     }
 
-    match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange).await {
+    match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
         Err(err) => {
             return Ok(warp::reply::with_status(
                 warp::reply::json(&json!({"error": err.to_string()})),
@@ -152,7 +152,7 @@ async fn handle_update_stream(
 async fn handle_remove_stream(
     id: uuid::Uuid,
     streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>,
-    dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>
+    dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>
 ) -> Result<warp::reply::WithStatus<warp::reply::Json>, Infallible> {
     let option_entry = streams_table.write()
         .await
@@ -165,7 +165,7 @@ async fn handle_remove_stream(
             frame_path: Some(entry.get_frame_path().to_owned()),
         };
 
-        match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange).await {
+        match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
             Err(err) => {
                 return Ok(warp::reply::with_status(
                     warp::reply::json(&json!({"error": err.to_string()})),
@@ -202,7 +202,7 @@ impl RestAdapter {
 
     pub fn start(
         &self,
-        _dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>
+        _dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>
     ) {
         let streams_table = self.streams_table.clone();
         let dispatcher_sender = _dispatcher_sender.clone();

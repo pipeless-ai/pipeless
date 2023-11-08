@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fmt};
-
 use log::warn;
-use serde::{Serialize, Deserialize};
+use serde_derive::{Serialize, Deserialize};
 
 use crate as pipeless;
 

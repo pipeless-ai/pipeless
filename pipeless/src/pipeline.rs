@@ -3,7 +3,6 @@ use tokio;
 use tokio::sync::RwLock;
 use std::sync::Arc;
 use log::{info, error, warn};
-use async_channel;
 
 use crate as pipeless;
 
@@ -104,7 +103,7 @@ pub struct Manager {
     // in the manager thread
     pipeline: Arc<RwLock<pipeless::pipeline::Pipeline>>,
     // TODO: we could change this by a callback and avoid using references to the dispatcher here
-    dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>,
+    dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>,
 }
 impl Manager {
     pub fn new(
@@ -113,7 +112,7 @@ impl Manager {
         frames_path: pipeless::stages::path::FramePath,
         // The bus needs to be created before the pipeline
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
-        dispatcher_sender: async_channel::Sender<pipeless::dispatcher::DispatcherEvent>,
+        dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>,
     ) -> Self {
         let pipeline = Arc::new(RwLock::new(pipeless::pipeline::Pipeline::new(
             &pipeless_bus_sender,
@@ -223,8 +222,7 @@ impl Manager {
                                 info!("End of output stream reached for pipeline: {}", pipeline_id);
 
                                 if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id))
-                                    .await {
+                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 };
 
@@ -243,8 +241,7 @@ impl Manager {
                                 );
 
                                 if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id))
-                                    .await {
+                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 };
 
@@ -263,8 +260,7 @@ impl Manager {
                                 );
 
                                 if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id))
-                                    .await {
+                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 }
 

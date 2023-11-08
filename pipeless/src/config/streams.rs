@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
-use serde::{Serialize, Deserialize};
+use serde_derive::{Serialize, Deserialize};
 use uuid;
 
 fn calculate_hash<T: Hash>(data: &T) -> u64 {
