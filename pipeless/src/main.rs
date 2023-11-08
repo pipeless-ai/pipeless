@@ -36,6 +36,9 @@ enum Commands {
     Init {
         /// New project name
         project_name: String,
+        /// Name of the template to scaffold the project
+        #[arg(short, long)]
+        template: Option<String>,
     },
     /// Start the pipeless node
     Start {
@@ -60,7 +63,7 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Init { project_name }) => pipeless::cli::init::init(&project_name),
+        Some(Commands::Init { project_name , template}) => pipeless::cli::init::init(&project_name, template),
         Some(Commands::Start { stages_dir }) => pipeless::cli::start::start_pipeless_node(&stages_dir),
         Some(Commands::Add { command }) => {
             match &command {
