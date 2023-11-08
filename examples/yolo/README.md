@@ -1,3 +1,3 @@
-# YOLOv8 - detection, segmentation and pose estimation with Pipeless
+# YOLOv8 - detection, segmentation and pose estimation
 
-Check [this guide](https://www.pipeless.ai/docs/v0/examples/yolov8) to run the example step by step.
+Check [this guide](https://www.pipeless.ai/docs/v1/examples/yolov8) to run the example step by step.

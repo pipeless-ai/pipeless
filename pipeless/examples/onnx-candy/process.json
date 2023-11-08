@@ -1,7 +1,0 @@
-{
-    "runtime": "onnx",
-    "model_uri": "https://pipeless-public.s3.eu-west-3.amazonaws.com/candy-9.onnx",
-    "inference_params": {
-        "execution_provider": "cpu"
-    }
-}
