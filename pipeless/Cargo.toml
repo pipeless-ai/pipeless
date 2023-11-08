@@ -9,7 +9,6 @@ readme = "README.md"
 homepage = "https://www.pipeless.ai/"
 repository = "https://github.com/pipeless-ai/pipeless/"
 license = "Apache-2.0"
-license-file = "LICENSE"
 keywords = ["vision", "image-processing", "image", "video", "machine-learning"]
 categories = ["computer-vision", "development-tools", "multimedia", "science"]
 
