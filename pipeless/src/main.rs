@@ -4,7 +4,6 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -33,6 +32,11 @@ enum ListCommand {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Init a new Pipeless project
+    Init {
+        /// New project name
+        project_name: String,
+    },
     /// Start the pipeless node
     Start {
         /// Read stages from the specified directory
@@ -56,6 +60,7 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
+        Some(Commands::Init { project_name }) => pipeless::cli::init::init(&project_name),
         Some(Commands::Start { stages_dir }) => pipeless::cli::start::start_pipeless_node(&stages_dir),
         Some(Commands::Add { command }) => {
             match &command {
