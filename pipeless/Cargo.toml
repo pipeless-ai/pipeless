@@ -1,0 +1,51 @@
+[package]
+name = "pipeless"
+version = "1.0.0"
+edition = "2021"
+authors = ["Miguel A. Cabrera Minagorri"]
+description = "An open-source computer vision framework to build and deploy applications in minutes"
+documentation = "https://www.pipeless.ai/docs"
+readme = "README.md"
+homepage = "https://www.pipeless.ai/"
+repository = "https://github.com/pipeless-ai/pipeless/"
+license = "Apache-2.0"
+license-file = "LICENSE"
+keywords = ["vision", "image-processing", "image", "video", "machine-learning"]
+categories = ["computer-vision", "development-tools", "multimedia", "science"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ndarray = "0.15.4"
+chrono = "0.4.19"
+wasmtime = "1.0.0"
+pyo3 = { version = "0.20" }
+numpy = "0.20"
+gstreamer = "0.21.1"
+glib = "0.18.2"
+log = "0.4.20"
+gstreamer-app = "0.21.1"
+env_logger = "0.10.0"
+tokio = { version = "1.33.0", features = ["full"] }
+warp = "0.3.6"
+serde_derive = "1.0.189"
+serde = "1.0.189"
+serde_json = "1.0.107"
+async-channel = "2.0.0"
+tokio-stream = "0.1.14"
+futures = "0.3.28"
+clap = { version = "4.4.7", features = ["derive"] }
+reqwest = { version = "0.11.22", features = ["blocking", "json"] }
+openssl = { version = "0.10", features = ["vendored"] }
+json_to_table = "0.6.0"
+# Enable all the execution providers for ONNX with the default installation
+ort = { version = "1.16.2", features = ["cuda", "tensorrt", "openvino"] }
+
+[dependencies.uuid]
+version = "1.4.1"
+features = [
+    "v4",                # Allows to generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+    "serde",             # Enable to serialize/deserialize uuids
+]
