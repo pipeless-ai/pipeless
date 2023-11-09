@@ -48,11 +48,13 @@ impl StreamsTableEntry {
         frame_path: Vec<String>
     ) -> Self {
         let entry_hash = calculate_entry_hash(&input_uri, output_uri.as_deref(), &frame_path);
+        // We have to use underscores when providing the stage names as modules to some laguages like Python.
+        let sanitized_frame_path: Vec<String> = frame_path.iter().map(|s| s.replace("-", "_")).collect();
         Self {
             id: uuid::Uuid::new_v4(),
             input_uri: input_uri.to_string(),
             output_uri: output_uri.map(|x| x.to_string()),
-            frame_path,
+            frame_path: sanitized_frame_path,
             pipeline_id: None, // No pipeline id assigned when created
             uris_hash: entry_hash
         }

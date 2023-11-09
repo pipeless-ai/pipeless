@@ -273,19 +273,7 @@ impl RestAdapter {
         let server = warp::serve(streams_endpoint)
             .run(([127, 0, 0, 1], 3030));
 
-        info!("
-            Using REST API adapter to modify streams.
-            Add, edit or remove streams using the localhost endpoint. For example:
-
-                Add stream:
-                $ curl -X POST -H \"Content-Type: application/json\" -d '{{\"input_uri\": \"some_video_uri\", \"output_uri\": \"some_output_uri\"}}' localhost:3030/streams
-
-                Edit output uri of a stream:
-                $ curl -X PUT -H \"Content-Type: application/json\" -d '{{\"output_uri\": \"some_output_uri\"}}' localhost:3030/streams/<stream_id>
-
-                Remove stream:
-                $ curl -X DELETE localhost:3030/streams/<stream_id>
-        ");
+        info!("REST adapter running");
 
         // Run server as a tokio task
         tokio::spawn(server);
