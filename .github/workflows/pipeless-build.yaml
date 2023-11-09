@@ -59,32 +59,18 @@ jobs:
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         strip pipeless/target/release/pipeless &&
         tar -czf pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz pipeless/target/release/pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*")
+
+    - name: Create tag
+      run: git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
+
+    - name: Push tag
+      run: git push origin v${{ steps.check_version.outputs.new_version }}
+
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: v${{ steps.check_version.outputs.new_version }}
         files: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Get Release ID
-      id: get_release_id
-      run: |
-        echo "release_id=$(curl -sSL -H 'Authorization: Bearer $GITHUB_TOKEN' "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ steps.check_version.outputs.after_version }}" | jq -r '.id')" >> $GITHUB_OUTPUT
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: release-artifact
-        path: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
-        if-no-files-found: error
-
-    - name: Upload to Release
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
-        asset_name: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
-        asset_content_type: application/gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
