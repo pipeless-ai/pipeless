@@ -58,8 +58,7 @@ jobs:
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         strip pipeless/target/release/pipeless &&
-        tar -czvf pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz -C pipeless/target/release/ pipeless -C pipeless/target/release/ libonnxruntime*
-
+        tar -czf pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz -C pipeless/target/release/ pipeless libonnxruntime*
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
