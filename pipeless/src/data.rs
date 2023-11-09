@@ -14,7 +14,6 @@ pub struct RgbFrame {
     duration: gst::ClockTime,
     fps: u8,
     input_ts: std::time::Instant, // to measure processing performance
-    // Inference inputs and outputs are not mandatory
     inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
 }
