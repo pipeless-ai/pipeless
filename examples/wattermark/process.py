@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
-import os
 
 def hook(frame, context):
      pil_image = Image.fromarray(frame['modified'])
