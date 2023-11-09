@@ -12,8 +12,6 @@ license = "Apache-2.0"
 keywords = ["vision", "image-processing", "image", "video", "machine-learning"]
 categories = ["computer-vision", "development-tools", "multimedia", "science"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 ndarray = "0.15.4"
 pyo3 = { version = "0.20" }
