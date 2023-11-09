@@ -4,6 +4,8 @@ This Helm Chart allows you to deploy Pipeless to a Kubernetes cluster.
 
 It includes an RTMP server that allows you to send the input stream and read the output when enabled.
 
+> IMMPORTANT: Please note this Helm Chart is still using Pipeless version `0.x` not `1.x` and that applications for both versions are not compatible.
+
 To deploy a sample application from the examples folder use the following command:
 
 ```console

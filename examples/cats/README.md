@@ -1,3 +1,3 @@
-# Cats Recognition with Pipeless
+# Cats Recognition
 
-Check [this guide](https://www.pipeless.ai/docs/v0/examples/cats) to run the example step by step.
+Check [this guide](https://www.pipeless.ai/docs/v1/examples/cats) to run the example step by step.
