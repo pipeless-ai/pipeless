@@ -67,7 +67,12 @@ jobs:
         git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
 
     - name: Push tag
-      run: git push origin v${{ steps.check_version.outputs.new_version }}
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Build Action"
+        git push origin v${{ steps.check_version.outputs.new_version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Release
       id: create_release
