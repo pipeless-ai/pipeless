@@ -1,0 +1,91 @@
+name: Rust
+
+on:
+  push:
+    paths:
+      - 'Cargo.toml'
+  workflow_dispatch:
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Get before and after versions
+      id: check_version
+      run: |
+        before_version=$(git show ${{ github.event.before }}:Cargo.toml | grep -Po '(?<=version = ")[^"]+')
+        after_version=$(cat Cargo.toml | grep -Po '(?<=version = ")[^"]+')
+
+        if [ "$before_version" != "$after_version" ]; then
+          echo "Cargo.toml version has been updated"
+          echo "::set-output name=version_updated::true"
+          echo "::set-output name=new_version::${after_version}"
+        else
+          echo "No changes to Cargo.toml version"
+          echo "::set-output name=version_updated::false"
+        fi
+
+    - name: Install latest rust toolchain
+      if: steps.check_version.outputs.version_updated == 'true'
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: beta
+        default: true
+        override: true
+
+    - name: Install system dependencies
+      if: steps.check_version.outputs.version_updated == 'true'
+      run: |
+        sudo apt-get update \
+        && sudo apt-get install -y \
+        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+        libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+        gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools \
+        gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 \
+        gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+
+    - name: Build
+      if: steps.check_version.outputs.version_updated == 'true'
+      run: |
+        cargo build --all --release &&
+        strip target/release/pipeless &&
+        tar -czvf pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz -C pipeless/target/release/ pipeless -C pipeless/target/release/ libonnxruntime*
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get Release ID
+      id: get_release_id
+      run: |
+        echo "::set-output name=release_id::$(curl -sSL -H 'Authorization: Bearer $GITHUB_TOKEN' "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ steps.check_version.outputs.after_version }}" | jq -r '.id')"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: release-artifact
+        path: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
+        if-no-files-found: error
+
+    - name: Associate Artifact with Release
+      run: echo "::set-output name=release_id::${{ steps.get_release_id.outputs.release_id }}"
+      id: associate_artifact
+
+    - name: Upload to Release
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
+        asset_name: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
+        asset_content_type: application/gzip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
