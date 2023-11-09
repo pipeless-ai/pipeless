@@ -26,11 +26,11 @@ jobs:
 
         if [ "$before_version" != "$after_version" ]; then
           echo "Cargo.toml version has been updated"
-          echo "::set-output name=version_updated::true"
-          echo "::set-output name=new_version::${after_version}"
+          echo "version_updated=true" >> $GITHUB_OUTPUT
+          echo "new_version=${after_version}" >> $GITHUB_OUTPUT
         else
           echo "No changes to Cargo.toml version"
-          echo "::set-output name=version_updated::false"
+          echo "version_updated=false" >> $GITHUB_OUTPUT
         fi
 
     - name: Install latest rust toolchain
@@ -46,7 +46,7 @@ jobs:
       run: |
         sudo apt-get update \
         && sudo apt-get install -y \
-        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+        libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
         libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools \
@@ -71,7 +71,7 @@ jobs:
     - name: Get Release ID
       id: get_release_id
       run: |
-        echo "::set-output name=release_id::$(curl -sSL -H 'Authorization: Bearer $GITHUB_TOKEN' "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ steps.check_version.outputs.after_version }}" | jq -r '.id')"
+        echo "release_id=$(curl -sSL -H 'Authorization: Bearer $GITHUB_TOKEN' "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ steps.check_version.outputs.after_version }}" | jq -r '.id')" >> $GITHUB_OUTPUT
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
@@ -79,10 +79,6 @@ jobs:
         name: release-artifact
         path: pipeless-${{ steps.check_version.outputs.version_updated }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
         if-no-files-found: error
-
-    - name: Associate Artifact with Release
-      run: echo "::set-output name=release_id::${{ steps.get_release_id.outputs.release_id }}"
-      id: associate_artifact
 
     - name: Upload to Release
       uses: actions/upload-release-asset@v1
