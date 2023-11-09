@@ -1,7 +1,9 @@
-name: Rust
+name: Pipeless Rust Build
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'Cargo.toml'
   workflow_dispatch:
@@ -17,8 +19,8 @@ jobs:
     - name: Get before and after versions
       id: check_version
       run: |
-        before_version=$(git show ${{ github.event.before }}:Cargo.toml | grep -Po '(?<=version = ")[^"]+')
-        after_version=$(cat Cargo.toml | grep -Po '(?<=version = ")[^"]+')
+        before_version=$(git describe --abbrev=0 --tags | grep -oP '\d+\.\d+\.\d+')
+        after_version=$(cargo metadata --manifest-path pipeless/Cargo.toml --format-version 1 | jq -r '.packages[] | select(.name == "pipeless").version')
 
         if [ "$before_version" != "$after_version" ]; then
           echo "Cargo.toml version has been updated"
