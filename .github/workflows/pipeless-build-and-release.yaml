@@ -1,4 +1,4 @@
-name: Pipeless Rust Build
+name: Rust Build & Release
 
 on:
   push:
