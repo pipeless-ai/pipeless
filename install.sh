@@ -139,7 +139,7 @@ checkDesiredVersion() {
     elif [ "${HAS_WGET}" == "true" ]; then
       latest_release_response=$( wget "$latest_release_url" -q -O - 2>&1 || true )
     fi
-    TAG=$( echo "$latest_release_response" | grep -oP '"tag_name": "v\K[^"]+' )
+    TAG=$( echo "$latest_release_response" | grep -o '"tag_name": "v\([0-9]\+\.\)\+[0-9]\+"' )
     if [ "x$TAG" == "x" ]; then
       printf "Could not retrieve the latest release tag information from %s: %s\n" "${latest_release_url}" "${latest_release_response}"
       exit 1
@@ -153,7 +153,7 @@ checkDesiredVersion() {
 # if it needs to be changed.
 checkPipelessInstalledVersion() {
   if [[ -f "${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" ]]; then
-    local version=$("${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" --version | grep -oP 'pipeless \K[^"]+')
+    local version=$("${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" --version | grep -o 'pipeless \([0-9]\+\.\)\+[0-9]\+')
     if [[ "$version" == "$TAG" ]]; then
       echo "Pipeless ${version} is already ${DESIRED_VERSION:-latest}"
       return 0
