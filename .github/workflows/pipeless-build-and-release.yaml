@@ -147,7 +147,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
-    needs: build
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - name: Crates.io
