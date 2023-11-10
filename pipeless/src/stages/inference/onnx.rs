@@ -43,8 +43,7 @@ impl OnnxSession {
                 "cuda" | "CUDA" => ort::ExecutionProvider::CUDA(Default::default()),
                 "tensorrt" | "TENSORRT" | "TensorRT" => ort::ExecutionProvider::TensorRT(Default::default()),
                 "openvino" | "OpenVINO" | "OpenVino" | "OPENVINO" => ort::ExecutionProvider::OpenVINO(Default::default()),
-                // ort::ExecutionProvider::CoreML(Default::default()),
-                // ort::ExecutionProvider::TensorRT(Default::default()),
+                "coreml" | "CoreML" | "CoreMl" | "COREML" => ort::ExecutionProvider::CoreML(Default::default()), // Only for MacOs
                 // ort::ExecutionProvider::ACL(Default::default()),
                 other => {
                     let err = format!("Unsupported execution provider for the ONNX Runtime: '{}'", other);
