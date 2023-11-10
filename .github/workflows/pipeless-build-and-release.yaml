@@ -29,15 +29,13 @@ jobs:
 
         if [ "$before_version" != "$after_version" ]; then
           echo "Cargo.toml version has been updated"
-          echo "version_updated=true" >> $GITHUB_OUTPUT
           echo "new_version=${after_version}" >> $GITHUB_OUTPUT
         else
-          echo "No changes to Cargo.toml version"
-          echo "version_updated=false" >> $GITHUB_OUTPUT
+          echo "Cargo.toml version was not updated"
+          exit 1
         fi
 
     - name: Install latest rust toolchain
-      if: steps.check_version.outputs.version_updated == 'true'
       uses: actions-rs/toolchain@v1
       with:
         toolchain: beta
@@ -45,7 +43,6 @@ jobs:
         override: true
 
     - name: Install system dependencies
-      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         sudo apt-get update \
         && sudo apt-get install -y \
@@ -57,21 +54,18 @@ jobs:
         gstreamer1.0-qt5 gstreamer1.0-pulseaudio
 
     - name: Build
-      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         strip pipeless/target/release/pipeless &&
         tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz pipeless/target/release/pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*")
 
     - name: Create tag
-      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
         git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
 
     - name: Push tag
-      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
@@ -80,7 +74,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Release
-      if: steps.check_version.outputs.version_updated == 'true'
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
