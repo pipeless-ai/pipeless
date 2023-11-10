@@ -9,8 +9,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-ubuntu:
-    runs-on: ubuntu-latest
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        arch: [x64, arm64]
 
     permissions:
       contents: write
@@ -65,7 +70,18 @@ jobs:
         default: true
         override: true
 
+    - name: Set up Homebrew
+      if: matrix.os == 'macos-latest'
+      run: |
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    - name: Install dependencies with Homebrew
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gstreamer python
+
     - name: Install system dependencies
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update \
         && sudo apt-get install -y \
