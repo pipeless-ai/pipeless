@@ -59,7 +59,7 @@ runAsRoot() {
 # verifySupported checks that the os/arch combination is supported for
 # binary builds, as well whether or not necessary tools are present.
 verifySupported() {
-  local supported="darwin-amd64\ndarwin-arm64\nlinux-amd64\nlinux-arm\nlinux-arm64"
+  local supported="darwin-amd64\nlinux-amd64"
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
     echo "No prebuilt binary for ${OS}-${ARCH}."
     if [ "${HAS_CARGO}" == "true" ]; then
