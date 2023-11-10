@@ -78,7 +78,7 @@ jobs:
     - name: Install dependencies with Homebrew
       if: matrix.os == 'macos-latest'
       run: |
-        brew install gstreamer python
+        brew install gstreamer
 
     - name: Install system dependencies
       if: matrix.os == 'ubuntu-latest'
