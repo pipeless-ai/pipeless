@@ -19,6 +19,8 @@ HAS_OPENSSL="$(type "openssl" &> /dev/null && echo true || echo false)"
 HAS_GPG="$(type "gpg" &> /dev/null && echo true || echo false)"
 HAS_GIT="$(type "git" &> /dev/null && echo true || echo false)"
 HAS_CARGO="$(type "cargo" &> /dev/null && echo true || echo false)"
+HAS_GSTREAMER="$(type "gst-launch-1.0" &> /dev/null && echo true || echo false)"
+HAS_PYTHON="$(type "python3" &> /dev/null && echo true || echo false)"
 
 # initArch discovers the architecture for this system.
 initArch() {
@@ -61,8 +63,9 @@ verifySupported() {
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
     echo "No prebuilt binary for ${OS}-${ARCH}."
     if [ "${HAS_CARGO}" == "true" ]; then
-      echo "Installing via cargo..."
+      echo "Building pipeless for ${OS}-${ARCH} via cargo..."
       cargo install pipeless
+      exit 0 # Once installed via cargo there is nothing else to do
     else
       echo "In order to build pipeless for ${OS}-${ARCH} cargo must first be installed"
       echo "Please install cargo and run this script again."
@@ -92,6 +95,36 @@ verifySupported() {
       echo "Please set VERIFY_SIGNATURES=false or verify the signatures manually."
       exit 1
     fi
+  fi
+}
+
+# verifyDependencies ensures the user has the required dependencies to run Pipeless.
+verifyDependencies() {
+  if [ "${HAS_PYTHON}" != "true" ]; then
+    echo "Python is not installed. Pipeless requires Python 3.10 to work"
+    echo "Please install Python before continuing. You can install python with:"
+    if [ "${OS}" == "linux" ]; then
+      echo "sudo apt-get install python3-dev python3-pip"
+    elif [ "${OS}" == "darwin" ]; then
+      echo "brew install python"
+    fi
+    exit 1
+  fi
+
+  if [ "${HAS_GSTREAMER}" != "true" ]; then
+    echo "GStreamer is not installed. Pipeless requires GStreamer to work"
+    echo "Please install GStreamer before continuing. You can install GStreamer with:"
+    if [ "${OS}" == "linux" ]; then
+      echo "sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools \
+            gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 \
+            gstreamer1.0-qt5 gstreamer1.0-pulseaudio"
+    elif [ "${OS}" == "darwin" ]; then
+      echo "brew install gstreamer"
+    fi
+    exit 1
   fi
 }
 
@@ -326,6 +359,7 @@ set +u
 initArch
 initOS
 verifySupported
+verifyDependencies
 checkDesiredVersion
 if ! checkPipelessInstalledVersion; then
   downloadFile
