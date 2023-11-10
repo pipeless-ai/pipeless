@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -22,14 +22,14 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Get before and after versions
       id: check_version
       run: |
-        before_version=$(git describe --abbrev=0 --tags | grep -oP '\d+\.\d+\.\d+')
+        before_version=$(git describe --abbrev=0 --tags | | grep -o '\([0-9]\+\.\)\+[0-9]\+')
         after_version=$(cargo metadata --manifest-path pipeless/Cargo.toml --format-version 1 | jq -r '.packages[] | select(.name == "pipeless").version')
 
         if [ "$before_version" != "$after_version" ]; then
@@ -101,16 +101,31 @@ jobs:
     - name: Create SHA256 file
       run: sha256sum pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz > pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
 
-    - name: Create tag
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ steps.check_version.outputs.new_version }}
+        path: |
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ steps.check_version.outputs.new_version }}
+        path: artifact
+
+    - name: Create and push tag
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
         git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
-
-    - name: Push tag
-      run: |
-        git config --global user.email "actions@github.com"
-        git config --global user.name "GitHub Build Action"
         git push origin v${{ steps.check_version.outputs.new_version }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,7 +136,6 @@ jobs:
       with:
         tag_name: v${{ steps.check_version.outputs.new_version }}
         files: |
-          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
-          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
+          artifact/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
