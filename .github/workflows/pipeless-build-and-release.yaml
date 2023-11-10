@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
-        arch: [x64, arm64]
+        arch: [x64]
 
     permissions:
       contents: write
