@@ -17,9 +17,6 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         arch: [x64]
 
-    permissions:
-      contents: write
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -115,6 +112,10 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
