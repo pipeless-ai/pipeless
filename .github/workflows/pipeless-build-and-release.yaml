@@ -64,12 +64,14 @@ jobs:
         tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz pipeless/target/release/pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*")
 
     - name: Create tag
+      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
         git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
 
     - name: Push tag
+      if: steps.check_version.outputs.version_updated == 'true'
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
@@ -78,6 +80,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Release
+      if: steps.check_version.outputs.version_updated == 'true'
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
