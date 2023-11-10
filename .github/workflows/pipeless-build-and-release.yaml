@@ -96,7 +96,9 @@ jobs:
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         strip pipeless/target/release/pipeless &&
-        tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz -C pipeless/target/release/ --transform='s,^,pipeless-${{ steps.check_version.outputs.new_version }}/,S' pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*" -exec basename {} \;)
+        mkdir pipeless-${{ steps.check_version.outputs.new_version }}
+        cp pipeless/target/release/{pipeless,libonnxruntime*} pipeless-${{ steps.check_version.outputs.new_version }}/
+        tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz pipeless-${{ steps.check_version.outputs.new_version }}
 
     - name: Create SHA256 file
       run: sha256sum pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz > pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
