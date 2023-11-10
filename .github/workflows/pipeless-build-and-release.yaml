@@ -32,6 +32,7 @@ jobs:
         if [ "$before_version" != "$after_version" ]; then
           echo "Cargo.toml version has been updated"
           echo "new_version=${after_version}" >> $GITHUB_OUTPUT
+          echo "new_version=${after_version}" >> $GITHUB_ENV
         else
           echo "Cargo.toml version was not updated"
           exit 1
@@ -123,15 +124,15 @@ jobs:
     - name: Download Artifacts
       uses: actions/download-artifact@v3
       with:
-        name: ${{ steps.check_version.outputs.new_version }}
+        name: ${{ env.new_version }}
         path: artifact
 
     - name: Create and push tag
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Build Action"
-        git tag -a v${{ steps.check_version.outputs.new_version }} -m "Version ${{ steps.check_version.outputs.new_version }}"
-        git push origin v${{ steps.check_version.outputs.new_version }}
+        git tag -a v${{ env.new_version }} -m "Version ${{ env.new_version }}"
+        git push origin v${{ env.new_version }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -139,7 +140,7 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ steps.check_version.outputs.new_version }}
+        tag_name: v${{ env.new_version }}
         files: |
           artifact/*
       env:
