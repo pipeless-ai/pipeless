@@ -35,6 +35,29 @@ jobs:
           exit 1
         fi
 
+    - name: Set OS and Arch
+      id: set-os-arch
+      run: |
+        ARCH=$(uname -m)
+        case $ARCH in
+          armv5*) ARCH="armv5";;
+          armv6*) ARCH="armv6";;
+          armv7*) ARCH="arm";;
+          aarch64) ARCH="arm64";;
+          x86) ARCH="386";;
+          x86_64) ARCH="amd64";;
+          i686) ARCH="386";;
+          i386) ARCH="386";;
+        esac
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+
+        OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+        case "$OS" in
+          # Minimalist GNU for Windows
+          mingw*|cygwin*) OS='windows';;
+        esac
+        echo "OS=$OS" >> $GITHUB_ENV
+
     - name: Install latest rust toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -57,10 +80,10 @@ jobs:
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         strip pipeless/target/release/pipeless &&
-        tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz -C pipeless/target/release/ --transform='s,^,pipeless-${{ steps.check_version.outputs.new_version }}/,S' pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*" -exec basename {} \;)
+        tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz -C pipeless/target/release/ --transform='s,^,pipeless-${{ steps.check_version.outputs.new_version }}/,S' pipeless $(find pipeless/target/release/ -maxdepth 1  -name "libonnxruntime*" -exec basename {} \;)
 
     - name: Create SHA256 file
-      run: sha256sum pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz > pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz.sha256
+      run: sha256sum pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz > pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
 
     - name: Create tag
       run: |
@@ -82,7 +105,7 @@ jobs:
       with:
         tag_name: v${{ steps.check_version.outputs.new_version }}
         files: |
-          pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz
-          pipeless-${{ steps.check_version.outputs.new_version }}-${{ runner.os }}-${{ runner.arch }}.tar.gz.sha256
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
