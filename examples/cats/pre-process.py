@@ -11,4 +11,3 @@ def hook(frame_data, _):
     reduced_frame = cv2.resize(rgb_frame_arr, (reduced_width, reduced_height))
 
     frame_data['modified'] = reduced_frame
-    frame_data['inference_input'] = reduced_frame.astype("float32")
