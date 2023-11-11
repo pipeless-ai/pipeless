@@ -64,7 +64,7 @@ verifySupported() {
     echo "No prebuilt binary for ${OS}-${ARCH}."
     if [ "${HAS_CARGO}" == "true" ]; then
       echo "Building pipeless for ${OS}-${ARCH} via cargo..."
-      cargo install pipeless
+      cargo install pipeless-ai
       exit 0 # Once installed via cargo there is nothing else to do
     else
       echo "In order to build pipeless for ${OS}-${ARCH} cargo must first be installed"
