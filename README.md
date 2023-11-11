@@ -27,99 +27,39 @@
 </p>
 
 <div align="center">
-   <p>An open-source computer vision framework.</p>
-   <p>Easily create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines.</p>
+   <p>Easily create, deploy and run your computer vision applications anywhere.</p>
+   <p>Pipeless is an open-source computer vision framework to create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines.</p>
    <p>Join us in our mission and contribute to making the day to day life of computer vision developers easier!</p>
 
    <br />
 
    <div>
       <img height="350" align="center" src="assets/pipeless-yolo.gif">
-      <img width="50%" align="center" src="assets/yolo-example.png" />
    </div>
 
    <br /><br />
 </div>
 
-Pipeless ships all the features you need to create and deploy efficient computer vision applications that work in real-time. Just like you implement specific functions in serverless web applications, Pipeless simply requires you to implement certain hooks to process any stream from any source.
+Pipeless ships all the features you need to create and deploy efficient computer vision applications that work in real-time. Pipeless is extremely flexible and it also helps you organize the code to be highly reusable.
 
-Pipeless provides industry-standard models that you can use out-of-the-box or easily bring your own custom model. The Pipeless worker contains a built-in ONNX Runtime allowing you to run inference using any compatible model.
+Pipeless is inspired by modern serverless technologies to allow you write code in any language and that runs anywhere. Just like you implement small self-contained functions that react to http events when creating serverless web applications, with Pipeless you write functions that react to frames.
 
-With Pipeless, you can deploy either on edge devices or to the cloud thanks to our container images, and it also provides a built-in communication layer to boost the stream processing speed to any desired framerate out-of-the-box, by automatically distributing the frame processing without using brokers.
+You can easily use industry-standard models such as YOLO, or bring your own custom model and load it in one of the supported inference runtimes for high performance. Pipeless contains a built-in ONNX Runtime, among others, allowing you to run inference using any compatible model.
 
-Furthermore, you can easily extend the feature set thanks to the plugin system. For example, there are plugins to handle events in real-time with Kafka, use YOLOv8 models, automatically draw inference results over the original video, and many others.
-
-## Index 📚
-
-- [Requirements](#requirements-%EF%B8%8F)
-- [Installation](#installation-%EF%B8%8F)
-   - [Using Docker](#using-docker)
-- [Getting started](#getting-started-)
-   - [Create a Project](#create-a-project)
-   - [Project Structure](#project-structure)
-   - [Media Processing](#media-processing)
-   - [Run Your App](#run-your-app)
-   - [Configuration](#configuration)
-- [Current State](#current-state-)
-- [Ready to use models](#ready-to-use-models)
-   - [Tensorflow models](#tensorflow-based-models)
-- [Plugins](#plugins)
-   - [List of available plugins](#available-plugins)
-- [Troubleshooting](#troubleshooting-)
-- [Examples](#examples-)
-- [Contributing](#contributing-)
-- [License](#license-)
+You can deploy Pipeless either on edge devices or to the cloud. We provide container images and other tools, such as a Helm Chart, to deploy Pipeless with Kubernetes. Finally, we are working to leverage modern technologies allowing to deploy Pipeless applications to any kind of edge and IoT devices.
 
 ## Requirements ☝️
 
 * Python (tested with version `3.10.12`)
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
-### Note about macOS
-
-The latest version of macOS (Ventura) comes with Python `3.9` by default. You can install version `3.10` with:
-
-```console
-brew install python
-```
-
-Also, to install Gstreamer in macOS use the following instead of the upstream instructions to ensure all the required packages are installed:
-
-```console
-brew install gstreamer
-```
-
 ## Installation 🛠️
 
-The following command installs the core (`pipeless-ai`) and the CLI (`pipeless-ai-cli`) into your system.
-
 ```console
-pip install pipeless-ai pipeless-ai-cli
+curl https://raw.githubusercontent.com/pipeless-ai/pipeless/main/install.sh | bash
 ```
 
-By default, it installs the default flavor, which does not ship any inference runtime.
-
-You can also install the ONNX flavor for CPU or GPU usage as follows:
-
-```console
-# Install for CPU
-pip install pipeless-ai[onnx-cpu] pipeless-ai-cli
-```
-
-or
-
-```console
-# Install for GPU
-pip install pipeless-ai[onnx-gpu] pipeless-ai-cli
-```
-
-Test the installation with:
-
-```console
-pipeless --help
-```
-
-> NOTE: you may need to reload your shell for the new command to be available
+Find more information and installation options [here](https://www.pipeless.ai/docs/v1/getting-started/installation).
 
 ### Using docker
 
@@ -129,56 +69,40 @@ Instead of installing locally, you can alternatively use docker and save the tim
 docker run miguelaeh/pipeless --help
 ```
 
-Find the whole container documentation [here](/package/README.md).
+Find the whole container documentation [here](https://www.pipeless.ai/docs/v1/container).
 
 ## Getting Started 🚀
 
-Find the [getting started guide](https://pipeless.ai/docs/v0/getting-started) at the new docs.
-
-### Create an application
+Init a project:
 
 ```console
-pipeless create project <name>
+pipeless init my_project --template scaffold
+cd my_project
 ```
 
-### Run the application
+Start Pipeless:
 
 ```console
-pipeless run
+pipeless start --stages-dir .
 ```
 
-### Configuration
+Provide a stream:
 
-We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/configuration) the configuration section.
+```console
+pipeless add stream --input-uri "https://pipeless-public.s3.eu-west-3.amazonaws.com/cats.mp4" --output-uri "screen" --frame-path "my-stage"
+```
 
-## Built-in ONNX Runtime
-
-With the built-in ONNX Runtime, you can run inference over the video frames out-of-the box by simply providing a model.
-
-We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/inference) the documentation about running inference with the ONNX runtime.
-
-## Supported stream formats 📌
-
-We are moving the documentation to its own site to improve the search experience. Please find [here](https://pipeless.ai/docs/v0/formats) the supported protocols and media formats.
-
-## Ready to use models
-
-We provide some modules containing a growing set of ready to use models for common cases. You can use them to develop your applications as fast as writing a couple lines of code. Each module has its own documentation, and the whole set of modules can be found [here](https://pipeless.ai/docs/v0/models).
-
-## Plugins
-
-The Pipeless plugin system allows you to add functionality to your application out-of-the-box.
-Find the whole documentation about the Pipeless plugin system [here](https://pipeless.ai/docs/v0/plugins).
-
-## Troubleshooting 🐞
-
-Please check the [troubleshooting section here](https://pipeless.ai/docs/v0/troubleshooting).
+Check the complete [getting started guide](https://pipeless.ai/docs/v1/getting-started) to fully understand what is happening.
 
 ## Examples 🌟
 
-We provide some working applications under the `examples` directory, so you can easily run and play with them.
+You can find some examples under the `examples` directory. Just copy those folders inside your project and play with them.
 
-Find [here](https://pipeless.ai/docs/v0/examples) the whole list of examples and step by step guides.
+Find [here](https://pipeless.ai/docs/v1/examples) the whole list of examples and step by step guides.
+
+## Notable Changes
+
+Notable changes indicate important changes between versions. Please check the [whole list of notable changes](https://pipeless.ai/docs/v1/changes).
 
 ## Contributing 🤝
 
@@ -188,7 +112,7 @@ Thanks for your interest in contributing! Contributions are welcome and encourag
 2. Create a new branch: `git checkout -b feature-branch`.
 3. Make your changes and commit them: `git commit -m 'Add new feature'`.
 4. Push your changes to your fork: `git push origin feature-branch`.
-5. Open a pull request describing your changes.
+5. Open a GitHub **pull request** describing your changes.
 
 We appreciate your help in making this project better!
 
@@ -203,7 +127,3 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 The Apache License 2.0 is a permissive open-source license that allows you to use, modify, and distribute this software for personal or commercial purposes. It comes with certain obligations, including providing attribution to the original authors and including the original license text in your distributions.
 
 For the full license text, please refer to the [Apache License 2.0](LICENSE).
-
-## Notable Changes
-
-Notable changes indicate important changes between versions. Please check the [whole list of notable changes](https://pipeless.ai/docs/v0/changes).
