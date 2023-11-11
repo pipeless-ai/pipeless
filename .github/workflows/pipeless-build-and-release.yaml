@@ -31,7 +31,7 @@ jobs:
       id: check_version
       run: |
         before_version=$(git describe --abbrev=0 --tags | grep -o '\([0-9]\+\.\)\+[0-9]\+')
-        after_version=$(cargo metadata --manifest-path pipeless/Cargo.toml --format-version 1 | jq -r '.packages[] | select(.name == "pipeless").version')
+        after_version=$(cargo metadata --manifest-path pipeless/Cargo.toml --format-version 1 | jq -r '.packages[] | select(.name == "pipeless-ai").version')
 
         if [ "$before_version" != "$after_version" ]; then
           echo "Cargo.toml version has been updated"
@@ -97,6 +97,7 @@ jobs:
     - name: Build
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
+        mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless &&
         strip pipeless/target/release/pipeless &&
         mkdir pipeless-${{ steps.check_version.outputs.new_version }}
         cp pipeless/target/release/{pipeless,libonnxruntime*} pipeless-${{ steps.check_version.outputs.new_version }}/
