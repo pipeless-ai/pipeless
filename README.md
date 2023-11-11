@@ -2,10 +2,9 @@
   <a href="https://pipeless.ai">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/pipeless-400x400-rounded.png">
-      <img src="assets/pipeless-400x400-rounded.png" height="128">
+      <img src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/pipeless-400x400-rounded.png" height="128">
     </picture>
     <h1 align="center">Pipeless</h1>
-    <p>Easily create, deploy and run computer vision applications.</p>
   </a>
 </p>
 
@@ -28,25 +27,26 @@
 </p>
 
 <div align="center">
-   <p>Pipeless is an open-source computer vision framework to create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines.</p>
-   <p>Join our community and contribute to make the life of computer vision developers easier!</p>
+   <p><b>Easily create, deploy and run computer vision applications.</b></p>
 
    <br />
 
    <div>
-      <img height="350" align="center" src="assets/pipeless-yolo.gif">
+      <img height="350" align="center" src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/pipeless-yolo.gif">
    </div>
 
    <br /><br />
 </div>
 
-Pipeless ships all the features you need to create and deploy efficient computer vision applications that work in real-time.
+Pipeless is an open-source <b>computer vision framework</b> to create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines. It ships everything you need to create and deploy efficient computer vision applications that work in real-time effortlessly.
 
 Pipeless is inspired by modern serverless technologies to allow you write code in any language and that runs anywhere, including edge and IoT devices. Just like you implement small independent functions that react to http events for serverless web applications, with Pipeless you write functions that react to events on video frames.
 
 You can easily use industry-standard models such as YOLO, or bring your own custom model and load it in one of the supported inference runtimes for high performance. Pipeless ships some of the most popular inference runtimes embedded, such as the ONNX Runtime, allowing you to run inference using any compatible model in CPUs and GPUs out-of-the-box.
 
 You can deploy Pipeless into edge and IoT devices or to the cloud. We provide several tools for the deployment, including container images and Kubernetes Helm Charts.
+
+**Join our [community](https://discord.gg/K2qxQ8uedG) and contribute to make the life of computer vision developers easier!**
 
 ## Requirements ☝️
 
