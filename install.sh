@@ -11,6 +11,7 @@ set -o pipefail
 : ${VERIFY_CHECKSUM:="true"}
 : ${VERIFY_SIGNATURES:="false"}
 : ${PIPELESS_INSTALL_DIR:="/usr/local/bin"}
+: ${PIPELESS_LIB_INSTALL_DIR:="/usr/lib"}
 : ${GPG_PUBRING:="pubring.kbx"}
 
 HAS_CURL="$(type "curl" &> /dev/null && echo true || echo false)"
@@ -139,7 +140,7 @@ checkDesiredVersion() {
     elif [ "${HAS_WGET}" == "true" ]; then
       latest_release_response=$( wget "$latest_release_url" -q -O - 2>&1 || true )
     fi
-    TAG=$( echo "$latest_release_response" | grep -o '"tag_name": "v\([0-9]\+\.\)\+[0-9]\+"' )
+    TAG=$( echo "$latest_release_response" | grep -o '"tag_name": "v[0-9]\+\(\.[0-9]\+\)*"' | grep -o '[0-9]\+\(\.[0-9]\+\)*' )
     if [ "x$TAG" == "x" ]; then
       printf "Could not retrieve the latest release tag information from %s: %s\n" "${latest_release_url}" "${latest_release_response}"
       exit 1
@@ -170,11 +171,11 @@ checkPipelessInstalledVersion() {
 # for that binary.
 downloadFile() {
   PIPELESS_DIST="pipeless-$TAG-$OS-$ARCH.tar.gz"
-  DOWNLOAD_URL="https://github.com/pipeless-ai/pipeless/releases/download/${TAG}/${PIPELESS_DIST}"
-  CHECKSUM_URL="$DOWNLOAD_URL.sha256"
+  DOWNLOAD_URL="https://github.com/pipeless-ai/pipeless/releases/download/v${TAG}/${PIPELESS_DIST}"
+  CHECKSUM_URL="${DOWNLOAD_URL}.sha256"
   PIPELESS_TMP_ROOT="$(mktemp -dt pipeless-installer-XXXXXX)"
-  PIPELESS_TMP_FILE="$PIPELESS_TMP_ROOT/$PIPELESS_DIST"
-  PIPELESS_SUM_FILE="$PIPELESS_TMP_ROOT/$PIPELESS_DIST.sha256"
+  PIPELESS_TMP_FILE="${PIPELESS_TMP_ROOT}/${PIPELESS_DIST}"
+  PIPELESS_SUM_FILE="${PIPELESS_TMP_ROOT}/${PIPELESS_DIST}.sha256"
   echo "Downloading $DOWNLOAD_URL"
   if [ "${HAS_CURL}" == "true" ]; then
     curl -SsL "$CHECKSUM_URL" -o "$PIPELESS_SUM_FILE"
@@ -200,22 +201,23 @@ verifyFile() {
 
 # installFile installs the Pipeless binary and libraries.
 installFile() {
-  PIPELESS_TMP="$PIPELESS_TMP_ROOT/$BINARY_NAME"
+  PIPELESS_TMP="$PIPELESS_TMP_ROOT"
   mkdir -p "$PIPELESS_TMP"
   tar xf "$PIPELESS_TMP_FILE" -C "$PIPELESS_TMP"
-  PIPELESS_TMP_BIN="$PIPELESS_TMP/pipeless"
+  PIPELESS_TMP_BIN="$PIPELESS_TMP/pipeless-${TAG}/pipeless"
   echo "Preparing to install $BINARY_NAME into ${PIPELESS_INSTALL_DIR}"
   runAsRoot cp "$PIPELESS_TMP_BIN" "$PIPELESS_INSTALL_DIR/$BINARY_NAME"
   echo "$BINARY_NAME installed into $PIPELESS_INSTALL_DIR/$BINARY_NAME"
-  echo "Adding inference runtime libraries to /usr/lib"
-  runAsRoot cp "$PIPELESS_TMP/libonnxruntime*" /usr/lib/
+  echo "Adding inference runtime libraries to ${PIPELESS_LIB_INSTALL_DIR}"
+  runAsRoot cp "${PIPELESS_TMP}/pipeless-${TAG}/libonnxruntime"* $PIPELESS_LIB_INSTALL_DIR
 }
 
 # verifyChecksum verifies the SHA256 checksum of the binary package.
 verifyChecksum() {
   printf "Verifying checksum... "
+  # The checksum in the release job used sha256sum which may not be available in macOS, so use openssl to compute it here
   local sum=$(openssl sha1 -sha256 ${PIPELESS_TMP_FILE} | awk '{print $2}')
-  local expected_sum=$(cat ${PIPELESS_SUM_FILE})
+  local expected_sum=$(cat ${PIPELESS_SUM_FILE} | awk '{print $1}')
   if [ "$sum" != "$expected_sum" ]; then
     echo "SHA sum of ${PIPELESS_TMP_FILE} does not match. Aborting."
     exit 1
