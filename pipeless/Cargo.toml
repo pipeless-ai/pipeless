@@ -1,5 +1,5 @@
 [package]
-name = "pipeless"
+name = "pipeless-ai"
 version = "1.0.0"
 edition = "2021"
 authors = ["Miguel A. Cabrera Minagorri"]
