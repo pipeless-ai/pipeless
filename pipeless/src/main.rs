@@ -1,4 +1,4 @@
-use pipeless;
+use pipeless_ai;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -63,17 +63,17 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Init { project_name , template}) => pipeless::cli::init::init(&project_name, template),
-        Some(Commands::Start { stages_dir }) => pipeless::cli::start::start_pipeless_node(&stages_dir),
+        Some(Commands::Init { project_name , template}) => pipeless_ai::cli::init::init(&project_name, template),
+        Some(Commands::Start { stages_dir }) => pipeless_ai::cli::start::start_pipeless_node(&stages_dir),
         Some(Commands::Add { command }) => {
             match &command {
-                Some(AddCommand::Stream { input_uri, output_uri, frame_path }) => pipeless::cli::streams::add(input_uri, output_uri, frame_path),
+                Some(AddCommand::Stream { input_uri, output_uri, frame_path }) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },
         Some(Commands::List { command }) => {
             match &command {
-                Some(ListCommand::Streams) => pipeless::cli::streams::list(),
+                Some(ListCommand::Streams) => pipeless_ai::cli::streams::list(),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },
