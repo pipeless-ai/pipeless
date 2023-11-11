@@ -1,5 +1,5 @@
 use gstreamer as gst;
-use log::{error};
+use log::error;
 
 pub fn create_generic_component(ctype: &str, cname: &str) -> gst::Element {
     let component = gst::ElementFactory::make(ctype)
@@ -17,7 +17,6 @@ pub fn format_state(state: gst::State) -> &'static str {
         gst::State::Ready => "Ready",
         gst::State::Paused => "Paused",
         gst::State::Playing => "Playing",
-        _ => "UnknownState",
     }
 }
 
@@ -25,12 +24,12 @@ pub fn i32_from_caps_structure(structure: &gst::structure::StructureRef, name: &
     return match structure.value(name) {
         Ok(v) => match v.get::<i32>() {
             Ok(i) => Ok(i),
-            Err(err) => {
+            Err(_err) => {
                 error!("Unable to get {} value", name);
                 Err(gst::FlowError::Error)
             }
         },
-        Err(err) => {
+        Err(_err) => {
             error!("Unable to get {} from caps structure", name);
             Err(gst::FlowError::Error)
         }
@@ -43,7 +42,7 @@ pub fn fraction_from_caps_structure(
 ) -> Result<(i32, i32), gst::FlowError> {
     return match structure.get::<gst::Fraction>(name) {
         Ok(f) => Ok((f.numer(), f.denom())),
-        Err(err) => {
+        Err(_err) => {
             error!("Unable to get {}", name);
             Err(gst::FlowError::Error)
         }

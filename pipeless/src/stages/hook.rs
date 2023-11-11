@@ -45,7 +45,6 @@ impl Hook {
             | Hook::PostProcessHook(def) => {
                 def
             },
-            _ => unreachable!(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use futures::{StreamExt, Future};
 use gst::TagList;
-use log::{error, info};
+use log::{error, info, warn};
 use gstreamer as gst;
 
 use crate as pipeless;
@@ -191,21 +191,27 @@ pub fn publish_new_frame_change_event_sync(
     frame: pipeless::data::Frame
 ) {
     let new_frame_event = Event::new_frame_change(frame);
-    bus_sender.send(new_frame_event);
+    if let Err(err) = bus_sender.send(new_frame_event) {
+        warn!("Error sending frame change event: {}", err);
+    }
 }
 
 pub fn publish_input_eos_event_sync(
     bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
 ) {
     let eos_event = Event::new_end_of_input_stream();
-    bus_sender.send(eos_event);
+    if let Err(err) = bus_sender.send(eos_event) {
+        warn!("Error sending input EOS event: {}", err);
+    }
 }
 
 pub fn publish_ouptut_eos_event_sync(
     bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
 ) {
     let eos_event = Event::new_end_of_output_stream();
-    bus_sender.send(eos_event);
+    if let Err(err) = bus_sender.send(eos_event) {
+        warn!("Error sending output EOS event: {}", err);
+    }
 }
 
 pub fn publish_input_tags_changed_event_sync(
@@ -213,7 +219,9 @@ pub fn publish_input_tags_changed_event_sync(
     tags: gst::TagList
 ) {
     let tags_change_event = Event::new_tags_change(tags);
-    bus_sender.send(tags_change_event);
+    if let Err(err) = bus_sender.send(tags_change_event) {
+        warn!("Error sending tags change event: {}", err);
+    }
 }
 
 pub fn publish_new_input_caps_event_sync(
@@ -221,7 +229,9 @@ pub fn publish_new_input_caps_event_sync(
     caps: String
 ) {
     let new_input_caps_event = Event::new_input_caps(caps);
-    bus_sender.send(new_input_caps_event);
+    if let Err(err) = bus_sender.send(new_input_caps_event) {
+        warn!("Error sending new input caps event: {}", err);
+    }
 }
 
 pub fn publish_input_stream_error_event_sync(
@@ -229,7 +239,9 @@ pub fn publish_input_stream_error_event_sync(
     err: &str
 ) {
     let input_stream_error_event = Event::new_input_stream_error(err);
-    bus_sender.send(input_stream_error_event);
+    if let Err(err) = bus_sender.send(input_stream_error_event) {
+        warn!("Error sending input stream error event: {}", err);
+    }
 }
 
 pub fn publish_output_stream_error_event_sync(
@@ -237,5 +249,7 @@ pub fn publish_output_stream_error_event_sync(
     err: &str
 ) {
     let output_stream_error_event = Event::new_output_stream_error(err);
-    bus_sender.send(output_stream_error_event);
+    if let Err(err) = bus_sender.send(output_stream_error_event) {
+        warn!("Error sending output stream error event: {}", err);
+    }
 }

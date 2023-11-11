@@ -191,8 +191,8 @@ impl StreamsTable {
     }
 
     pub fn update_by_entry_id(&mut self, entry_id: uuid::Uuid, new_entry: StreamsTableEntry) {
-        self.remove_stream_pipeline(entry_id);
-        self.add(new_entry);
+        let _ = self.remove_stream_pipeline(entry_id);
+        let _ = self.add(new_entry);
     }
 }
 

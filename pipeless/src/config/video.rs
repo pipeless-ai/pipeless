@@ -7,8 +7,8 @@ pub struct Video {
 }
 impl Video {
     pub fn new(uri: String) -> Self {
-        let mut protocol: String;
-        let mut location: String;
+        let protocol: String;
+        let location: String;
         if uri == "screen" {
             // Output to the screen
             protocol = String::from("screen");

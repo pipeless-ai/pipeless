@@ -5,7 +5,7 @@ use gstreamer as gst;
 use glib;
 use tokio;
 
-use crate::{self as pipeless, dispatcher};
+use crate as pipeless;
 
 pub fn start_pipeless_node(stages_dir: &str) {
     pipeless::setup_logger();

@@ -441,10 +441,10 @@ impl Pipeline {
     }
 
     pub fn on_new_tags(&self, new_tags: gst::TagList) {
-        let mut merged_tags = new_tags;
+        let merged_tags = new_tags;
         match self.gst_pipeline.by_name("taginject") {
             None => warn!("Taginject element not found, skipping tags update."),
-            Some(t_inject) => {
+            Some(_t_inject) => {
                 // FIXME: Gstreamer bug taginject tags are not readable when they should.
                 //        Uncomment the following 2 lines when fixed to update tags properly.
                 //       Ref: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/issues/2889
