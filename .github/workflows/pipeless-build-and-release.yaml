@@ -154,6 +154,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Crates.io
-        run: cargo publish --token ${CRATES_IO_TOKEN}
+        run: cargo publish --manifest-path pipeless/Cargo.toml --token ${CRATES_IO_TOKEN}
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
