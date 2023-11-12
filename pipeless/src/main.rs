@@ -25,6 +25,35 @@ enum AddCommand {
 }
 
 #[derive(Subcommand)]
+enum RemoveCommand {
+    /// Remove a stream by id
+    Stream {
+        /// Uuid of the stream to delete
+        #[arg(long)]
+        id: String,
+    }
+}
+
+#[derive(Subcommand)]
+enum UpdateCommand {
+    /// Update a stream by id
+    Stream {
+        /// Uuid of the stream to update
+        #[arg(long)]
+        id: String,
+        /// Optional. New URI where to read the video from. Use "v4l2" to use the device webcam.
+        #[arg(short, long)]
+        input_uri: Option<String>,
+        /// Optional. New URI where to send the output video. Use "screen" to show it directly on the device screen.
+        #[arg(short, long)]
+        output_uri: Option<String>,
+        /// Optional. New comma separated list of stages that will be executed for the frames of the new stream
+        #[arg(short, long)]
+        frame_path: Option<String>,
+    }
+}
+
+#[derive(Subcommand)]
 enum ListCommand {
     /// List current streams
     Streams,
@@ -46,16 +75,26 @@ enum Commands {
         #[arg(short, long)]
         stages_dir: String,
     },
-    /// Add resources to the configuration
+    /// Add configuration resources
     Add {
         #[command(subcommand)]
         command: Option<AddCommand>,
+    },
+    /// Remove configuration resources
+    Remove {
+        #[command(subcommand)]
+        command: Option<RemoveCommand>,
+    },
+    /// Update configuration resources
+    Update {
+        #[command(subcommand)]
+        command: Option<UpdateCommand>,
     },
     /// List configuration resources
     List {
         #[command(subcommand)]
         command: Option<ListCommand>,
-    }
+    },
 }
 
 
@@ -68,6 +107,18 @@ fn main() {
         Some(Commands::Add { command }) => {
             match &command {
                 Some(AddCommand::Stream { input_uri, output_uri, frame_path }) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path),
+                None =>  println!("Use --help to see the complete list of available commands"),
+            }
+        },
+        Some(Commands::Remove { command }) => {
+            match &command {
+                Some(RemoveCommand::Stream { id }) => pipeless_ai::cli::streams::remove(id),
+                None =>  println!("Use --help to see the complete list of available commands"),
+            }
+        },
+        Some(Commands::Update { command }) => {
+            match &command {
+                Some(UpdateCommand::Stream { id, input_uri, output_uri, frame_path }) => pipeless_ai::cli::streams::update(id, input_uri, output_uri, frame_path),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },
