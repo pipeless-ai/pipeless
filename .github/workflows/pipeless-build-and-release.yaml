@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'Cargo.toml'
+      - 'pipeless/Cargo.toml'
   workflow_dispatch:
 
 jobs:
