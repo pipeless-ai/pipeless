@@ -1,5 +1,6 @@
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use log::error;
 use serde_derive::{Serialize, Deserialize};
 use uuid;
 
@@ -67,13 +68,22 @@ impl StreamsTableEntry {
     pub fn get_input_uri(&self) -> &str {
         &self.input_uri
     }
+    pub fn set_input_uri(&mut self, new_uri: &str) {
+        self.input_uri = new_uri.to_owned()
+    }
 
     pub fn get_output_uri(&self) -> Option<&str> {
         self.output_uri.as_deref()
     }
+    pub fn set_output_uri(&mut self, new_uri: Option<String>) {
+        self.output_uri = new_uri
+    }
 
     pub fn get_frame_path(&self) -> &Vec<String> {
         &self.frame_path
+    }
+    pub fn set_frame_path(&mut self, new_path: Vec<String>) {
+        self.frame_path = new_path
     }
 
     pub fn assign_pipeline(&mut self, pipeline_id: uuid::Uuid) {
@@ -125,7 +135,7 @@ impl StreamsTable {
             return Err("Duplicated input_uri".to_string());
         }
         if let Some(ref output_uri) = entry.output_uri {
-            // When the output is to the scren we allow the duplication
+            // When the output is to the screen we allow the duplication
             if output_uri != "screen" && self.table.iter().any(|e| e.output_uri == Some(output_uri.clone())) {
                 return Err("Duplicated output_uri".to_string());
             }
@@ -161,26 +171,6 @@ impl StreamsTable {
         }
     }
 
-    pub fn remove_stream_pipeline(&mut self, stream_id: uuid::Uuid) -> Result<(), String> {
-        if let Some(entry) = self.table.iter_mut().find(|entry| entry.id == stream_id) {
-            entry.unassign_pipeline();
-            Ok(())
-        } else {
-            Err("Entry not found".to_string())
-        }
-    }
-
-    /// Since pipeline_ids are unique we can unassign pipeline ids without knowing the stream id
-    /// Returns the removed pipeline id or error
-    pub fn remove_pipeline_by_id(&mut self, pipeline_id: uuid::Uuid) -> Result<uuid::Uuid, String> {
-        if let Some(entry) = self.table.iter_mut().find(|entry| entry.pipeline_id == Some(pipeline_id)) {
-            entry.unassign_pipeline();
-            Ok(pipeline_id)
-        } else {
-            Err("Unable to remove pipeline by id. Id not found in config table".to_string())
-        }
-    }
-
     /// Since pipeline_ids are unique we can get an entry by pipeline id
     pub fn get_entry_by_pipeline_id(&mut self, pipeline_id: uuid::Uuid) -> Option<&mut StreamsTableEntry> {
         self.table.iter_mut().find(|entry| entry.pipeline_id == Some(pipeline_id))
@@ -190,9 +180,15 @@ impl StreamsTable {
         self.table.iter().find(|entry| entry.get_pipeline() == Some(pipeline_id))
     }
 
-    pub fn update_by_entry_id(&mut self, entry_id: uuid::Uuid, new_entry: StreamsTableEntry) {
-        let _ = self.remove_stream_pipeline(entry_id);
-        let _ = self.add(new_entry);
+    pub fn update_by_entry_id(&mut self, entry_id: uuid::Uuid, input_uri: &str, output_uri: Option<String>, frame_path: Vec<String>) {
+        if let Some(entry) = self.table.iter_mut().find(|entry| entry.id == entry_id) {
+            entry.unassign_pipeline();
+            entry.set_input_uri(input_uri);
+            entry.set_output_uri(output_uri);
+            entry.set_frame_path(frame_path);
+        } else {
+            error!("Unable to update stream entry. Stream id not found {}", entry_id);
+        }
     }
 }
 
@@ -207,6 +203,7 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         assert!(table.add(entry1).is_ok());
         assert_eq!(table.get_table().len(), 1);
@@ -215,6 +212,7 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         assert!(table.add(entry2).is_err());
     }
@@ -225,6 +223,7 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             Some("output1".to_string()),
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         assert!(table.add(entry1).is_ok());
         assert_eq!(table.get_table().len(), 1);
@@ -233,6 +232,7 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input2".to_string(),
             Some("output1".to_string()),
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         assert!(table.add(entry2).is_err());
     }
@@ -243,6 +243,7 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         table.add(entry1.clone()).unwrap();
 
@@ -261,6 +262,7 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         table.add(entry1.clone()).unwrap();
 
@@ -272,26 +274,10 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input2".to_string(),
             None,
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         table.add(entry2.clone()).unwrap();
         assert!(table.set_stream_pipeline(entry2.get_id(), pipeline_id).is_err());
-    }
-
-    #[test]
-    fn test_remove_entry_pipeline() {
-        let mut table = StreamsTable::new();
-        let mut entry1 = StreamsTableEntry::new(
-            "input1".to_string(),
-            Some("output1".to_string()),
-        );
-        entry1.assign_pipeline(uuid::Uuid::new_v4());
-        table.add(entry1.clone()).unwrap();
-
-        assert!(table.remove_stream_pipeline(entry1.get_id()).is_ok());
-        assert_eq!(table.get_table()[0].get_pipeline(), None);
-
-        // Removing the pipeline ID of a non-existent entry should return an error
-        assert!(table.remove_stream_pipeline(uuid::Uuid::new_v4()).is_err());
     }
 
     #[test]
@@ -301,6 +287,7 @@ mod tests {
         let mut entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             Some("output1".to_string()),
+            vec!["s1".to_owned(), "s2".to_owned()]
         );
         entry1.assign_pipeline(pipeline_id);
         table.add(entry1.clone()).unwrap();
