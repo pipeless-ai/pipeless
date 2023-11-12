@@ -144,8 +144,6 @@ buildPipeless() {
     exit 1
   fi
 
-  checkGstreamer
-
   BUILD_TMP_DIR="$(mktemp -d)"
   mkdir -p "$PIPELESS_INSTALL_DIR"
   echo "Cloning Pipeless repo into ${BUILD_TMP_DIR}"
