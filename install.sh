@@ -158,8 +158,6 @@ buildPipeless() {
     mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless
     strip pipeless/target/release/pipeless
     mv pipeless/target/release/{pipeless,libonnxruntime*} "${PIPELESS_INSTALL_DIR}/"
-
-    setupPipelessEnv
   )
 }
 
@@ -279,8 +277,6 @@ installFile() {
   echo "$BINARY_NAME installed into $PIPELESS_INSTALL_DIR/$BINARY_NAME"
   echo "Adding inference runtime libraries to ${PIPELESS_LIB_INSTALL_DIR}"
   cp "${PIPELESS_TMP}/pipeless-${TAG}/libonnxruntime"* $PIPELESS_LIB_INSTALL_DIR
-
-  setupPipelessEnv
 }
 
 # verifyChecksum verifies the SHA256 checksum of the binary package.
@@ -431,5 +427,6 @@ if ! checkPipelessInstalledVersion; then
     verifyFile
     installFile
   fi
+  setupPipelessEnv
 fi
 cleanup
