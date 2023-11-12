@@ -97,10 +97,11 @@ async fn handle_update_stream(
             ));
         }
     }
-    let frame_path: Vec<String>;
+    let mut frame_path: Vec<String> = vec![];
     if let Some(path) = stream.clone().frame_path {
         frame_path = path;
-    } else {
+    }
+    if frame_path.len() == 0 {
         if let Some(entry) = streams_table.read()
             .await
             .get_entry_by_id(id)
@@ -130,7 +131,7 @@ async fn handle_update_stream(
     {
         streams_table.write()
             .await
-            .update_by_entry_id(id, pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path));
+            .update_by_entry_id(id, &input_uri, output_uri, frame_path);
     }
 
     match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
