@@ -10,8 +10,8 @@ set -o pipefail
 : ${DEBUG:="false"}
 : ${VERIFY_CHECKSUM:="true"}
 : ${VERIFY_SIGNATURES:="false"}
-: ${PIPELESS_INSTALL_DIR:="/usr/local/bin"}
-: ${PIPELESS_LIB_INSTALL_DIR:="/usr/lib"}
+: ${PIPELESS_INSTALL_DIR:="${HOME}/.pipeless"}
+: ${PIPELESS_LIB_INSTALL_DIR:="${HOME}/.pipeless"}
 : ${GPG_PUBRING:="pubring.kbx"}
 
 HAS_CURL="$(type "curl" &> /dev/null && echo true || echo false)"
@@ -22,6 +22,7 @@ HAS_GIT="$(type "git" &> /dev/null && echo true || echo false)"
 HAS_CARGO="$(type "cargo" &> /dev/null && echo true || echo false)"
 HAS_GSTREAMER="$(type "gst-launch-1.0" &> /dev/null && echo true || echo false)"
 HAS_PYTHON="$(type "python3" &> /dev/null && echo true || echo false)"
+HAS_PKG_CONFIG="$(type "pkg-config" &> /dev/null && echo true || echo false)"
 
 # initArch discovers the architecture for this system.
 initArch() {
@@ -57,21 +58,28 @@ runAsRoot() {
   fi
 }
 
+setupPipelessEnv() {
+  echo -e "\n\n"
+  echo "⚠️  IMPORTANT: Execute the following commands to load the Pipeless binary:"
+  echo ""
+  echo '    export PATH="${PATH}:${HOME}/.pipeless"'
+  if [[ "$OS" == "darwin" ]]; then
+    # In macOS we have to use the rpath instead of the library path
+    install_name_tool -add_rpath @executable_path "${PIPELESS_INSTALL_DIR}/pipeless"
+  else
+    echo '    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HOME}/.pipeless"'
+  fi
+
+  echo ""
+  echo "💡 To automatically load the Pipeless binary in new sessions copy paste the above commands into your shell configuration file. (~/.bashrc, ~/.zshrc, etc.)"
+}
+
 # verifySupported checks that the os/arch combination is supported for
 # binary builds, as well whether or not necessary tools are present.
 verifySupported() {
   local supported="darwin-amd64\nlinux-amd64"
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
-    echo "No prebuilt binary for ${OS}-${ARCH}."
-    if [ "${HAS_CARGO}" == "true" ]; then
-      echo "Building pipeless for ${OS}-${ARCH} via cargo..."
-      cargo install pipeless-ai
-      exit 0 # Once installed via cargo there is nothing else to do
-    else
-      echo "In order to build pipeless for ${OS}-${ARCH} cargo must first be installed"
-      echo "Please install cargo and run this script again."
-      exit 1
-    fi
+    return 1
   fi
 
   if [ "${HAS_CURL}" != "true" ] && [ "${HAS_WGET}" != "true" ]; then
@@ -97,21 +105,67 @@ verifySupported() {
       exit 1
     fi
   fi
+
+  return 0
 }
 
-# verifyDependencies ensures the user has the required dependencies to run Pipeless.
-verifyDependencies() {
-  if [ "${HAS_PYTHON}" != "true" ]; then
-    echo "Python is not installed. Pipeless requires Python 3.10 to work"
-    echo "Please install Python before continuing. You can install python with:"
-    if [ "${OS}" == "linux" ]; then
-      echo "sudo apt-get install python3-dev python3-pip"
-    elif [ "${OS}" == "darwin" ]; then
-      echo "brew install python"
+# Build Pipeless from source
+buildPipeless() {
+  echo "No prebuilt binary for ${OS}-${ARCH}. Trying to build from source."
+  if [ "${HAS_CARGO}" != "true" ]; then
+    echo "In order to build pipeless for ${OS}-${ARCH} cargo must first be installed"
+    echo "Please install cargo and run this script again."
+    echo "You can install cargo with:"
+    echo "  $ curl https://sh.rustup.rs -sSf | sh"
+    exit 1
+  fi
+
+  if [ "${HAS_GIT}" != "true" ]; then
+    echo "In order to build pipeless for ${OS}-${ARCH} git must first be installed"
+    echo "Please install git and run this script again."
+    echo "You can install git with:"
+    if [[ "$OS" == "darwin" ]]; then
+      echo "  $ brew install git"
+    else
+      echo "  $ sudo apt-get install git"
     fi
     exit 1
   fi
 
+  if [ "${HAS_PKG_CONFIG}" != "true" ]; then
+    echo "In order to build pipeless for ${OS}-${ARCH} pkg-config must first be installed"
+    echo "Please install pkg-config and run this script again."
+    echo "You can install pkg-config with:"
+    if [[ "$OS" == "darwin" ]]; then
+      echo "  $ brew install pkg-config"
+    else
+      echo "  $ sudo apt-get install pkg-config"
+    fi
+    exit 1
+  fi
+
+  checkGstreamer
+
+  BUILD_TMP_DIR="$(mktemp -d)"
+  mkdir -p "$PIPELESS_INSTALL_DIR"
+  echo "Cloning Pipeless repo into ${BUILD_TMP_DIR}"
+  git clone https://github.com/pipeless-ai/pipeless.git "$BUILD_TMP_DIR"
+  (
+    cd "$BUILD_TMP_DIR"
+
+    echo "Building pipeless for ${OS}-${ARCH} via cargo..."
+    cargo build --all --release --manifest-path pipeless/Cargo.toml
+    echo "Pipeless was properly built"
+
+    mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless
+    strip pipeless/target/release/pipeless
+    mv pipeless/target/release/{pipeless,libonnxruntime*} "${PIPELESS_INSTALL_DIR}/"
+
+    setupPipelessEnv
+  )
+}
+
+checkGstreamer() {
   if [ "${HAS_GSTREAMER}" != "true" ]; then
     echo "GStreamer is not installed. Pipeless requires GStreamer to work"
     echo "Please install GStreamer before continuing. You can install GStreamer with:"
@@ -129,9 +183,25 @@ verifyDependencies() {
   fi
 }
 
+# verifyDependencies ensures the user has the required dependencies to run Pipeless.
+verifyDependencies() {
+  if [ "${HAS_PYTHON}" != "true" ]; then
+    echo "Python is not installed. Pipeless requires Python 3.10 to work"
+    echo "Please install Python before continuing. You can install python with:"
+    if [ "${OS}" == "linux" ]; then
+      echo "sudo apt-get install python3-dev python3-pip"
+    elif [ "${OS}" == "darwin" ]; then
+      echo "brew install python"
+    fi
+    exit 1
+  fi
+
+  checkGstreamer
+}
+
 # checkDesiredVersion checks if the desired version is available.
 checkDesiredVersion() {
-  if [ "x$DESIRED_VERSION" == "x" ]; then
+  if [ "x${DESIRED_VERSION:-}" == "x" ]; then
     # Get tag from release URL
     local latest_release_url="https://api.github.com/repos/pipeless-ai/pipeless/releases/latest"
     local latest_release_response=""
@@ -154,7 +224,7 @@ checkDesiredVersion() {
 # if it needs to be changed.
 checkPipelessInstalledVersion() {
   if [[ -f "${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" ]]; then
-    local version=$("${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" --version | grep -o 'pipeless \([0-9]\+\.\)\+[0-9]\+')
+    local version=$("${PIPELESS_INSTALL_DIR}/${BINARY_NAME}" --version | grep -o '[0-9]\+\(\.[0-9]\+\)*')
     if [[ "$version" == "$TAG" ]]; then
       echo "Pipeless ${version} is already ${DESIRED_VERSION:-latest}"
       return 0
@@ -206,10 +276,13 @@ installFile() {
   tar xf "$PIPELESS_TMP_FILE" -C "$PIPELESS_TMP"
   PIPELESS_TMP_BIN="$PIPELESS_TMP/pipeless-${TAG}/pipeless"
   echo "Preparing to install $BINARY_NAME into ${PIPELESS_INSTALL_DIR}"
-  runAsRoot cp "$PIPELESS_TMP_BIN" "$PIPELESS_INSTALL_DIR/$BINARY_NAME"
+  mkdir -p "$PIPELESS_INSTALL_DIR"
+  cp "$PIPELESS_TMP_BIN" "$PIPELESS_INSTALL_DIR/$BINARY_NAME"
   echo "$BINARY_NAME installed into $PIPELESS_INSTALL_DIR/$BINARY_NAME"
   echo "Adding inference runtime libraries to ${PIPELESS_LIB_INSTALL_DIR}"
-  runAsRoot cp "${PIPELESS_TMP}/pipeless-${TAG}/libonnxruntime"* $PIPELESS_LIB_INSTALL_DIR
+  cp "${PIPELESS_TMP}/pipeless-${TAG}/libonnxruntime"* $PIPELESS_LIB_INSTALL_DIR
+
+  setupPipelessEnv
 }
 
 # verifyChecksum verifies the SHA256 checksum of the binary package.
@@ -288,17 +361,6 @@ fail_trap() {
   exit $result
 }
 
-# testVersion tests the installed client to make sure it is working.
-testVersion() {
-  set +e
-  PIPELESS="$(command -v $BINARY_NAME)"
-  if [ "$?" = "1" ]; then
-    echo "$BINARY_NAME not found. Is $PIPELESS_INSTALL_DIR on your "'$PATH?'
-    exit 1
-  fi
-  set -e
-}
-
 # help provides possible cli installation arguments
 help () {
   echo "Accepted cli arguments are:"
@@ -327,7 +389,7 @@ if [ "${DEBUG}" == "true" ]; then
 fi
 
 # Parsing input arguments (if any)
-export INPUT_ARGUMENTS="${@}"
+export INPUT_ARGUMENTS="$@"
 set -u
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -356,17 +418,20 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-set +u
 
 initArch
 initOS
-verifySupported
-verifyDependencies
+
 checkDesiredVersion
 if ! checkPipelessInstalledVersion; then
-  downloadFile
-  verifyFile
-  installFile
+  if ! verifySupported; then
+    verifyDependencies
+    buildPipeless
+  else
+    verifyDependencies
+    downloadFile
+    verifyFile
+    installFile
+  fi
 fi
-testVersion
 cleanup
