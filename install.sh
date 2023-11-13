@@ -49,13 +49,11 @@ initOS() {
   esac
 }
 
-# runs the given command as root (detects if we are root already)
-runAsRoot() {
-  if [ $EUID -ne 0 -a "$USE_SUDO" = "true" ]; then
-    sudo "${@}"
-  else
-    "${@}"
-  fi
+# Create a uuid
+create_device_id() {
+  mkdir -p "$PIPELESS_INSTALL_DIR"
+  device_id="$(uuidgen | tr "[:upper:]" "[:lower:]")"
+  echo "$device_id" > "${PIPELESS_INSTALL_DIR}/device_id"
 }
 
 setupPipelessEnv() {
@@ -74,6 +72,20 @@ setupPipelessEnv() {
   echo "💡 To automatically load the Pipeless binary in new sessions copy paste the above commands into your shell configuration file. (~/.bashrc, ~/.zshrc, etc.)"
 }
 
+# create a totally anonymous report so we can know the most used OS and archs and if there are errors
+create_report() {
+  local -r device_id="$(cat "${PIPELESS_INSTALL_DIR}/device_id")"
+  local -r status="${1:?missing status}"
+  local -r msg="${2:-}"
+  local -r report_url="https://www.pipeless.ai/api/install"
+  payload="{ \"device_id\": \"$device_id\", \"os\": \"$OS\", \"arch\": \"$ARCH\", \"status\": \"$status\", \"message\": \"$msg\" }"
+  if [ "${HAS_CURL}" == "true" ]; then
+    curl -s -X POST -d "$payload" "$report_url" > /dev/null
+  elif [ "${HAS_WGET}" == "true" ]; then
+    wget -q --header="Content-Type: application/json" --post-data "$payload" "$report_url" > /dev/null
+  fi
+}
+
 # verifySupported checks that the os/arch combination is supported for
 # binary builds, as well whether or not necessary tools are present.
 verifySupported() {
@@ -84,12 +96,14 @@ verifySupported() {
 
   if [ "${HAS_CURL}" != "true" ] && [ "${HAS_WGET}" != "true" ]; then
     echo "Either curl or wget is required"
+    create_report "error" "Missing curl and wget" || true
     exit 1
   fi
 
   if [ "${VERIFY_CHECKSUM}" == "true" ] && [ "${HAS_OPENSSL}" != "true" ]; then
     echo "In order to verify checksum, openssl must first be installed."
     echo "Please install openssl or set VERIFY_CHECKSUM=false in your environment."
+    create_report "error" "Missing openssl" || true
     exit 1
   fi
 
@@ -97,11 +111,13 @@ verifySupported() {
     if [ "${HAS_GPG}" != "true" ]; then
       echo "In order to verify signatures, gpg must first be installed."
       echo "Please install gpg or set VERIFY_SIGNATURES=false in your environment."
+      create_report "error" "Missing gpg" || true
       exit 1
     fi
     if [ "${OS}" != "linux" ]; then
       echo "Signature verification is currently only supported on Linux."
       echo "Please set VERIFY_SIGNATURES=false or verify the signatures manually."
+      create_report "error" "Verify signature enabled on non-linux device" || true
       exit 1
     fi
   fi
@@ -117,6 +133,7 @@ buildPipeless() {
     echo "Please install cargo and run this script again."
     echo "You can install cargo with:"
     echo "  $ curl https://sh.rustup.rs -sSf | sh"
+    create_report "error" "Missing cargo pkg-config" || true
     exit 1
   fi
 
@@ -129,6 +146,7 @@ buildPipeless() {
     else
       echo "  $ sudo apt-get install git"
     fi
+    create_report "error" "Missing git" || true
     exit 1
   fi
 
@@ -141,6 +159,7 @@ buildPipeless() {
     else
       echo "  $ sudo apt-get install pkg-config"
     fi
+    create_report "error" "Missing pkg-config" || true
     exit 1
   fi
 
@@ -175,6 +194,7 @@ checkGstreamer() {
     elif [ "${OS}" == "darwin" ]; then
       echo "brew install gstreamer"
     fi
+    create_report "error" "Missing Gstreamer" || true
     exit 1
   fi
 }
@@ -189,6 +209,7 @@ verifyDependencies() {
     elif [ "${OS}" == "darwin" ]; then
       echo "brew install python"
     fi
+    create_report "error" "Missing Python" || true
     exit 1
   fi
 
@@ -209,6 +230,7 @@ checkDesiredVersion() {
     TAG=$( echo "$latest_release_response" | grep -o '"tag_name": "v[0-9]\+\(\.[0-9]\+\)*"' | grep -o '[0-9]\+\(\.[0-9]\+\)*' )
     if [ "x$TAG" == "x" ]; then
       printf "Could not retrieve the latest release tag information from %s: %s\n" "${latest_release_url}" "${latest_release_response}"
+      create_report "error" "Unable to get latest release tag info" || true
       exit 1
     fi
   else
@@ -287,6 +309,7 @@ verifyChecksum() {
   local expected_sum=$(cat ${PIPELESS_SUM_FILE} | awk '{print $1}')
   if [ "$sum" != "$expected_sum" ]; then
     echo "SHA sum of ${PIPELESS_TMP_FILE} does not match. Aborting."
+    create_report "error" "Invalid checksum" || true
     exit 1
   fi
   echo "Done."
@@ -415,6 +438,7 @@ done
 
 initArch
 initOS
+create_device_id
 
 checkDesiredVersion
 if ! checkPipelessInstalledVersion; then
@@ -428,5 +452,6 @@ if ! checkPipelessInstalledVersion; then
     installFile
   fi
   setupPipelessEnv
+  create_report "success"
 fi
 cleanup
