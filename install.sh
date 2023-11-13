@@ -6,7 +6,7 @@ set -o pipefail
 # set -o xtrace # Uncomment this line for debugging purposes
 
 : ${BINARY_NAME:="pipeless"}
-: ${USE_SUDO:="true"}
+: ${FORCE_BUILD:="false"}
 : ${DEBUG:="false"}
 : ${VERIFY_CHECKSUM:="true"}
 : ${VERIFY_SIGNATURES:="false"}
@@ -91,6 +91,11 @@ create_report() {
 # verifySupported checks that the os/arch combination is supported for
 # binary builds, as well whether or not necessary tools are present.
 verifySupported() {
+  if [ "${FORCE_BUILD}" == "true" ]; then
+    echo "Force build is enabled, about to build Pipeless from source."
+    return 1
+  fi
+
   local supported="darwin-amd64\nlinux-amd64"
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
     return 1
@@ -386,7 +391,7 @@ help () {
   echo -e "\t[--help|-h ] ->> prints this help"
   echo -e "\t[--version|-v <desired_version>] . When not defined it fetches the latest release from GitHub"
   echo -e "\te.g. --version v1.0.0"
-  echo -e "\t[--no-sudo]  ->> install without sudo"
+  echo -e "\t[--build]  ->> Force the build from source"
 }
 
 # cleanup temporary files
@@ -425,9 +430,10 @@ while [[ $# -gt 0 ]]; do
            exit 0
        fi
        ;;
-    '--no-sudo')
-       USE_SUDO="false"
+    '--build')
+       FORCE_BUILD="true"
        ;;
+
     '--help'|-h)
        help
        exit 0
