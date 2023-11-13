@@ -51,9 +51,11 @@ initOS() {
 
 # Create a uuid
 create_device_id() {
-  mkdir -p "$PIPELESS_INSTALL_DIR"
-  device_id="$(uuidgen | tr "[:upper:]" "[:lower:]")"
-  echo "$device_id" > "${PIPELESS_INSTALL_DIR}/device_id"
+  if [ ! -f "${PIPELESS_INSTALL_DIR}/device_id" ]; then
+    mkdir -p "$PIPELESS_INSTALL_DIR"
+    device_id="$(uuidgen | tr "[:upper:]" "[:lower:]")"
+    echo "$device_id" > "${PIPELESS_INSTALL_DIR}/device_id"
+  fi
 }
 
 setupPipelessEnv() {
