@@ -148,7 +148,7 @@ buildPipeless() {
     echo "Please install cargo and run this script again."
     echo "You can install cargo with:"
     echo "  $ curl https://sh.rustup.rs -sSf | sh"
-    create_report "error" "Missing cargo pkg-config" || true
+    create_report "error" "Missing cargo" || true
     exit 1
   fi
 
