@@ -23,6 +23,7 @@ HAS_CARGO="$(type "cargo" &> /dev/null && echo true || echo false)"
 HAS_GSTREAMER="$(type "gst-launch-1.0" &> /dev/null && echo true || echo false)"
 HAS_PYTHON="$(type "python3" &> /dev/null && echo true || echo false)"
 HAS_PKG_CONFIG="$(type "pkg-config" &> /dev/null && echo true || echo false)"
+HAS_UUIDGEN="$(type "uuidgen" &> /dev/null && echo true || echo false)"
 
 # initArch discovers the architecture for this system.
 initArch() {
@@ -51,6 +52,9 @@ initOS() {
 
 # Create a uuid
 create_device_id() {
+  if [ "$HAS_UUIDGEN" != "true" ]; then
+    return
+  fi
   if [ ! -f "${PIPELESS_INSTALL_DIR}/device_id" ]; then
     mkdir -p "$PIPELESS_INSTALL_DIR"
     device_id="$(uuidgen | tr "[:upper:]" "[:lower:]")"
@@ -76,6 +80,10 @@ setupPipelessEnv() {
 
 # create a totally anonymous report so we can know the most used OS and archs and if there are errors
 create_report() {
+  if [ "$HAS_UUIDGEN" != "true" ]; then
+    return
+  fi
+
   local -r device_id="$(cat "${PIPELESS_INSTALL_DIR}/device_id")"
   local -r status="${1:?missing status}"
   local -r msg="${2:-}"
