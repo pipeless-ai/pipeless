@@ -179,6 +179,9 @@ impl StreamsTable {
     pub fn find_by_pipeline_id(&self, pipeline_id: uuid::Uuid) -> Option<&StreamsTableEntry> {
         self.table.iter().find(|entry| entry.get_pipeline() == Some(pipeline_id))
     }
+    pub fn find_by_pipeline_id_mut(&mut self, pipeline_id: uuid::Uuid) -> Option<&mut StreamsTableEntry> {
+        self.table.iter_mut().find(|entry| entry.get_pipeline() == Some(pipeline_id))
+    }
 
     pub fn update_by_entry_id(&mut self, entry_id: uuid::Uuid, input_uri: &str, output_uri: Option<String>, frame_path: Vec<String>) {
         if let Some(entry) = self.table.iter_mut().find(|entry| entry.id == entry_id) {
