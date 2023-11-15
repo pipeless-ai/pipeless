@@ -32,7 +32,7 @@
    <br />
 
    <div>
-      <img width="382" align="center" src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/examples.gif">
+      <img width="382" align="center" alt="Loading video..." src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/examples.gif">
    </div>
 
    <br /><br />
