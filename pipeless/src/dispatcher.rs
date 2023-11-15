@@ -155,24 +155,32 @@ pub fn start(
                             }
                         }
 
+                        // When we have a running manager whose pipeline id is not in any entry, that means the entry was deleted, stop the manager
+                        // and remove it from the hash_map to be dropped
+                        let mut manager_to_remove = None;
                         {
-                            // When we have a running manager whose pipeline id is not in any entry, that means the entry was deleted, stop the manager
                             let managers_map_guard = running_managers.read().await;
                             for (pipeline_id, manager) in managers_map_guard.iter() {
                                 let streams_table = streams_table.read().await;
                                 if streams_table.find_by_pipeline_id(*pipeline_id).is_none() {
                                     info!("Stream config entry removed. Stopping associated pipeline");
                                     manager.stop().await;
+                                    manager_to_remove = Some(pipeline_id.clone());
                                 }
                             }
                         }
+                        if let Some(manager) = manager_to_remove {
+                            let mut managers_map_guard = running_managers.write().await;
+                            managers_map_guard.remove(&manager);
+                        }
                     }
                     DispatcherEvent::PipelineFinished(pipeline_id) => {
-                        let mut stream_entry;
+                        let stream_entry;
                         {
-                            let table_read_guard = streams_table.read().await;
-                            let stream_entry_option = table_read_guard.find_by_pipeline_id(pipeline_id);
+                            let mut table_write_guard = streams_table.write().await;
+                            let stream_entry_option = table_write_guard.find_by_pipeline_id_mut(pipeline_id);
                             if let Some(entry) = stream_entry_option {
+                                entry.unassign_pipeline();
                                 stream_entry = entry.clone();
                             } else {
                                 warn!("
@@ -183,8 +191,6 @@ pub fn start(
                                 return;
                             }
                         }
-
-                        stream_entry.unassign_pipeline();
 
                         let using_input_file = stream_entry.get_input_uri().starts_with("file://");
                         let using_output_file = match stream_entry.get_output_uri() {
