@@ -12,8 +12,8 @@
   <a aria-label="Pipeless logo" href="https://pipeless.ai">
     <img src="https://img.shields.io/badge/MADE%20BY%20Pipeless%20ai-000000.svg?style=for-the-badge&logo=Pipeless&labelColor=000">
   </a>
-  <a aria-label="Python version" href="https://pypi.org/project/pipeless-ai/">
-    <img alt="" src="https://img.shields.io/pypi/v/pipeless-ai?style=for-the-badge&label=PyPi&labelColor=000000">
+  <a aria-label="Pipeless latest version" href="https://github.com/pipeless-ai/pipeless/releases">
+    <img alt="" src="https://img.shields.io/github/v/release/pipeless-ai/pipeless?style=for-the-badge&label=latest&labelColor=000000">
   </a>
   <a aria-label="License" href="https://github.com/miguelaeh/pipeless/blob/main/license.md">
     <img alt="" src="https://img.shields.io/pypi/l/pipeless-ai?style=for-the-badge&labelColor=000000">
@@ -38,19 +38,29 @@
    <br /><br />
 </div>
 
-Pipeless is an open-source <b>computer vision framework</b> to create and deploy applications that analyze and manipulate video streams in real-time without the complexity of building and maintaining multimedia pipelines. It ships everything you need to create and deploy efficient computer vision applications that work in real-time effortlessly.
+Pipeless is an open-source <b>computer vision framework</b> to create and deploy applications without the complexity of building and maintaining multimedia pipelines. It ships everything you need to create and deploy efficient computer vision applications that work in real-time in just minutes.
 
-Pipeless is inspired by modern serverless technologies to allow you write code in any language and that runs anywhere, including edge and IoT devices. Just like you implement small independent functions that react to http events for serverless web applications, with Pipeless you write functions that react to events on video frames.
+Pipeless is inspired by modern serverless technologies. It provides the development experience of serverless frameworks but applied to computer vision. You simply provide some functions that are executed for new video frames and Pipeless takes care of everything else.
 
-You can easily use industry-standard models such as YOLO, or bring your own custom model and load it in one of the supported inference runtimes for high performance. Pipeless ships some of the most popular inference runtimes embedded, such as the ONNX Runtime, allowing you to run inference using any compatible model in CPUs and GPUs out-of-the-box.
+You can easily use industry-standard models, such as YOLO, or load your custom model in one of the supported inference runtimes. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance either on CPU or GPU out-of-the-box.
 
-You can deploy Pipeless into edge and IoT devices or to the cloud. We provide several tools for the deployment, including container images and Kubernetes Helm Charts.
+You can deploy your Pipeless application into edge and IoT devices or to the cloud. We provide several tools for the deployment, including container images.
+
+The following is **non-exhaustive** set of relevant features:
+
+* **Multi-stream support**: process several streams at the same time.
+* **Dynamic stream configuration**: add, edit and remove streams on the fly via a CLI or REST API (more adapters to come).
+* **Multi-language support**: you can Write your hooks in several languages, including Python.
+* **Dynamic processing steps**: you can add any number of steps to your stream processing, and even modify those steps dynamically.
+* **Highly parallelized**: do not worry about multi-threading and/or multi-processing, Pipeless takes care of that for you.
+* **Several inference runtimes supported**: Provide a model and select one of the supported inference runtimes to run it out-of-the-box in CPU or GPUs. We support **CUDA**, **TensorRT**, **OpenVINO**, **CoreML**, and more to come.
+* **Well defined project structure and highly reusable code**: Pipeless uses the file system structure to load processings stages and hooks, helping you organize the code in highly reusable boxes. Each stage is a directory, each hook is defined on its own file.
 
 **Join our [community](https://discord.gg/K2qxQ8uedG) and contribute to make the life of computer vision developers easier!**
 
 ## Requirements ☝️
 
-* Python (tested with version `3.10.12`)
+* Python. Pre-built binaries are linked to Python 3.11 in Linux and 3.12 in macOS. Just provide the `--build` flag to the install script if you have a different version (or update your version and use a pre-built binary).
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 ## Installation 🛠️
