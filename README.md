@@ -40,23 +40,23 @@
 
 Pipeless is an open-source <b>computer vision framework</b> to create and deploy applications without the complexity of building and maintaining multimedia pipelines. It ships everything you need to create and deploy efficient computer vision applications that work in real-time in just minutes.
 
-Pipeless is inspired by modern serverless technologies. It provides the development experience of serverless frameworks but applied to computer vision. You simply provide some functions that are executed for new video frames and Pipeless takes care of everything else.
+Pipeless is inspired by modern serverless technologies. It provides the development experience of serverless frameworks applied to computer vision. You provide some functions that are executed for new video frames and Pipeless takes care of everything else.
 
-You can easily use industry-standard models, such as YOLO, or load your custom model in one of the supported inference runtimes. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance either on CPU or GPU out-of-the-box.
+You can easily use industry-standard models, such as YOLO, or load your custom model in one of the supported inference runtimes. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
 
-You can deploy your Pipeless application into edge and IoT devices or to the cloud. We provide several tools for the deployment, including container images.
+You can deploy your Pipeless application to edge and IoT devices or the cloud. We provide several tools for the deployment, including container images.
 
-The following is **non-exhaustive** set of relevant features:
+The following is a **non-exhaustive** set of relevant features:
 
 * **Multi-stream support**: process several streams at the same time.
-* **Dynamic stream configuration**: add, edit and remove streams on the fly via a CLI or REST API (more adapters to come).
+* **Dynamic stream configuration**: add, edit, and remove streams on the fly via a CLI or REST API (more adapters to come).
 * **Multi-language support**: you can Write your hooks in several languages, including Python.
 * **Dynamic processing steps**: you can add any number of steps to your stream processing, and even modify those steps dynamically.
 * **Highly parallelized**: do not worry about multi-threading and/or multi-processing, Pipeless takes care of that for you.
 * **Several inference runtimes supported**: Provide a model and select one of the supported inference runtimes to run it out-of-the-box in CPU or GPUs. We support **CUDA**, **TensorRT**, **OpenVINO**, **CoreML**, and more to come.
-* **Well defined project structure and highly reusable code**: Pipeless uses the file system structure to load processings stages and hooks, helping you organize the code in highly reusable boxes. Each stage is a directory, each hook is defined on its own file.
+* **Well-defined project structure and highly reusable code**: Pipeless uses the file system structure to load processing stages and hooks, helping you organize the code in highly reusable boxes. Each stage is a directory, each hook is defined on its own file.
 
-**Join our [community](https://discord.gg/K2qxQ8uedG) and contribute to make the life of computer vision developers easier!**
+**Join our [community](https://discord.gg/K2qxQ8uedG) and contribute to making the lives of computer vision developers easier!**
 
 ## Requirements ☝️
 
