@@ -32,7 +32,7 @@
    <br />
 
    <div>
-      <img height="350" align="center" src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/pipeless-yolo.gif">
+      <img height="350" align="center" src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/examples.gif">
    </div>
 
    <br /><br />
