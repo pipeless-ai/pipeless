@@ -79,6 +79,8 @@ jobs:
     - name: Install dependencies with Homebrew
       if: matrix.os == 'macos-latest'
       run: |
+        # Avoid to upgrade dependents like azure-cli, because we don't need them
+        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
         brew install gstreamer
         brew install coreutils # For sha256sum
 
