@@ -2,7 +2,7 @@ use log::{error, warn};
 use pyo3::prelude::*;
 use numpy::{self, ToPyArray};
 
-use crate::{data::{RgbFrame, Frame}, stages::{hook::HookTrait, stage::ContextTrait}, stages::stage::Context};
+use crate::{data::{RgbFrame, Frame}, stages::{hook::HookTrait, stage::ContextTrait}, stages::stage::Context, kvs::store};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -40,6 +40,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("input_ts", self.get_input_ts().elapsed().as_millis()).unwrap();
         dict.set_item("inference_input", self.get_inference_input().to_owned().to_pyarray(py)).unwrap();
         dict.set_item("inference_output", self.get_inference_output().to_owned().to_pyarray(py)).unwrap();
+        dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.into()
     }
 }
@@ -79,11 +80,13 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let input_ts = ob.get_item("input_ts").unwrap().extract()?;
         let inference_input = inference_input_ndarray;
         let inference_output =inference_output_ndarray;
+        let pipeline_id = ob.get_item("pipeline_id").unwrap().extract()?;
 
         let frame = RgbFrame::from_values(
             uuid, original, modified, width, height,
             pts, dts, duration, fps, input_ts,
-            inference_input, inference_output
+            inference_input, inference_output,
+            pipeline_id,
         );
 
         Ok(frame)
@@ -95,7 +98,7 @@ pub struct PythonStageContext {
     context: Py<pyo3::types::PyDict>,
 }
 impl ContextTrait<PythonStageContext> for PythonStageContext {
-    fn init_context(stage_name: &str, init_code: &str) -> PythonStageContext {
+    fn init_context(stage_name: &str, init_code: &str) -> Self {
         let module_name = format!("{}_{}", stage_name, "init");
         let module_file_name = format!("{}.py", module_name);
         let py_ctx = Python::with_gil(|py| -> Py<pyo3::types::PyDict> {
@@ -141,7 +144,9 @@ pub struct PythonHook {
 }
 impl PythonHook {
     pub fn new(stage_name: &str, hook_type: &str, py_code: &str) -> Self {
-        // The wrapper simply removes the need for the user to return a frame from each hook
+        // The wrapper removes the need for the user to return a frame from each hook
+        // Also, injects the set and get functions for the KV store namespacing the keys
+        // to avoid conflicts between streams in the format stage_name:pipeline_id:user_provided_key
         // Since all executions share the Python interpreter, we have to create different names for
         // all the modules
         let module_name = format!("{}_{}", stage_name, hook_type);
@@ -152,18 +157,37 @@ impl PythonHook {
 import {0}
 
 def hook_wrapper(frame, context):
+    pipeline_id = frame['pipeline_id']
+    def pipeless_kvs_set(key, value):
+        _pipeless_kvs_set(f'{1}:{{pipeline_id}}:{{key}}', value)
+    def pipeless_kvs_get(key):
+        return _pipeless_kvs_get(f'{1}:{{pipeline_id}}:{{key}}')
+    {0}.pipeless_kvs_set = pipeless_kvs_set
+    {0}.pipeless_kvs_get = pipeless_kvs_get
     {0}.hook(frame, context)
     return frame
-", module_name);
+", module_name, stage_name);
         let module = Python::with_gil(|py| -> Py<pyo3::types::PyModule> {
-            // Create the hook module
+            // Create the hook module from user code
             let hook_module = pyo3::types::PyModule::from_code(
                 py, py_code, &module_file_name, &module_name
             ).expect("Unable to create Python module from hook");
-            // Create the wrapper module, that makes use of the hook module
+
+            // Create the wrapper module
             let wrapper_module = pyo3::types::PyModule::from_code(
                 py, &wrapper_py_code, &wrapper_module_file_name, &wrapper_module_name
             ).expect("Unable to create wrapper Python module");
+            // Add some util functions that the user can invoke from the Python code
+            #[pyfunction]
+            fn _pipeless_kvs_set(key: &str, value: &str) {
+                store::KV_STORE.set(key, value);
+            }
+            #[pyfunction]
+            fn _pipeless_kvs_get(key: &str) -> String {
+                store::KV_STORE.get(key)
+            }
+            wrapper_module.add_function(wrap_pyfunction!(_pipeless_kvs_set, wrapper_module).unwrap()).expect("Failed to inject KV store set function");
+            wrapper_module.add_function(wrap_pyfunction!(_pipeless_kvs_get, wrapper_module).unwrap()).expect("Failed to inject KV store get function");
             wrapper_module.add(&module_name, hook_module).expect("Failed to inject Python hook module into wrapper module");
             wrapper_module.into()
         });
