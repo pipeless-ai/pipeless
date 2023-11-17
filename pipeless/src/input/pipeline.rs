@@ -37,6 +37,7 @@ impl StreamDef {
 }
 
 fn on_new_sample(
+    pipeless_pipeline_id: uuid::Uuid,
     appsink: &gst_app::AppSink,
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
 ) -> Result<gst::FlowSuccess, gst::FlowError> {
@@ -97,7 +98,8 @@ fn on_new_sample(
     let frame = pipeless::data::Frame::new_rgb(
         ndframe, width, height,
         pts, dts, duration,
-        fps as u8, frame_input_instant
+        fps as u8, frame_input_instant,
+        pipeless_pipeline_id
     );
     // The event takes ownership of the frame
     pipeless::events::publish_new_frame_change_event_sync(
@@ -300,6 +302,7 @@ fn on_bus_message(
 }
 
 fn create_gst_pipeline(
+    pipeless_pipeline_id: uuid::Uuid,
     input_uri: &str,
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
 ) -> gst::Pipeline {
@@ -322,8 +325,9 @@ fn create_gst_pipeline(
                 let pipeless_bus_sender = pipeless_bus_sender.clone();
                 move |appsink: &gst_app::AppSink| {
                 on_new_sample(
+                    pipeless_pipeline_id,
                     appsink,
-                    &pipeless_bus_sender
+                    &pipeless_bus_sender,
                 )
             }
         }).build();
@@ -350,7 +354,7 @@ impl Pipeline {
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
     ) -> Self {
         let input_uri = stream.get_video().get_uri();
-        let gst_pipeline = create_gst_pipeline(input_uri, pipeless_bus_sender);
+        let gst_pipeline = create_gst_pipeline(id, input_uri, pipeless_bus_sender);
         let pipeline = Pipeline {
             id,
             stream,

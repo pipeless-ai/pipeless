@@ -16,6 +16,7 @@ pub struct RgbFrame {
     input_ts: std::time::Instant, // to measure processing performance
     inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
+    pipeline_id: uuid::Uuid,
 }
 impl RgbFrame {
     pub fn new(
@@ -23,6 +24,7 @@ impl RgbFrame {
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
         fps: u8, input_ts: std::time::Instant,
+        pipeline_id: uuid::Uuid,
     ) -> Self {
         let modified = original.to_owned();
         RgbFrame {
@@ -33,6 +35,7 @@ impl RgbFrame {
             input_ts,
             inference_input: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[1])),
             inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[1])),
+            pipeline_id,
         }
     }
 
@@ -45,6 +48,7 @@ impl RgbFrame {
         fps: u8, input_ts: u64,
         inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
+        pipeline_id: &str,
     ) -> Self {
         RgbFrame {
             uuid: uuid::Uuid::from_str(uuid).unwrap(),
@@ -55,7 +59,8 @@ impl RgbFrame {
             duration: gst::ClockTime::from_mseconds(duration),
             fps,
             input_ts: std::time::Instant::now() - std::time::Duration::from_millis(input_ts),
-            inference_input, inference_output
+            inference_input, inference_output,
+            pipeline_id: uuid::Uuid::from_str(pipeline_id).unwrap(),
         }
     }
 
@@ -118,6 +123,12 @@ impl RgbFrame {
     pub fn set_inference_output(&mut self, output_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
         self.inference_output = output_data;
     }
+    pub fn get_pipeline_id(&self) -> uuid::Uuid {
+        self.pipeline_id
+    }
+    pub fn set_pipeline_id(&mut self, pipeline_id: &str) {
+        self.pipeline_id = uuid::Uuid::from_str(pipeline_id).unwrap();
+    }
 }
 
 pub enum Frame {
@@ -129,11 +140,12 @@ impl Frame {
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
         fps: u8, input_ts: std::time::Instant,
+        pipeline_id: uuid::Uuid
     ) -> Self {
         let rgb = RgbFrame::new(
             original, width, height,
             pts, dts, duration,
-            fps, input_ts
+            fps, input_ts, pipeline_id
         );
         Self::RgbFrame(rgb)
     }
