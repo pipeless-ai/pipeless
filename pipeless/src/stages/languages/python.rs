@@ -159,7 +159,7 @@ import {0}
 def hook_wrapper(frame, context):
     pipeline_id = frame['pipeline_id']
     def pipeless_kvs_set(key, value):
-        _pipeless_kvs_set(f'{1}:{{pipeline_id}}:{{key}}', value)
+        _pipeless_kvs_set(f'{1}:{{pipeline_id}}:{{key}}', str(value))
     def pipeless_kvs_get(key):
         return _pipeless_kvs_get(f'{1}:{{pipeline_id}}:{{key}}')
     {0}.pipeless_kvs_set = pipeless_kvs_set
