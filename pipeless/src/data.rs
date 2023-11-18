@@ -33,8 +33,8 @@ impl RgbFrame {
             width, height,
             pts, dts, duration, fps,
             input_ts,
-            inference_input: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[1])),
-            inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[1])),
+            inference_input: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
+            inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
             pipeline_id,
         }
     }
