@@ -1,8 +1,8 @@
 import cv2
 
 def hook(frame_data, _):
-    frame = frame_data['original']
-    bboxes = frame_data['inference_output']
+    frame = frame_data['modified']
+    bboxes = frame_data.get('inference_output', [])
     for box in bboxes:
         x1, y1, x2, y2, score, class_number = box
         box_label(frame, [x1, y1, x2, y2], yolo_classes[int(class_number)], score, (255, 0, 255))
