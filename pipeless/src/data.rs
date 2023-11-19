@@ -13,7 +13,7 @@ pub struct RgbFrame {
     dts: gst::ClockTime,
     duration: gst::ClockTime,
     fps: u8,
-    input_ts: std::time::Instant, // to measure processing performance
+    input_ts: f64, // epoch in seconds
     inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     pipeline_id: uuid::Uuid,
@@ -23,7 +23,7 @@ impl RgbFrame {
         original: ndarray::Array3<u8>,
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
-        fps: u8, input_ts: std::time::Instant,
+        fps: u8, input_ts: f64,
         pipeline_id: uuid::Uuid,
     ) -> Self {
         let modified = original.to_owned();
@@ -45,7 +45,7 @@ impl RgbFrame {
         modified: ndarray::Array3<u8>,
         width: usize, height: usize,
         pts: u64, dts: u64, duration: u64,
-        fps: u8, input_ts: u64,
+        fps: u8, input_ts: f64,
         inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         pipeline_id: &str,
@@ -57,8 +57,7 @@ impl RgbFrame {
             pts: gst::ClockTime::from_mseconds(pts),
             dts: gst::ClockTime::from_mseconds(dts),
             duration: gst::ClockTime::from_mseconds(duration),
-            fps,
-            input_ts: std::time::Instant::now() - std::time::Duration::from_millis(input_ts),
+            fps, input_ts,
             inference_input, inference_output,
             pipeline_id: uuid::Uuid::from_str(pipeline_id).unwrap(),
         }
@@ -108,7 +107,7 @@ impl RgbFrame {
     pub fn get_duration(&self) -> gst::ClockTime {
         self.duration
     }
-    pub fn get_input_ts(&self) -> std::time::Instant {
+    pub fn get_input_ts(&self) -> f64 {
         self.input_ts
     }
     pub fn get_inference_input(&self) -> &ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>> {
@@ -139,7 +138,7 @@ impl Frame {
         original: ndarray::Array3<u8>,
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
-        fps: u8, input_ts: std::time::Instant,
+        fps: u8, input_ts: f64,
         pipeline_id: uuid::Uuid
     ) -> Self {
         let rgb = RgbFrame::new(

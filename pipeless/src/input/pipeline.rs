@@ -51,7 +51,7 @@ fn on_new_sample(
         gst::FlowError::Error
     })?;
 
-    let frame_input_instant = std::time::Instant::now();
+    let frame_input_instant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f64();
     let caps = sample.caps().ok_or_else(|| {
         error!("Unable to get sample capabilities");
         gst::FlowError::Error
