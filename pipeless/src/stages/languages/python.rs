@@ -37,7 +37,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("dts", self.get_dts().mseconds()).unwrap();
         dict.set_item("duration", self.get_duration().mseconds()).unwrap();
         dict.set_item("fps", self.get_fps()).unwrap();
-        dict.set_item("input_ts", self.get_input_ts().elapsed().as_millis()).unwrap();
+        dict.set_item("input_ts", self.get_input_ts()).unwrap();
         dict.set_item("inference_input", self.get_inference_input().to_owned().to_pyarray(py)).unwrap();
         dict.set_item("inference_output", self.get_inference_output().to_owned().to_pyarray(py)).unwrap();
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
