@@ -110,6 +110,10 @@ You can find some examples under the `examples` directory. Just copy those folde
 
 Find [here](https://pipeless.ai/docs/v1/examples) the whole list of examples and step by step guides.
 
+## Benchmark 📈
+
+We deployed Pipeless to several different devices so you can have a general idea of its performance. Find the results at the [benchmark section](https://pipeless.ai/docs/v1/benchmark) of the docs.
+
 ## Notable Changes
 
 Notable changes indicate important changes between versions. Please check the [whole list of notable changes](https://pipeless.ai/docs/v1/changes).
