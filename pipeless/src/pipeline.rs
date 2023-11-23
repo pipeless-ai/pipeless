@@ -245,6 +245,18 @@ impl Manager {
                                         if let Err(err) = out_pipe.on_eos() {
                                             error!("Error sending end of stream signal to output: {}", err);
                                         }
+                                    } else {
+                                        // When there is no output, stop the stream as fast as the input EOS is reached
+                                        info!("End of stream reached for pipeline: {}", write_guard.input_pipeline.get_pipeline_id());
+                                        if let Err(err) = dispatcher_sender
+                                            .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(write_guard.input_pipeline.get_pipeline_id())) {
+                                            warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
+                                        };
+
+                                        // End the processing loop
+                                        if let Err(err) = end_signal.send(()).await {
+                                            error!("Error signaling stream event loop end: {}", err);
+                                        }
                                     }
                                 }
                             }
