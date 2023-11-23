@@ -1,6 +1,6 @@
 use log::{error, warn};
 use pyo3::prelude::*;
-use numpy::{self, ToPyArray};
+use numpy;
 
 use crate::{data::{RgbFrame, Frame}, stages::{hook::HookTrait, stage::ContextTrait}, stages::stage::Context, kvs::store};
 
@@ -29,8 +29,8 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
     fn into_py(self, py: Python) -> Py<PyAny> {
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item("uuid", self.get_uuid().to_string()).unwrap();
-        dict.set_item("original", numpy::PyArray3::from_owned_array(py, self.get_owned_original_pixels())).unwrap();
-        dict.set_item("modified", numpy::PyArray3::from_owned_array(py, self.get_owned_modified_pixels())).unwrap();
+        dict.set_item("original", numpy::PyArray3::from_array(py, self.get_original_pixels())).unwrap();
+        dict.set_item("modified", numpy::PyArray3::from_array(py, self.get_modified_pixels())).unwrap();
         dict.set_item("width", self.get_width()).unwrap();
         dict.set_item("height", self.get_height()).unwrap();
         dict.set_item("pts", self.get_pts().mseconds()).unwrap();
@@ -38,8 +38,8 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("duration", self.get_duration().mseconds()).unwrap();
         dict.set_item("fps", self.get_fps()).unwrap();
         dict.set_item("input_ts", self.get_input_ts()).unwrap();
-        dict.set_item("inference_input", self.get_inference_input().to_owned().to_pyarray(py)).unwrap();
-        dict.set_item("inference_output", self.get_inference_output().to_owned().to_pyarray(py)).unwrap();
+        dict.set_item("inference_input", numpy::PyArrayDyn::from_array(py, self.get_inference_input())).unwrap();
+        dict.set_item("inference_output", numpy::PyArrayDyn::from_array(py, self.get_inference_output())).unwrap();
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.into()
     }

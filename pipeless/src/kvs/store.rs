@@ -14,7 +14,8 @@ struct LocalStore {
 impl LocalStore {
     fn new() -> Self {
         let db_path = "/tmp/.pipeless_kv_store";
-        let db = sled::open(db_path).expect("Failed to open KV store");
+        let db = sled::open(db_path)
+            .expect(&format!("Failed to open KV store. Ensure pipeless can write at {}", db_path));
         Self { backend: db }
     }
 }
@@ -46,6 +47,7 @@ impl StoreInterface for LocalStore {
 
 // TODO: setup Redis or any other distributed solution.
 // Important: Note that any type implementing StoreInterface must be thread safe
+/*
 struct DistributedStore {}
 impl DistributedStore {
     fn new() -> Self { unimplemented!() }
@@ -54,6 +56,7 @@ impl StoreInterface for DistributedStore {
     fn get(&self, key: &str) -> String { unimplemented!() }
     fn set(&self, key: &str, value: &str) { unimplemented!() }
 }
+*/
 
 lazy_static! {
     // TODO: Add support for distributed store do not hardcode the local one

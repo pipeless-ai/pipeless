@@ -53,10 +53,16 @@ async fn handle_add_stream(
     }
     let output_uri = stream.output_uri.clone();
     {
-        streams_table.write()
+        let res = streams_table.write()
             .await
-            .add(pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path))
-            .expect("Error adding new stream to the table");
+            .add(pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path));
+
+        if let Err(err) = res {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&json!({"error": format!("Error adding new stream to the table: {}", err)})),
+                warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
     }
 
     match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
