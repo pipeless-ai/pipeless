@@ -34,9 +34,9 @@ impl Video {
             let uri_split: Vec<&str> = uri.split("://").collect();
             protocol = uri_split.get(0).ok_or_else(|| { VideoConfigError::new("Unable to get protocol from URI") })?.to_string();
             location = uri_split.get(1)
-                .ok_or_else(|| { VideoConfigError::new("Unable to get location from URI. Ensure it contains the protocol followed by '//'.") })?.to_string();
+                .ok_or_else(|| { VideoConfigError::new("Unable to get location from URI. Ensure it contains the protocol followed by '://'. Example: file:///home/user/file.mp4") })?.to_string();
             if protocol == "file" && !location.starts_with('/') {
-                panic!("When using files you should indicate an absolute path. Ensure your path is on the format file:///some/path (note there are 3 slashes)");
+                panic!("When using files you should indicate an absolute path. Ensure your path is on the format file:///home/user/file.mp4 (note there are 3 slashes)");
             }
         } else {
             protocol = String::from("v4l2");
