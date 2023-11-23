@@ -69,14 +69,8 @@ impl RgbFrame {
     pub fn get_original_pixels(&self) -> &ndarray::Array3<u8> {
         &self.original
     }
-    pub fn get_owned_original_pixels(&self) -> ndarray::Array3<u8> {
-        self.original.to_owned()
-    }
     pub fn get_modified_pixels(&self) -> &ndarray::Array3<u8> {
         &self.modified
-    }
-    pub fn get_owned_modified_pixels(&self) -> ndarray::Array3<u8> {
-        self.modified.to_owned()
     }
     pub fn get_mutable_pixels(&mut self) -> ndarray::ArrayViewMut3<u8> {
         self.modified.view_mut()
