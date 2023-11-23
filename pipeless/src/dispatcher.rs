@@ -133,23 +133,34 @@ pub fn start(
                                     Ok(frame_path) => {
                                         info!("New stream entry detected, creating pipeline");
                                         let new_pipeless_bus = pipeless::events::Bus::new();
-                                        let new_manager = pipeless::pipeline::Manager::new(
+                                        let new_manager_result = pipeless::pipeline::Manager::new(
                                             input_uri, output_uri, frame_path,
                                             &new_pipeless_bus.get_sender(),
                                             dispatcher_event_sender.clone(),
                                         );
-                                        new_manager.start(new_pipeless_bus, frame_path_executor_arc.clone());
-                                        streams_table_guard.set_stream_pipeline(
-                                            entry.get_id(),
-                                            new_manager.get_pipeline_id().await
-                                        ).expect("Error adding new stream to the streams config table");
-                                        let mut managers_map_guard = running_managers.write().await;
-                                        managers_map_guard.insert(new_manager.get_pipeline_id().await, new_manager);
+                                        match new_manager_result {
+                                            Ok(new_manager) => {
+                                                new_manager.start(new_pipeless_bus, frame_path_executor_arc.clone());
+                                                if let Err(err) = streams_table_guard.set_stream_pipeline(
+                                                    entry.get_id(),
+                                                    new_manager.get_pipeline_id().await
+                                                ) {
+                                                    error!("Error adding new stream to the streams config table: {}", err);
+                                                }
+                                                let mut managers_map_guard = running_managers.write().await;
+                                                managers_map_guard.insert(new_manager.get_pipeline_id().await, new_manager);
+                                            },
+                                            Err(err) => {
+                                                error!("Unable to create new pipeline: {}. Rolling back streams configuration.", err.to_string());
+                                                let removed = streams_table_guard.remove(entry.get_id());
+                                                if removed.is_none() { warn!("Error rolling back table, entry not found.") };
+                                            }
+                                        }
                                     },
                                     Err(err) => {
                                         warn!("Rolling back streams table configuration due to error. Error: {}", err);
-                                        streams_table_guard.remove(entry.get_id())
-                                            .expect("Error removing new stream from the streams config table");
+                                        let removed = streams_table_guard.remove(entry.get_id());
+                                        if removed.is_none() { warn!("Error rolling back table, entry not found.") };
                                     }
                                 }
                             }

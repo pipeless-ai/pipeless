@@ -1,3 +1,20 @@
+
+#[derive(Debug)]
+pub struct VideoConfigError {
+    msg: String
+}
+impl VideoConfigError {
+    fn new(msg: &str) -> Self {
+        Self { msg: msg.to_owned() }
+    }
+}
+impl std::error::Error for VideoConfigError {}
+impl std::fmt::Display for VideoConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.msg.to_string())
+    }
+}
+
 #[derive(Clone)]
 pub struct Video {
     /// This can be input or output video, it is generic
@@ -6,7 +23,7 @@ pub struct Video {
     uri: String,
 }
 impl Video {
-    pub fn new(uri: String) -> Self {
+    pub fn new(uri: String) -> Result<Self, VideoConfigError> {
         let protocol: String;
         let location: String;
         if uri == "screen" {
@@ -15,8 +32,9 @@ impl Video {
             location = String::from("screen");
         } else if uri != "v4l2" {
             let uri_split: Vec<&str> = uri.split("://").collect();
-            protocol = uri_split.get(0).expect("Unable to get protocol from URI").to_string();
-            location = uri_split.get(1).expect("Unable to get location from URI. Ensure it contains the protocol followed by '//'.").to_string();
+            protocol = uri_split.get(0).ok_or_else(|| { VideoConfigError::new("Unable to get protocol from URI") })?.to_string();
+            location = uri_split.get(1)
+                .ok_or_else(|| { VideoConfigError::new("Unable to get location from URI. Ensure it contains the protocol followed by '//'.") })?.to_string();
             if protocol == "file" && !location.starts_with('/') {
                 panic!("When using files you should indicate an absolute path. Ensure your path is on the format file:///some/path (note there are 3 slashes)");
             }
@@ -25,7 +43,7 @@ impl Video {
             location = String::from("v4l2");
         }
 
-        Video { protocol, location, uri, }
+        Ok(Video { protocol, location, uri, })
     }
 
     pub fn get_protocol(&self) -> &str {

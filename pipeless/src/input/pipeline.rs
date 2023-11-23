@@ -1,3 +1,4 @@
+use glib::BoolError;
 use log::{error, info, warn, debug};
 use std;
 use std::str::FromStr;
@@ -10,11 +11,32 @@ use ndarray;
 use crate as pipeless;
 
 #[derive(Debug)]
-pub struct PipelineError;
-impl std::error::Error for PipelineError {}
-impl std::fmt::Display for PipelineError {
+pub struct InputPipelineError {
+    msg: String
+}
+impl InputPipelineError {
+    fn new(msg: &str) -> Self {
+        Self { msg: msg.to_owned() }
+    }
+}
+impl std::error::Error for InputPipelineError {}
+impl std::fmt::Display for InputPipelineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "An error ocurred with the input pipeline")
+        write!(f, "{}", self.msg.to_string())
+    }
+}
+impl From<BoolError> for InputPipelineError {
+    fn from(error: BoolError) -> Self {
+        Self {
+            msg: error.to_string(),
+        }
+    }
+}
+impl From<pipeless::config::video::VideoConfigError> for InputPipelineError {
+    fn from(error: pipeless::config::video::VideoConfigError) -> Self {
+        Self {
+            msg: error.to_string(),
+        }
     }
 }
 
@@ -25,10 +47,9 @@ pub struct StreamDef {
     video: pipeless::config::video::Video,
 }
 impl StreamDef {
-    pub fn new(uri: String) -> Self {
-        Self {
-            video: pipeless::config::video::Video::new(uri)
-        }
+    pub fn new(uri: String) -> Result<Self, InputPipelineError> {
+        let video = pipeless::config::video::Video::new(uri)?;
+        Ok(Self { video })
     }
 
     pub fn get_video(&self) -> &pipeless::config::video::Video {
@@ -93,7 +114,10 @@ fn on_new_sample(
 
     let ndframe = ndarray::Array3::from_shape_vec(
         (height, width, channels), buffer_info.to_vec()
-    ).expect("Failed to create ndarray from buffer data");
+    ).map_err(|err| {
+        error!("Failed to create ndarray from buffer data: {}", err.to_string());
+        gst::FlowError::Error
+    })?;
 
     let frame = pipeless::data::Frame::new_rgb(
         ndframe, width, height,
@@ -135,36 +159,38 @@ fn on_pad_added (
 fn create_input_bin(
     uri: &str,
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
-) -> gst::Bin {
+) -> Result<gst::Bin, InputPipelineError> {
     let bin = gst::Bin::new();
     if uri == "v4l2" { // Device webcam
-        let v4l2src = pipeless::gst::utils::create_generic_component("v4l2src", "v4l2src");
-        let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert");
-        let videoscale = pipeless::gst::utils::create_generic_component("videoscale", "videoscale");
+        let v4l2src = pipeless::gst::utils::create_generic_component("v4l2src", "v4l2src")?;
+        let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert")?;
+        let videoscale = pipeless::gst::utils::create_generic_component("videoscale", "videoscale")?;
 
         // Webcam resolutions are not standard and we can't read the webcam caps,
         // force a hardcoded resolution so that we annouce a correct resolution to the output.
         let forced_size_str = "video/x-raw,width=1280,height=720";
-        let forced_caps = gst::Caps::from_str(forced_size_str).expect("Unable to create caps from string");
+        let forced_caps = gst::Caps::from_str(forced_size_str)
+            .map_err(|_| { InputPipelineError::new("Unable to create caps from string") })?;
         let capsfilter = gst::ElementFactory::make("capsfilter")
             .name("capsfilter")
             .property("caps", forced_caps)
             .build()
-            .expect("Failed to create capsfilter");
+            .map_err(|_| { InputPipelineError::new("Failed to create capsfilter") })?;
 
         bin.add_many([&v4l2src, &videoconvert, &videoscale, &capsfilter])
-            .expect("Unable to add elements to input bin");
+            .map_err(|_| { InputPipelineError::new("Unable to add elements to input bin") })?;
 
-        v4l2src.link(&videoconvert).expect("Error linking v4l2src to videoconvert");
-        videoconvert.link(&videoscale).expect("Error linking videoconvert to videoscale");
-        videoscale.link(&capsfilter).expect("Error linking videoscale to capsfilter");
+        v4l2src.link(&videoconvert).map_err(|_| { InputPipelineError::new("Error linking v4l2src to videoconvert") })?;
+        videoconvert.link(&videoscale).map_err(|_| { InputPipelineError::new("Error linking videoconvert to videoscale") })?;
+        videoscale.link(&capsfilter).map_err(|_| { InputPipelineError::new("Error linking videoscale to capsfilter") })?;
 
         // Create ghostpad to be able to plug other components to the bin
         let capsfilter_src_pad = capsfilter.static_pad("src")
-            .expect("Failed to create the pipeline. Unable to get capsfilter source pad.");
+            .ok_or_else(|| { InputPipelineError::new("Failed to create the pipeline. Unable to get capsfilter source pad.") })?;
         let ghostpath_src = gst::GhostPad::with_target(&capsfilter_src_pad)
-            .expect("Unable to create the ghost pad to link bin");
-        bin.add_pad(&ghostpath_src).expect("Unable to add ghostpad to input bin");
+            .map_err(|_| { InputPipelineError::new("Unable to create the ghost pad to link bin") })?;
+        bin.add_pad(&ghostpath_src)
+            .map_err(|_| { InputPipelineError::new("Unable to add ghostpad to input bin") })?;
 
         // v4l2src doesn't have caps property that we can handle. Notify the output about the new stream
         let forced_caps_str = format!("{},format=RGB,framerate=1/30", forced_size_str);
@@ -174,37 +200,40 @@ fn create_input_bin(
         );
     } else {
         // Use uridecodebin by default
-        let uridecodebin = pipeless::gst::utils::create_generic_component("uridecodebin3", "source");
-        let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert");
+        let uridecodebin = pipeless::gst::utils::create_generic_component("uridecodebin3", "source")?;
+        let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert")?;
         bin.add_many([&uridecodebin, &videoconvert])
-            .expect("Unable to add elements to the input bin");
+            .map_err(|_| { InputPipelineError::new("Unable to add elements to the input bin")})?;
         uridecodebin.set_property("uri", uri);
 
         // Uridecodebin uses dynamic linking (creates pads automatically for new detected streams)
-        let videoconvert_sink_pad = videoconvert.static_pad("sink").expect("Unable to get videoconvert pad");
-        let link_new_pad_fn = move |pad: &gst::Pad| {
+        let videoconvert_sink_pad = videoconvert.static_pad("sink")
+            .ok_or_else(|| { InputPipelineError::new("Unable to get videoconvert pad") })?;
+        let link_new_pad_fn = move |pad: &gst::Pad| -> Result<gst::PadLinkSuccess, InputPipelineError>{
             if !videoconvert_sink_pad.is_linked() {
                 pad.link(&videoconvert_sink_pad)
-                    .expect("Unable to link new pad to videoconvert sink pad");
+                    .map_err(|_| { InputPipelineError::new("Unable to link new pad to videoconvert sink pad") })
             } else {
                 warn!("Videoconvert pad already linked, skipping link.");
+                Ok(gst::PadLinkSuccess)
             }
         };
 
         uridecodebin.connect_pad_added({
             let pipeless_bus_sender = pipeless_bus_sender.clone();
             move |_elem, pad| {
-                link_new_pad_fn(&pad);
-                //// Connect an async handler to the pad to be notified when caps are set
-                pad.add_probe(
-                    gst::PadProbeType::EVENT_UPSTREAM,
-                    {
-                        let pipeless_bus_sender = pipeless_bus_sender.clone();
-                        move |pad: &gst::Pad, info: &mut gst::PadProbeInfo| {
-                            on_pad_added(pad, info, &pipeless_bus_sender)
+                if let Ok(_) = link_new_pad_fn(&pad) {
+                    // Connect an async handler to the pad to be notified when caps are set
+                    pad.add_probe(
+                        gst::PadProbeType::EVENT_UPSTREAM,
+                        {
+                            let pipeless_bus_sender = pipeless_bus_sender.clone();
+                            move |pad: &gst::Pad, info: &mut gst::PadProbeInfo| {
+                                on_pad_added(pad, info, &pipeless_bus_sender)
+                            }
                         }
-                    }
-                );
+                    );
+                }
             }
         });
 
@@ -212,15 +241,16 @@ fn create_input_bin(
         let videoconvert_src_pad = match videoconvert.static_pad("src") {
             Some(pad) => pad,
             None => {
-                panic!("Failed to create the pipeline. Unable to get videoconvert source pad.");
+                return Err(InputPipelineError::new("Failed to create the pipeline. Unable to get videoconvert source pad."));
             }
         };
         let ghostpath_src = gst::GhostPad::with_target(&videoconvert_src_pad)
-            .expect("Unable to create the ghost pad to link bin");
-        bin.add_pad(&ghostpath_src).expect("Unable to add ghostpad to input bin");
+            .map_err(|_| { InputPipelineError::new("Unable to create the ghost pad to link bin")})?;
+        bin.add_pad(&ghostpath_src)
+            .map_err(|_| { InputPipelineError::new("Unable to add ghostpad to input bin")})?;
     }
 
-    bin
+    Ok(bin)
 }
 
 fn on_bus_message(
@@ -254,7 +284,7 @@ fn on_bus_message(
             // Communicate error
             pipeless::events::publish_input_stream_error_event_sync(pipeless_bus_sender, &err_msg);
             // Exit thread, thus glib pipeline mainloop.
-            panic!(
+            error!(
                 "Error in input gst pipeline from element {}.
                 Pipeline id: {}. Error: {}",
                 err_src_name, pipeline_id, err_msg
@@ -305,19 +335,20 @@ fn create_gst_pipeline(
     pipeless_pipeline_id: uuid::Uuid,
     input_uri: &str,
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
-) -> gst::Pipeline {
+) -> Result<gst::Pipeline, InputPipelineError> {
     let pipeline = gst::Pipeline::new();
-    let input_bin = create_input_bin(input_uri, pipeless_bus_sender);
+    let input_bin = create_input_bin(input_uri, pipeless_bus_sender)?;
     // Force RGB output since workers process RGB
-    let sink_caps = gst::Caps::from_str("video/x-raw,format=RGB").expect("Unable to create caps from string");
+    let sink_caps = gst::Caps::from_str("video/x-raw,format=RGB")
+        .map_err(|_| { InputPipelineError::new("Unable to create caps from string") })?;
     let appsink = gst::ElementFactory::make("appsink")
         .name("appsink")
         .property("emit-signals", true)
         .property("caps", sink_caps)
         .build()
-        .expect("Failed to create appsink")
+        .map_err(|_| { InputPipelineError::new("Failed to create appsink") })?
         .dynamic_cast::<gst_app::AppSink>()
-        .expect("Unable to cast element to AppSink");
+        .map_err(|_| { InputPipelineError::new("Unable to cast element to AppSink") })?;
 
     let appsink_callbacks = gst_app::AppSinkCallbacks::builder()
         .new_sample(
@@ -333,18 +364,18 @@ fn create_gst_pipeline(
         }).build();
     appsink.set_callbacks(appsink_callbacks);
 
-    pipeline.add(&input_bin).expect("Failed to add input bin to input pipeline");
-    pipeline.add(&appsink).expect("Failed to add app sink to input pipeline");
+    pipeline.add(&input_bin).map_err(|_| InputPipelineError::new("Failed to add input bin to input pipeline"))?;
+    pipeline.add(&appsink).map_err(|_| InputPipelineError::new("Failed to add app sink to input pipeline"))?;
 
     // Link static elements
-    input_bin.link(&appsink).expect("Error linking input bin to appsink");
+    input_bin.link(&appsink).map_err(|_| InputPipelineError::new("Error linking input bin to appsink"))?;
 
-    pipeline
+    Ok(pipeline)
 }
 
 pub struct Pipeline {
     id: uuid::Uuid, // Id of the parent pipeline (the one that groups input and output)
-    stream: pipeless::input::pipeline::StreamDef,
+    _stream: pipeless::input::pipeline::StreamDef,
     gst_pipeline: gst::Pipeline,
 }
 impl Pipeline {
@@ -352,17 +383,17 @@ impl Pipeline {
         id: uuid::Uuid,
         stream: pipeless::input::pipeline::StreamDef,
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
-    ) -> Self {
+    ) -> Result<Self, InputPipelineError> {
         let input_uri = stream.get_video().get_uri();
-        let gst_pipeline = create_gst_pipeline(id, input_uri, pipeless_bus_sender);
+        let gst_pipeline = create_gst_pipeline(id, input_uri, pipeless_bus_sender)?;
         let pipeline = Pipeline {
             id,
-            stream,
+            _stream: stream,
             gst_pipeline,
         };
 
         let bus = pipeline.gst_pipeline.bus()
-            .expect("Unable to get input gst pipeline bus");
+            .ok_or_else(|| { InputPipelineError::new("Unable to get input gst pipeline bus") })?;
         bus.add_signal_watch();
         let pipeline_id = pipeline.id.clone();
         bus.connect_message(
@@ -377,9 +408,9 @@ impl Pipeline {
 
         pipeline.gst_pipeline
             .set_state(gst::State::Playing)
-            .expect("Unable to start the input gst pipeline");
+            .map_err(|_| { InputPipelineError::new("Unable to start the input gst pipeline") })?;
 
-        pipeline
+        Ok(pipeline)
     }
 
     pub fn get_pipeline_id(&self) -> uuid::Uuid {

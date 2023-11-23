@@ -1,6 +1,6 @@
 use log::{error, warn};
 use pyo3::prelude::*;
-use numpy::{self, ToPyArray};
+use numpy;
 
 use crate::{data::{RgbFrame, Frame}, stages::{hook::HookTrait, stage::ContextTrait}, stages::stage::Context, kvs::store};
 

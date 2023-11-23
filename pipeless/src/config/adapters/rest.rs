@@ -32,7 +32,7 @@ async fn handle_add_stream(
     stream: StreamBody,
     streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>,
     dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>
-) -> Result<warp::reply::WithStatus<warp::reply::Json>, Infallible> {
+) -> Result<warp::reply::WithStatus<warp::reply::Json>, String> {
     let input_uri: String;
     if let Some(uri) = stream.clone().input_uri {
         input_uri = uri;
@@ -53,10 +53,13 @@ async fn handle_add_stream(
     }
     let output_uri = stream.output_uri.clone();
     {
-        streams_table.write()
+        let res = streams_table.write()
             .await
-            .add(pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path))
-            .expect("Error adding new stream to the table");
+            .add(pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path));
+
+        if let Err(err) = res {
+            return Err(format!("Error adding new stream to the table: {}", err));
+        }
     }
 
     match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {

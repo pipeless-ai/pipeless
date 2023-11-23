@@ -1,11 +1,14 @@
+use glib::BoolError;
 use gstreamer as gst;
-use log::error;
+use log::{error, warn};
 
-pub fn create_generic_component(ctype: &str, cname: &str) -> gst::Element {
+pub fn create_generic_component(ctype: &str, cname: &str) -> Result<gst::Element, BoolError> {
     let component = gst::ElementFactory::make(ctype)
         .name(cname)
-        .build()
-        .expect(format!("Failed to create component {} of type {}", cname, ctype).as_str());
+        .build().or_else(|err| {
+            error!("Failed to create component {} of type {}", cname, ctype);
+            Err(err)
+        });
 
     component
 }
@@ -94,9 +97,14 @@ pub fn tag_list_to_string(tag_list: &gst::TagList) -> String {
             if n_tag_values == 1 {
                 if let Some(tag_value) = tag_list.index_generic(tag_name, 0) {
                     match tag_value.get::<gst::DateTime>() {
-                        Ok(datetime) =>
-                            formatted_tags.push(format!("{}={}", tag_name, datetime.to_iso8601_string()
-                                .expect("Unable to get ISO string from tag"))),
+                        Ok(datetime) => {
+                            let datetime_tag_res = datetime.to_iso8601_string();
+                            if let Ok(tag_value) = datetime_tag_res {
+                                formatted_tags.push(format!("{}={}", tag_name, tag_value))
+                            } else {
+                                warn!("Unable to get ISO string from tag");
+                            }
+                        }
                         Err(_) => formatted_tags.push(format!("{}={:?}", tag_name, tag_value))
                     }
                 }
@@ -105,10 +113,15 @@ pub fn tag_list_to_string(tag_list: &gst::TagList) -> String {
                     .filter_map(|i| {
                         tag_list.index_generic(tag_name, i).map(|tag_value|  {
                             match tag_value.get::<gst::DateTime>() {
-                                Ok(datetime) =>
-                                    datetime.to_iso8601_string()
-                                        .expect("Unable to get ISO string from tag")
-                                        .to_string(),
+                                Ok(datetime) => {
+                                    let datetime_tag_res = datetime.to_iso8601_string();
+                                    if let Ok(tag_value) = datetime_tag_res {
+                                       tag_value.to_string()
+                                    } else {
+                                        warn!("Unable to get ISO string from tag");
+                                        String::from("")
+                                    }
+                                }
                                 Err(_) => format!("{:?}", tag_value)
                             }
                         })

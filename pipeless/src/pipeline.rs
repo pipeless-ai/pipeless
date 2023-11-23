@@ -6,6 +6,31 @@ use log::{info, error, warn};
 
 use crate as pipeless;
 
+#[derive(Debug)]
+pub struct PipelineError {
+    msg: String
+}
+impl std::error::Error for PipelineError {}
+impl std::fmt::Display for PipelineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.msg.to_string())
+    }
+}
+impl From<pipeless::input::pipeline::InputPipelineError> for PipelineError {
+    fn from(error: pipeless::input::pipeline::InputPipelineError) -> Self {
+        Self {
+            msg: error.to_string(),
+        }
+    }
+}
+impl From<pipeless::output::pipeline::OutputPipelineError> for PipelineError {
+    fn from(error: pipeless::output::pipeline::OutputPipelineError) -> Self {
+        Self {
+            msg: error.to_string(),
+        }
+    }
+}
+
 /// A Pipeless pipeline is an association of an input pipeline and an
 /// output pipeline, plus the stages the frames must pass through
 /// The input and output pipelines are handled via independent Gstreamer pipelines
@@ -14,7 +39,7 @@ use crate as pipeless;
 /// avoiding inconsistences when a node fails in a cloud setup.
 struct Pipeline {
     id: uuid::Uuid,
-    input_stream_def: pipeless::input::pipeline::StreamDef,
+    _input_stream_def: pipeless::input::pipeline::StreamDef,
     output_stream_def: Option<pipeless::output::pipeline::StreamDef>,
     input_pipeline: pipeless::input::pipeline::Pipeline,
     output_pipeline: Option<pipeless::output::pipeline::Pipeline>,
@@ -26,30 +51,30 @@ impl Pipeline {
         input_uri: String,
         output_uri: Option<String>,
         frames_path: pipeless::stages::path::FramePath,
-    ) -> Self {
+    ) -> Result<Self, PipelineError> {
         let pipeline_id = uuid::Uuid::new_v4();
         let input_stream_def =
-            pipeless::input::pipeline::StreamDef::new(input_uri.clone());
+            pipeless::input::pipeline::StreamDef::new(input_uri.clone())?;
         let input_pipeline = pipeless::input::pipeline::Pipeline::new(
             pipeline_id,
             input_stream_def.clone(),
             pipeless_bus_sender,
-        );
+        )?;
 
-        let output_stream_def = match output_uri {
-            Some(uri) => Some(pipeless::output::pipeline::StreamDef::new(uri)),
-            None => None,
-        };
+        let mut output_stream_def = None;
+        if let Some(uri) = output_uri {
+            output_stream_def = Some(pipeless::output::pipeline::StreamDef::new(uri)?);
+        }
 
-        Pipeline {
+        Ok(Pipeline {
             id: pipeline_id,
-            input_stream_def,
+            _input_stream_def: input_stream_def,
             output_stream_def,
             input_pipeline,
             // The output pipeline can't be created until we have the input caps
             output_pipeline: None,
             frames_path,
-        }
+        })
     }
 
     /// The output stream of a pipeline is created once we got the input capabilities
@@ -58,7 +83,7 @@ impl Pipeline {
         &mut self,
         input_caps: String,
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
-    ) {
+    ) -> Result<(), pipeless::output::pipeline::OutputPipelineError> {
         if let Some(stream_def) = &self.output_stream_def {
             // TODO: build streamdefs within pipelines and pass the uri only
             let output_pipeline =
@@ -67,9 +92,11 @@ impl Pipeline {
                     stream_def.clone(),
                     &input_caps,
                     pipeless_bus_sender
-                );
+                )?;
             self.output_pipeline = Some(output_pipeline);
         }
+
+        Ok(())
     }
 
     /// Close only stops the gst pipelines. It does not send EOS.
@@ -113,15 +140,15 @@ impl Manager {
         // The bus needs to be created before the pipeline
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
         dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>,
-    ) -> Self {
+    ) -> Result<Self, PipelineError> {
         let pipeline = Arc::new(RwLock::new(pipeless::pipeline::Pipeline::new(
             &pipeless_bus_sender,
             input_video_uri,
             output_video_uri,
             frames_path,
-        )));
+        )?));
 
-        Self {pipeline, dispatcher_sender }
+        Ok(Self {pipeline, dispatcher_sender })
     }
 
     // Start takes ownership of self because we have to access the bus,
@@ -171,7 +198,11 @@ impl Manager {
                                 if let Some(out_frame) = out_frame_opt {
                                     let read_guard = rw_pipeline.read().await;
                                     match &read_guard.output_pipeline {
-                                        Some(pipe) => pipe.on_new_frame(out_frame),
+                                        Some(pipe) => {
+                                            if let Err(err) = pipe.on_new_frame(out_frame) {
+                                                error!("{}", err);
+                                            }
+                                        }
                                         None => {}
                                     }
                                 } else {
@@ -183,10 +214,12 @@ impl Manager {
                                 info!("New input caps. Creating output pipeline for caps: {}", caps);
 
                                 let mut write_guard = rw_pipeline.write().await;
-                                write_guard.create_and_start_output_pipeline(
+                                if let Err(err) = write_guard.create_and_start_output_pipeline(
                                     caps.to_string(),
                                     &pipeless_bus_sender
-                                );
+                                ) {
+                                    error!("Error creating output: {}. The stream will be processed without the output", err);
+                                };
                             }
                             pipeless::events::Event::TagsChangeEvent(e) => {
                                 let tags = e.get_tags();
@@ -209,7 +242,9 @@ impl Manager {
                                     let write_guard = rw_pipeline.write().await;
                                     if let Some(out_pipe) = &write_guard.output_pipeline {
                                         info!("End of input stream reached. Pipeline id: {}", out_pipe.get_pipeline_id());
-                                        out_pipe.on_eos();
+                                        if let Err(err) = out_pipe.on_eos() {
+                                            error!("Error sending end of stream signal to output: {}", err);
+                                        }
                                     }
                                 }
                             }
@@ -227,7 +262,9 @@ impl Manager {
                                 };
 
                                 // End the processing loop
-                                end_signal.send(()).await.expect("Error signaling stream event loop end");
+                                if let Err(err) = end_signal.send(()).await {
+                                    error!("Error signaling stream event loop end: {}", err);
+                                }
                             }
                             pipeless::events::Event::InputStreamErrorEvent(e) => {
                                 let pipeline_id;
@@ -246,7 +283,9 @@ impl Manager {
                                 };
 
                                 // End the processing loop
-                                end_signal.send(()).await.expect("Error signaling stream event loop end");
+                                if let Err(err) = end_signal.send(()).await {
+                                    error!("Error signaling stream event loop end: {}", err)
+                                };
                             }
                             pipeless::events::Event::OutputStreamErrorEvent(e) => {
                                 let pipeline_id;
@@ -265,7 +304,9 @@ impl Manager {
                                 }
 
                                 // End the processing loop
-                                end_signal.send(()).await.expect("Error signaling stream event loop end");
+                                if let Err(err) = end_signal.send(()).await {
+                                    error!("Error signaling stream event loop end: {}", err)
+                                };
                             }
                         }
                     }
