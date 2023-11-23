@@ -222,17 +222,21 @@ fn create_input_bin(
         uridecodebin.connect_pad_added({
             let pipeless_bus_sender = pipeless_bus_sender.clone();
             move |_elem, pad| {
-                if let Ok(_) = link_new_pad_fn(&pad) {
-                    // Connect an async handler to the pad to be notified when caps are set
-                    pad.add_probe(
-                        gst::PadProbeType::EVENT_UPSTREAM,
-                        {
-                            let pipeless_bus_sender = pipeless_bus_sender.clone();
-                            move |pad: &gst::Pad, info: &mut gst::PadProbeInfo| {
-                                on_pad_added(pad, info, &pipeless_bus_sender)
+                let link_pad_res = link_new_pad_fn(&pad);
+                match link_pad_res {
+                    Ok(_) => {
+                        // Connect an async handler to the pad to be notified when caps are set
+                        pad.add_probe(
+                            gst::PadProbeType::EVENT_UPSTREAM,
+                            {
+                                let pipeless_bus_sender = pipeless_bus_sender.clone();
+                                move |pad: &gst::Pad, info: &mut gst::PadProbeInfo| {
+                                    on_pad_added(pad, info, &pipeless_bus_sender)
+                                }
                             }
-                        }
-                    );
+                        );
+                    },
+                    Err(err) => error!("{}", err)
                 }
             }
         });
