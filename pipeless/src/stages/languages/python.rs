@@ -140,9 +140,6 @@ impl IntoPy<Py<PyAny>> for &PythonStageContext {
 
 /// Defines a Hook implemented in Python
 pub struct PythonHook {
-    // Generic hook fields
-    hook_type: HookType,
-    // Specific hook fields
     module: Py<pyo3::types::PyModule>,
 }
 impl PythonHook {
@@ -195,7 +192,7 @@ def hook_wrapper(frame, context):
             wrapper_module.into()
         });
 
-        Self { module, hook_type }
+        Self { module }
     }
     pub fn get_module(&self) -> &Py<pyo3::types::PyModule> {
         &self.module
@@ -247,9 +244,5 @@ impl HookTrait for PythonHook {
         });
 
         out_frame
-    }
-
-    fn get_hook_type(&self) -> HookType {
-        self.hook_type
     }
 }

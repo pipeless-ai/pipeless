@@ -49,10 +49,7 @@ impl Stage {
     }
 
     pub fn add_hook(&mut self, new_hook: pipeless::stages::hook::Hook) {
-        let existing_hook = self.hooks.iter().find(|h| {
-            std::mem::discriminant(*h) == std::mem::discriminant(&new_hook)
-        });
-
+        let existing_hook = self.hooks.iter().find(|h| h.get_hook_type() == new_hook.get_hook_type());
         if existing_hook.is_some() {
             error!("⚠️  Failed to add duplicated hook type to the stage '{}'.", self.name);
         } else {

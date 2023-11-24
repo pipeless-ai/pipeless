@@ -7,14 +7,10 @@ use super::{runtime::InferenceRuntime, session::{InferenceSession, SessionParams
 /// maintains the inference session. There are models that maintain internal state.
 /// Since the hook is associated to a stage, it will last as long as the stage
 pub struct InferenceHook {
-    // Generic hook fields
-    hook_type: pipeless::stages::hook::HookType,
-    // Specific hook fields
     session: InferenceSession,
 }
 impl InferenceHook {
     pub fn new(
-        hook_type: pipeless::stages::hook::HookType,
         runtime: &InferenceRuntime,
         session_params: SessionParams,
         model_uri: &str
@@ -32,10 +28,7 @@ impl InferenceHook {
             ),
         };
 
-        Self {
-            hook_type,
-            session,
-        }
+        Self { session }
     }
 }
 impl HookTrait for InferenceHook {
@@ -46,9 +39,5 @@ impl HookTrait for InferenceHook {
     ) -> Option<crate::data::Frame> {
        let out_frame = self.session.infer(frame);
        Some(out_frame)
-    }
-
-    fn get_hook_type(&self) -> pipeless::stages::hook::HookType {
-        self.hook_type
     }
 }

@@ -137,7 +137,7 @@ fn build_hook(
                 hook_type, stage_name, hook_code
             );
             // TODO: get state_mode from code and create the proper one. Read from a special comment at the beggining of the files
-            pipeless::stages::hook::Hook::new_stateless(Arc::new(py_hook))
+            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(py_hook))
         },
         pipeless::stages::languages::language::Language::Rust => { unimplemented!() },
         pipeless::stages::languages::language::Language::Json => {
@@ -164,9 +164,9 @@ fn build_hook(
                 panic!("The json definition of the hook '{}' from the stage '{}' should include the field 'inference_params' as an object", hook_type, stage_name);
             }
             let session_params = pipeless::stages::inference::session::SessionParams::from_raw_data(stage_name, &runtime, raw_session_params);
-            let inference_hook = pipeless::stages::inference::hook::InferenceHook::new(hook_type, &runtime, session_params, model_uri.as_str().unwrap());
+            let inference_hook = pipeless::stages::inference::hook::InferenceHook::new(&runtime, session_params, model_uri.as_str().unwrap());
             // TODO: get state_mode from the json key 'hook_state_mode'
-            pipeless::stages::hook::Hook::new_stateless(Arc::new(inference_hook))
+            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(inference_hook))
         },
     }
 }

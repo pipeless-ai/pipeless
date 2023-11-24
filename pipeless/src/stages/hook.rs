@@ -3,6 +3,7 @@ use tokio::sync::Mutex;
 
 use crate as pipeless;
 
+#[derive(Clone,Copy,PartialEq)]
 pub enum HookType {
     PreProcess,
     Process,
@@ -25,8 +26,33 @@ pub trait HookTrait: Send + Sync {
         frame: pipeless::data::Frame,
         stage_context: &pipeless::stages::stage::Context
     ) -> Option<pipeless::data::Frame>;
+}
 
-    fn get_hook_type(&self) -> HookType;
+#[derive(Clone)]
+pub struct StatelessHook {
+    h_type: HookType,
+    h_body: Arc<dyn HookTrait>,
+}
+impl StatelessHook {
+    fn get_hook_type(&self) -> HookType {
+        self.h_type
+    }
+    fn get_hook_body(&self) -> Arc<dyn HookTrait> {
+        self.h_body.clone()
+    }
+}
+#[derive(Clone)]
+pub struct StatefulHook {
+    h_type: HookType,
+    h_body: Arc<Mutex<dyn HookTrait>>,
+}
+impl StatefulHook {
+    fn get_hook_type(&self) -> HookType {
+        self.h_type
+    }
+    fn get_hook_body(&self) -> Arc<Mutex<dyn HookTrait>> {
+        self.h_body.clone()
+    }
 }
 
 /// Pipeless hooks are the minimal executable unit
@@ -36,19 +62,28 @@ pub trait HookTrait: Send + Sync {
 /// The execution of a stage that contains stateful hooks is slower than one based on just stateless hooks.
 /// This is because when a stateful hook is executed for a frame, the rest of frames are waiting for the lock to be released,
 /// however, in the stateless case, we can safely access the content of the hook from many frames at the same time.
+/// Note Stateless hooks use Arc while Stateful use Arc_Mutex
 #[derive(Clone)] // Cloning will not duplicate data since we are using Arc
 pub enum Hook {
-    StatelessHook(Arc<dyn HookTrait>),
-    StatefulHook(Arc<Mutex<dyn HookTrait>>),
+    StatelessHook(StatelessHook),
+    StatefulHook(StatefulHook),
 }
 unsafe impl std::marker::Sync for Hook {}
 unsafe impl std::marker::Send for Hook {}
 impl Hook {
-    pub fn new_stateless(arc_hook: Arc<dyn HookTrait>) -> Self {
-        Self::StatelessHook(arc_hook)
+    pub fn new_stateless(hook_type: HookType, hook_body: Arc<dyn HookTrait>) -> Self {
+        let hook = StatelessHook {
+            h_type: hook_type,
+            h_body: hook_body,
+        };
+        Self::StatelessHook(hook)
     }
-    pub fn new_stateful(mutex_hook: Arc<Mutex<dyn HookTrait>>) -> Self {
-        Self::StatefulHook(mutex_hook)
+    pub fn new_stateful(hook_type: HookType, hook_body: Arc<Mutex<dyn HookTrait>>) -> Self {
+        let hook = StatefulHook {
+            h_type: hook_type,
+            h_body: hook_body,
+        };
+        Self::StatefulHook(hook)
     }
 
     pub async fn exec_hook(
@@ -58,24 +93,23 @@ impl Hook {
     ) -> std::option::Option<pipeless::data::Frame> {
         match self {
             Hook::StatelessHook(hook) => {
-                hook.exec_hook(frame, stage_context)
+                hook.get_hook_body().exec_hook(frame, stage_context)
             },
             Hook::StatefulHook(hook) => {
-                let locked_hook = hook.lock().await;
+                let h_body = hook.get_hook_body();
+                let locked_hook = h_body.lock().await;
                 locked_hook.exec_hook(frame, stage_context)
             },
         }
     }
 
-    pub async fn get_hook_type(&self) -> HookType {
+    pub fn get_hook_type(&self) -> HookType {
         match self {
             Hook::StatelessHook(hook) => {
                 hook.get_hook_type()
             },
             Hook::StatefulHook(hook) => {
-                let locked_hook = hook.lock().await;
-                let h_type = locked_hook.get_hook_type();
-                h_type
+                hook.get_hook_type()
             },
         }
     }

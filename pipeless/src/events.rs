@@ -1,4 +1,4 @@
-use futures::{StreamExt, Future, Stream};
+use futures::{StreamExt, Future};
 use gst::TagList;
 use log::{error, info, warn};
 use gstreamer as gst;

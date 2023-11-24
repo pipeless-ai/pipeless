@@ -66,25 +66,19 @@ impl FramePathExecutor {
 
                 // FIXME: we have the code duplicated per hook type just to match the hook type to guarantee the hooks order
 
-                let pre_process_hook = stage_hooks.iter().find(|h| {
-                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::PreProcess)
-                });
+                let pre_process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::PreProcess);
                 if let Some(hook) = pre_process_hook {
-                   frame = run_hook_by_type(hook, stage, frame).await;
+                   frame = run_hook_by_type(&hook, stage, frame).await;
                 }
 
-                let process_hook = stage_hooks.iter().find(|h| {
-                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::Process)
-                });
+                let process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::Process);
                 if let Some(hook) = process_hook {
-                    frame = run_hook_by_type(hook, stage, frame).await;
+                    frame = run_hook_by_type(&hook, stage, frame).await;
                 }
 
-                let post_process_hook = stage_hooks.iter().find(|h| {
-                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::PostProcess)
-                });
+                let post_process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::PostProcess);
                 if let Some(hook) = post_process_hook {
-                    frame = run_hook_by_type(hook, stage, frame).await;
+                    frame = run_hook_by_type(&hook, stage, frame).await;
                 }
             } else {
                 warn!("Stage '{}' not found, skipping execution", stage_name);
@@ -132,5 +126,18 @@ async fn run_hook_by_type(
         }
     }
 
+    None
+}
+
+fn find_hook(
+    stage_hooks: &Vec<super::hook::Hook>,
+    search_type: pipeless::stages::hook::HookType,
+) -> Option<pipeless::stages::hook::Hook> {
+    for h in stage_hooks {
+        let h_type = h.get_hook_type();
+        if h_type == search_type {
+            return Some(h.clone());
+        }
+    }
     None
 }
