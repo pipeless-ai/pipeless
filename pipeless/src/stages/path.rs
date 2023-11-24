@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fmt};
-use log::warn;
+use log::{warn, error};
 use serde_derive::{Serialize, Deserialize};
 
 use crate as pipeless;
@@ -53,45 +53,44 @@ impl FramePathExecutor {
     /// Since there is not async code here, once a stage starts to execute
     /// for a frame, it doesn't stop until te stage finishes (after post-process)
     /// TODO: we should add async code here to pass the CPU when moving frames to/from the GPU
-    pub fn execute_path(
+    pub async fn execute_path(
         &self,
         frame: pipeless::data::Frame,
         path: FramePath
     ) -> Option<pipeless::data::Frame> {
         let mut frame = Some(frame);
+        let start = std::time::Instant::now();
         for stage_name in path.get_path().iter() {
             if let Some(stage) = self.stages.get(stage_name) {
                 let stage_hooks = stage.get_hooks();
 
                 // FIXME: we have the code duplicated per hook type just to match the hook type to guarantee the hooks order
 
-                let pre_process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::PreProcessHook(_)));
+                let pre_process_hook = stage_hooks.iter().find(|h| {
+                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::PreProcess)
+                });
                 if let Some(hook) = pre_process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                   frame = run_hook_by_type(hook, stage, frame).await;
                 }
 
-                let process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::ProcessHook(_)));
+                let process_hook = stage_hooks.iter().find(|h| {
+                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::Process)
+                });
                 if let Some(hook) = process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                    frame = run_hook_by_type(hook, stage, frame).await;
                 }
 
-                let post_process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::PostProcessHook(_)));
+                let post_process_hook = stage_hooks.iter().find(|h| {
+                    matches!(h.get_hook_type(), pipeless::stages::hook::HookType::PostProcess)
+                });
                 if let Some(hook) = post_process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                    frame = run_hook_by_type(hook, stage, frame).await;
                 }
             } else {
                 warn!("Stage '{}' not found, skipping execution", stage_name);
             }
         }
+        error!("Processing time {}", start.elapsed().as_millis());
 
         frame
     }
@@ -104,4 +103,34 @@ impl FramePathExecutor {
             Ok(frame_path)
         }
     }
+}
+
+async fn run_hook_by_type(
+    hook: &pipeless::stages::hook::Hook,
+    stage: &pipeless::stages::stage::Stage,
+    frame: Option<pipeless::data::Frame>,
+) -> Option<pipeless::data::Frame> {
+    if let Some(frame) = frame {
+        // Offload CPU bounded task to a worker thread
+        let worker_result = tokio::task::spawn_blocking({
+            let context = stage.get_context();
+            let hook = hook.clone();
+            || async move {
+                hook.exec_hook(frame, &context).await
+            }
+        }).await;
+        let frame;
+        match worker_result {
+            Ok(fut) => {
+                frame = fut.await;
+                return frame;
+            },
+            Err(err) => {
+                error!("Error in hook worker thread: {}", err);
+                return None;
+            }
+        }
+    }
+
+    None
 }

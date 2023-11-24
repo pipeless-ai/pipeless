@@ -1,5 +1,6 @@
 use log::error;
 
+use crate::stages::hook::HookType;
 use crate::{stages::{hook::HookTrait, stage::{Context, ContextTrait}}, data::Frame};
 
 pub struct RustStageContext {
@@ -10,8 +11,10 @@ impl ContextTrait<RustStageContext> for RustStageContext {
         unimplemented!();
     }
 }
+
 pub struct RustHook {
-    // TODO
+    // Generic hook fields
+    hook_type: HookType,
 }
 impl HookTrait for RustHook {
     fn exec_hook(&self, frame: Frame, _stage_context: &Context) -> Option<Frame> {
@@ -22,5 +25,9 @@ impl HookTrait for RustHook {
             error!("The stage context provided to the Rust executor is not a Rust context");
         }
         Some(frame)
+    }
+
+    fn get_hook_type(&self) -> HookType {
+        self.hook_type
     }
 }

@@ -1,4 +1,4 @@
-use futures::{StreamExt, Future};
+use futures::{StreamExt, Future, Stream};
 use gst::TagList;
 use log::{error, info, warn};
 use gstreamer as gst;
@@ -170,7 +170,7 @@ impl Bus {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
 
         tokio::select! {
-            _ = self.receiver.for_each_concurrent(limit, move |event| func(event, tx.clone())) => error!("This should not be reached!"),
+            _ = self.receiver.for_each_concurrent(limit, |event| func(event, tx.clone())) => error!("This should not be reached!"),
             _ = rx.recv() => info!("Stream loop stopped"),
         };
     }
@@ -194,6 +194,7 @@ pub fn publish_new_frame_change_event_sync(
     if let Err(err) = bus_sender.send(new_frame_event) {
         warn!("Error sending frame change event: {}", err);
     }
+    error!("Event sent!");
 }
 
 pub fn publish_input_eos_event_sync(

@@ -1,3 +1,4 @@
+use log::error;
 use pyo3;
 use std::sync::Arc;
 use tokio::sync::RwLock;
