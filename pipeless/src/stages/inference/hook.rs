@@ -3,9 +3,12 @@ use crate as pipeless;
 use crate::stages::hook::HookTrait;
 use super::{runtime::InferenceRuntime, session::{InferenceSession, SessionParams}};
 
-/// Pipeless hooks are stateless, expect for the inference hook, which
-/// maintains the inference session. There are models that maintain internal state.
-/// Since the hook is associated to a stage, it will last as long as the stage
+/// Inference hooks maintain the inference session.
+/// When created as stateless hooks, the inference session will be duplicated to every worker
+/// When using a model that maintains internal state a stateful hook should be used.
+/// Since the hook is associated to a stage, the inference session will last as long as the stage
+/// To use different sessions per stream, the stage should be duplicated. Creating a symlink
+/// in the project folder is enough to split the inference session.
 pub struct InferenceHook {
     session: InferenceSession,
 }

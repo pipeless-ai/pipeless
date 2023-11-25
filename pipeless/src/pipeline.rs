@@ -178,7 +178,6 @@ impl Manager {
                     let dispatcher_sender = dispatcher_sender.clone();
                     let pipeless_bus_sender = pipeless_bus_sender.clone();
                     let frame_path_executor_arc = frame_path_executor_arc.clone();
-
                     async move {
                         match event {
                             pipeless::events::Event::FrameChangeEvent(e) => {
@@ -191,7 +190,6 @@ impl Manager {
                                 let out_frame_opt;
                                 {
                                     let frame_path_executor = frame_path_executor_arc.read().await;
-                                    // Execute the frame_path offloading the work to a worker thread
                                     out_frame_opt = frame_path_executor.execute_path(frame, frame_path).await;
                                 }
 
