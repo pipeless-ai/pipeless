@@ -1,4 +1,5 @@
 use std::{sync::Arc, fmt};
+use log::error;
 use tokio::sync::Mutex;
 
 use crate as pipeless;
@@ -89,16 +90,40 @@ impl Hook {
     pub async fn exec_hook(
         &self,
         frame: pipeless::data::Frame,
-        stage_context: &pipeless::stages::stage::Context,
+        stage_context: Arc<pipeless::stages::stage::Context>,
     ) -> std::option::Option<pipeless::data::Frame> {
         match self {
             Hook::StatelessHook(hook) => {
-                hook.get_hook_body().exec_hook(frame, stage_context)
+                // Offload the hook execution which is usually a CPU bounded (and intensive) task
+                // out of the tokio thread pool
+                // We use rayon because it uses a pool equal to the cores, which allows to process the optimal number of frames at once.
+                let (send, recv) = tokio::sync::oneshot::channel();
+                rayon::spawn({
+                    let stage_context = stage_context.clone();
+                    let hook = hook.clone();
+                    move || {
+                        let f = hook.get_hook_body().exec_hook(frame, &stage_context);
+                        // Send the result back to Tokio.
+                        let _ = send.send(f);
+                    }
+                });
+                // Wait for the rayon task.
+                let worker_res = recv.await;
+                match worker_res {
+                    Ok(f) => {
+                        return f;
+                    },
+                    Err(err) => {
+                        error!("Error pulling results from rayon worker: {}", err);
+                        return None;
+                    }
+                }
             },
+            // TODO: offload also on this function
             Hook::StatefulHook(hook) => {
                 let h_body = hook.get_hook_body();
                 let locked_hook = h_body.lock().await;
-                locked_hook.exec_hook(frame, stage_context)
+                locked_hook.exec_hook(frame, &stage_context)
             },
         }
     }

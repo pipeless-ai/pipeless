@@ -12,6 +12,7 @@ use crate as pipeless;
 /// of all streams.
 // The context (like hooks) can be initialized by the user in several languages
 // by returning data from the init function in the file init.{rs,py,...}
+// We pass it to hooks as read-only
 pub enum Context {
     EmptyContext,
     PythonContext(pipeless::stages::languages::python::PythonStageContext),

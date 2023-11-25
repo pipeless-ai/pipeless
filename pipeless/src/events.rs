@@ -194,7 +194,6 @@ pub fn publish_new_frame_change_event_sync(
     if let Err(err) = bus_sender.send(new_frame_event) {
         warn!("Error sending frame change event: {}", err);
     }
-    error!("Event sent!");
 }
 
 pub fn publish_input_eos_event_sync(

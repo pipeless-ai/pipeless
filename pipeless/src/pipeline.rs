@@ -148,7 +148,7 @@ impl Manager {
             frames_path,
         )?));
 
-        Ok(Self {pipeline, dispatcher_sender })
+        Ok(Self { pipeline, dispatcher_sender })
     }
 
     // Start takes ownership of self because we have to access the bus,
@@ -170,26 +170,18 @@ impl Manager {
             let rw_pipeline = rw_pipeline.clone();
             let dispatcher_sender = dispatcher_sender.clone();
             let pipeless_bus_sender = event_bus.get_sender();
-            let concurrent_limit = 10;
+            let concurrent_limit = num_cpus::get() * 2; // NOTE: Making benchmarks we found this is a good value
             let frame_path_executor_arc = frame_path_executor_arc.clone();
-            let n_frame = Arc::new(tokio::sync::Mutex::new(0));
             event_bus.process_events(concurrent_limit,
                 move |event, end_signal| {
                     let rw_pipeline = rw_pipeline.clone();
                     let dispatcher_sender = dispatcher_sender.clone();
                     let pipeless_bus_sender = pipeless_bus_sender.clone();
                     let frame_path_executor_arc = frame_path_executor_arc.clone();
-                    let n_frame = n_frame.clone();
+
                     async move {
                         match event {
                             pipeless::events::Event::FrameChangeEvent(e) => {
-                                let local_n_frame;
-                                {
-                                    let mut n_frame = n_frame.lock().await;
-                                    *n_frame += 1;
-                                    local_n_frame = (*n_frame).clone();
-                                }
-                                error!("Processing frame number: {}", local_n_frame);
                                 let frame = e.into_frame();
                                 let frame_path;
                                 {
@@ -202,7 +194,6 @@ impl Manager {
                                     // Execute the frame_path offloading the work to a worker thread
                                     out_frame_opt = frame_path_executor.execute_path(frame, frame_path).await;
                                 }
-                                error!("Finished to process frame number: {}", local_n_frame);
 
                                 if let Some(out_frame) = out_frame_opt {
                                     let read_guard = rw_pipeline.read().await;
