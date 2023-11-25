@@ -50,10 +50,9 @@ impl FramePathExecutor {
     }
 
     /// Execute the provided frame path over the provided frame
-    /// Since there is not async code here, once a stage starts to execute
-    /// for a frame, it doesn't stop until te stage finishes (after post-process)
-    /// TODO: we should add async code here to pass the CPU when moving frames to/from the GPU
-    pub fn execute_path(
+    /// We execute the framepath for several frames at the same time, but obviously, for each
+    /// frame the frampath goes in order.
+    pub async fn execute_path(
         &self,
         frame: pipeless::data::Frame,
         path: FramePath
@@ -65,28 +64,19 @@ impl FramePathExecutor {
 
                 // FIXME: we have the code duplicated per hook type just to match the hook type to guarantee the hooks order
 
-                let pre_process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::PreProcessHook(_)));
+                let pre_process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::PreProcess);
                 if let Some(hook) = pre_process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                   frame = run_hook(&hook, stage, frame).await;
                 }
 
-                let process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::ProcessHook(_)));
+                let process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::Process);
                 if let Some(hook) = process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                    frame = run_hook(&hook, stage, frame).await;
                 }
 
-                let post_process_hook = stage_hooks.iter().find(|h| matches!(h, pipeless::stages::hook::Hook::PostProcessHook(_)));
+                let post_process_hook = find_hook(stage_hooks,  pipeless::stages::hook::HookType::PostProcess);
                 if let Some(hook) = post_process_hook {
-                    let context = stage.get_context();
-                    if let Some(f) = frame {
-                        frame = hook.get_hook_def().exec_hook(f, &context);
-                    }
+                    frame = run_hook(&hook, stage, frame).await;
                 }
             } else {
                 warn!("Stage '{}' not found, skipping execution", stage_name);
@@ -104,4 +94,35 @@ impl FramePathExecutor {
             Ok(frame_path)
         }
     }
+}
+
+async fn run_hook(
+    hook: &pipeless::stages::hook::Hook,
+    stage: &pipeless::stages::stage::Stage,
+    frame: Option<pipeless::data::Frame>,
+) -> Option<pipeless::data::Frame> {
+    if let Some(frame) = frame {
+        // Offload CPU bounded task to a worker thread
+        let context = stage.get_context();
+        // NOTE: I hcnaged this and it works faster, however the process time is like 4 times bigger
+        // Using spawn_blocking there are not several models instantiated. Using spawn, everal models are instantiated.
+        // Testing without any of those, since we have await -> frames run one after the other
+        // All the cases take the same time to run the whole stream...
+        return hook.exec_hook(frame, context).await;
+    }
+
+    None
+}
+
+fn find_hook(
+    stage_hooks: &Vec<super::hook::Hook>,
+    search_type: pipeless::stages::hook::HookType,
+) -> Option<pipeless::stages::hook::Hook> {
+    for h in stage_hooks {
+        let h_type = h.get_hook_type();
+        if h_type == search_type {
+            return Some(h.clone());
+        }
+    }
+    None
 }

@@ -12,6 +12,7 @@ use crate as pipeless;
 /// of all streams.
 // The context (like hooks) can be initialized by the user in several languages
 // by returning data from the init function in the file init.{rs,py,...}
+// We pass it to hooks as read-only
 pub enum Context {
     EmptyContext,
     PythonContext(pipeless::stages::languages::python::PythonStageContext),
@@ -29,7 +30,7 @@ pub trait ContextTrait<T> {
 pub struct Stage {
     name: String,
     // A simple vector with all the hooks of this stage.
-    // We don't care about the type allowing to add or remove types easily
+    // Note Hook is thread safe so the data of this vector is it too
     hooks: Vec<pipeless::stages::hook::Hook>,
     context: Arc<Context>,
 }
@@ -49,14 +50,15 @@ impl Stage {
     }
 
     pub fn add_hook(&mut self, new_hook: pipeless::stages::hook::Hook) {
-        if self.hooks.iter().any(|item| std::mem::discriminant(item) == std::mem::discriminant(&new_hook)) {
+        let existing_hook = self.hooks.iter().find(|h| h.get_hook_type() == new_hook.get_hook_type());
+        if existing_hook.is_some() {
             error!("⚠️  Failed to add duplicated hook type to the stage '{}'.", self.name);
         } else {
             self.hooks.push(new_hook);
         }
     }
 
-    pub fn get_hooks(&self) -> &[pipeless::stages::hook::Hook] {
+    pub fn get_hooks(&self) -> &Vec<pipeless::stages::hook::Hook> {
         &self.hooks
     }
 

@@ -1,5 +1,4 @@
 use log::error;
-
 use crate::{stages::{hook::HookTrait, stage::{Context, ContextTrait}}, data::Frame};
 
 pub struct RustStageContext {
@@ -10,9 +9,8 @@ impl ContextTrait<RustStageContext> for RustStageContext {
         unimplemented!();
     }
 }
-pub struct RustHook {
-    // TODO
-}
+
+pub struct RustHook {}
 impl HookTrait for RustHook {
     fn exec_hook(&self, frame: Frame, _stage_context: &Context) -> Option<Frame> {
         let frame = frame;

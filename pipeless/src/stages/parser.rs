@@ -1,10 +1,9 @@
-use std::{fs, path::PathBuf, collections::HashMap};
+use std::{fs, path::PathBuf, collections::HashMap, sync::Arc};
 use log::{warn, info, error};
 
+use crate as pipeless;
 
-use crate::{self as pipeless};
-
-use super::{stage::ContextTrait};
+use super::{stage::ContextTrait, hook::HookType};
 
 fn for_each_dir_file<F>(dir_path: &str, mut func: F)
     where F: FnMut(&str, &PathBuf),
@@ -87,14 +86,26 @@ fn parse_hook(path: &PathBuf, stage: &mut pipeless::stages::stage::Stage) {
                     } else {
                         let hook;
                         if hook_type_str == "pre-process" || hook_type_str == "pre_process" {
-                            let hook_def = build_hook_def(stage.get_name(), hook_language, "pre_process", &hook_code);
-                            hook = pipeless::stages::hook::Hook::PreProcessHook(hook_def);
+                            hook = build_hook(
+                                stage.get_name(),
+                                hook_language,
+                                pipeless::stages::hook::HookType::PreProcess,
+                                &hook_code
+                            );
                         } else if hook_type_str == "process" {
-                            let hook_def = build_hook_def(stage.get_name(), hook_language, "process", &hook_code);
-                            hook = pipeless::stages::hook::Hook::ProcessHook(hook_def);
+                            hook = build_hook(
+                                stage.get_name(),
+                                hook_language,
+                                pipeless::stages::hook::HookType::Process,
+                                &hook_code
+                            );
                         } else if hook_type_str == "post-process" ||  hook_type_str == "post_process" {
-                            let hook_def = build_hook_def(stage.get_name(), hook_language, "post_process", &hook_code);
-                            hook = pipeless::stages::hook::Hook::PostProcessHook(hook_def);
+                            hook = build_hook(
+                                stage.get_name(),
+                                hook_language,
+                                pipeless::stages::hook::HookType::PostProcess,
+                                &hook_code
+                            );
                         } else {
                             error!("Unsupported hook type: {}", hook_type_str);
                             return;
@@ -114,16 +125,19 @@ fn parse_hook(path: &PathBuf, stage: &mut pipeless::stages::stage::Stage) {
     }
 }
 
-fn build_hook_def(
+fn build_hook(
     stage_name: &str,
     lang: &pipeless::stages::languages::language::LanguageDef,
-    hook_type: &str,
+    hook_type: HookType,
     hook_code: &str,
-) -> pipeless::stages::hook::HookDef {
-    let hook_def = match lang.get_language() {
+) -> pipeless::stages::hook::Hook {
+    match lang.get_language() {
         pipeless::stages::languages::language::Language::Python => {
-            let py_hook = pipeless::stages::languages::python::PythonHook::new(stage_name, hook_type, hook_code);
-            pipeless::stages::hook::HookDef::PythonHook(py_hook)
+            let py_hook = pipeless::stages::languages::python::PythonHook::new(
+                hook_type, stage_name, hook_code
+            );
+            // TODO: get state_mode from code and create the proper one. Read from a special comment at the beggining of the files
+            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(py_hook))
         },
         pipeless::stages::languages::language::Language::Rust => { unimplemented!() },
         pipeless::stages::languages::language::Language::Json => {
@@ -150,13 +164,11 @@ fn build_hook_def(
                 panic!("The json definition of the hook '{}' from the stage '{}' should include the field 'inference_params' as an object", hook_type, stage_name);
             }
             let session_params = pipeless::stages::inference::session::SessionParams::from_raw_data(stage_name, &runtime, raw_session_params);
-
             let inference_hook = pipeless::stages::inference::hook::InferenceHook::new(&runtime, session_params, model_uri.as_str().unwrap());
-            pipeless::stages::hook::HookDef::InferenceHook(inference_hook)
+            // TODO: get state_mode from the json key 'hook_state_mode'
+            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(inference_hook))
         },
-    };
-
-    hook_def
+    }
 }
 
 fn build_context(

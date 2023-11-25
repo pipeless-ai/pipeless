@@ -148,7 +148,7 @@ impl Manager {
             frames_path,
         )?));
 
-        Ok(Self {pipeline, dispatcher_sender })
+        Ok(Self { pipeline, dispatcher_sender })
     }
 
     // Start takes ownership of self because we have to access the bus,
@@ -170,7 +170,7 @@ impl Manager {
             let rw_pipeline = rw_pipeline.clone();
             let dispatcher_sender = dispatcher_sender.clone();
             let pipeless_bus_sender = event_bus.get_sender();
-            let concurrent_limit = 10;
+            let concurrent_limit = num_cpus::get() * 2; // NOTE: Making benchmarks we found this is a good value
             let frame_path_executor_arc = frame_path_executor_arc.clone();
             event_bus.process_events(concurrent_limit,
                 move |event, end_signal| {
@@ -187,12 +187,10 @@ impl Manager {
                                     let read_guard = rw_pipeline.read().await;
                                     frame_path = read_guard.get_frames_path();
                                 }
-
                                 let out_frame_opt;
                                 {
                                     let frame_path_executor = frame_path_executor_arc.read().await;
-                                    // Execute the stage, it will execute
-                                    out_frame_opt = frame_path_executor.execute_path(frame, frame_path);
+                                    out_frame_opt = frame_path_executor.execute_path(frame, frame_path).await;
                                 }
 
                                 if let Some(out_frame) = out_frame_opt {

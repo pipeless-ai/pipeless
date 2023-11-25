@@ -30,7 +30,6 @@ impl OnnxSessionParams {
         }
     }
 }
-
 pub struct OnnxSession {
     session: ort::Session,
 }

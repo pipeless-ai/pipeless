@@ -170,7 +170,7 @@ impl Bus {
         let (tx, mut rx) = tokio::sync::mpsc::channel::<()>(1);
 
         tokio::select! {
-            _ = self.receiver.for_each_concurrent(limit, move |event| func(event, tx.clone())) => error!("This should not be reached!"),
+            _ = self.receiver.for_each_concurrent(limit, |event| func(event, tx.clone())) => error!("This should not be reached!"),
             _ = rx.recv() => info!("Stream loop stopped"),
         };
     }
