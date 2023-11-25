@@ -146,6 +146,7 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
+        generate_release_notes: true
         tag_name: v${{ needs.build.outputs.new_version }}
         files: |
           artifact/*
