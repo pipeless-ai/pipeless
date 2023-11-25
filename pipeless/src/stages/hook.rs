@@ -61,8 +61,9 @@ impl StatefulHook {
 /// since they usually contain, for example, simple Python modules.
 /// Stateful hooks cannot be cloned, thus, they require to lock the hook, avoiding corrupting the state.
 /// The execution of a stage that contains stateful hooks is slower than one based on just stateless hooks.
-/// This is because when a stateful hook is executed for a frame, the rest of frames are waiting for the lock to be released,
-/// however, in the stateless case, we can safely access the content of the hook from many frames at the same time.
+/// Stateful hooks introduce a bottleneck since when a stateful hook is executed for a frame, the rest of
+/// frames are waiting for the lock to be released, however, in the stateless case, we can safely access the
+/// content of the hook from many frames at the same time. It is up to the user to elect when to use each one
 /// Note Stateless hooks use Arc while Stateful use Arc_Mutex
 #[derive(Clone)] // Cloning will not duplicate data since we are using Arc
 pub enum Hook {
@@ -95,8 +96,8 @@ impl Hook {
         match self {
             Hook::StatelessHook(hook) => {
                 // Offload the hook execution which is usually a CPU bounded (and intensive) task
-                // out of the tokio thread pool
-                // We use rayon because it uses a pool equal to the cores, which allows to process the optimal number of frames at once.
+                // out of the tokio thread pool. We use rayon because it uses a pool equal to the number of cores,
+                // which allows to process the optimal number of frames at once.
                 let (send, recv) = tokio::sync::oneshot::channel();
                 rayon::spawn({
                     let stage_context = stage_context.clone();
@@ -119,11 +120,25 @@ impl Hook {
                     }
                 }
             },
-            // TODO: offload also on this function
             Hook::StatefulHook(hook) => {
-                let h_body = hook.get_hook_body();
-                let locked_hook = h_body.lock().await;
-                locked_hook.exec_hook(frame, &stage_context)
+                // NOTE: the following is sub-optimal. We can't use rayon with async code and
+                // for stateful hooks we need to lock the mutex before running.
+                let worker_res = tokio::task::spawn_blocking({
+                    let stage_context = stage_context.clone();
+                    let hook = hook.clone();
+                    || async move {
+                        let h_body = hook.get_hook_body();
+                        let locked_hook = h_body.lock().await;
+                        locked_hook.exec_hook(frame, &stage_context)
+                    }
+                }).await;
+                match worker_res {
+                    Ok(f) => f.await,
+                    Err(err) => {
+                        error!("Error getting result from the tokio worker: {}", err);
+                        None
+                    }
+                }
             },
         }
     }
