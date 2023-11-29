@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf, collections::HashMap, sync::Arc};
 use log::{warn, info, error};
 
 use crate as pipeless;
-
+use tokio;
 use super::{stage::ContextTrait, hook::HookType};
 
 fn for_each_dir_file<F>(dir_path: &str, mut func: F)
@@ -107,7 +107,7 @@ fn parse_hook(path: &PathBuf, stage: &mut pipeless::stages::stage::Stage) {
                                 &hook_code
                             );
                         } else {
-                            error!("Unsupported hook type: {}", hook_type_str);
+                            warn!("Ignoring unsupported hook type: {}", hook_type_str);
                             return;
                         }
                         stage.add_hook(hook);
@@ -136,8 +136,24 @@ fn build_hook(
             let py_hook = pipeless::stages::languages::python::PythonHook::new(
                 hook_type, stage_name, hook_code
             );
-            // TODO: get state_mode from code and create the proper one. Read from a special comment at the beggining of the files
-            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(py_hook))
+
+            // The first line of the file can indicate if the hook must be stateful
+            let mut is_stateful = false;
+            if let Some(first_line) = hook_code.lines().next() {
+                if first_line == "# make stateful" {
+                    is_stateful = true;
+                }
+            } else {
+                warn!("The hook is empty");
+            }
+
+            if is_stateful {
+                info!("\t\tCreating stateful hook for {}-{}", stage_name, hook_type);
+                pipeless::stages::hook::Hook::new_stateful(hook_type, Arc::new(tokio::sync::Mutex::new(py_hook)))
+            } else {
+                info!("\t\tCreating stateless hook for {}-{}", stage_name, hook_type);
+                pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(py_hook))
+            }
         },
         pipeless::stages::languages::language::Language::Rust => { unimplemented!() },
         pipeless::stages::languages::language::Language::Json => {
@@ -165,8 +181,24 @@ fn build_hook(
             }
             let session_params = pipeless::stages::inference::session::SessionParams::from_raw_data(stage_name, &runtime, raw_session_params);
             let inference_hook = pipeless::stages::inference::hook::InferenceHook::new(&runtime, session_params, model_uri.as_str().unwrap());
-            // TODO: get state_mode from the json key 'hook_state_mode'
-            pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(inference_hook))
+
+            let mut is_stateful = false;
+            let make_stateful_v = &inference_def["make_stateful"];
+            if !make_stateful_v.is_null() && !make_stateful_v.is_boolean() {
+                panic!("The json definition of the hook '{}' from the stage '{}' should is wrong. The 'make_stateful' field must be a boolean", hook_type, stage_name);
+            } else {
+                if let Some(make_stateful) = make_stateful_v.as_bool() {
+                    is_stateful = make_stateful
+                }
+            }
+
+            if is_stateful {
+                info!("\t\tCreating stateful hook for {}-{}", stage_name, hook_type);
+                pipeless::stages::hook::Hook::new_stateful(hook_type, Arc::new(tokio::sync::Mutex::new(inference_hook)))
+            } else {
+                info!("\t\tCreating stateless hook for {}-{}", stage_name, hook_type);
+                pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(inference_hook))
+            }
         },
     }
 }
