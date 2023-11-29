@@ -202,20 +202,81 @@ fn create_input_bin(
         // Use uridecodebin by default
         let uridecodebin = pipeless::gst::utils::create_generic_component("uridecodebin3", "source")?;
         let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert")?;
+        // Only used when in NVidia devices
+        let nvvidconv_opt = pipeless::gst::utils::create_generic_component("nvvidconv", "nvvidconv");
+
         bin.add_many([&uridecodebin, &videoconvert])
             .map_err(|_| { InputPipelineError::new("Unable to add elements to the input bin")})?;
+        if let Ok(nvvidconv) = &nvvidconv_opt {
+            bin.add(nvvidconv)
+                .map_err(|_| { InputPipelineError::new("Unable to add nvidconv to the input bin")})?;
+            nvvidconv.link(&videoconvert) // We use unwrap here because it cannot be none
+                .map_err(|_| { InputPipelineError::new("Error linking nvvidconv to videoconvert") })?;
+        }
         uridecodebin.set_property("uri", uri);
+
+        // Create ghost pad to be able to plug other components
+        let videoconvert_src_pad = match videoconvert.static_pad("src") {
+            Some(pad) => pad,
+            None => {
+                return Err(InputPipelineError::new("Failed to create the pipeline. Unable to get videoconvert source pad."));
+            }
+        };
+        let ghostpath_src = gst::GhostPad::with_target(&videoconvert_src_pad)
+            .map_err(|_| { InputPipelineError::new("Unable to create the ghost pad to link bin")})?;
+        bin.add_pad(&ghostpath_src)
+            .map_err(|_| { InputPipelineError::new("Unable to add ghostpad to input bin")})?;
 
         // Uridecodebin uses dynamic linking (creates pads automatically for new detected streams)
         let videoconvert_sink_pad = videoconvert.static_pad("sink")
             .ok_or_else(|| { InputPipelineError::new("Unable to get videoconvert pad") })?;
-        let link_new_pad_fn = move |pad: &gst::Pad| -> Result<gst::PadLinkSuccess, InputPipelineError>{
-            if !videoconvert_sink_pad.is_linked() {
-                pad.link(&videoconvert_sink_pad)
-                    .map_err(|_| { InputPipelineError::new("Unable to link new pad to videoconvert sink pad") })
+        let link_new_pad_fn = move |pad: &gst::Pad| -> Result<gst::PadLinkSuccess, InputPipelineError> {
+            let pad_caps = pad.query_caps(None);
+            let caps_features = pad_caps.features(0);
+            if let Some(features) = caps_features {
+                if features.contains("memory:NVMM") {
+                    if let Ok(nvvidconv) = &nvvidconv_opt {
+                        // When using NVMM memory buffers, we have to move them to system memory
+                        // in order to link to videoconvert. Else, we would need to use nvvideoconvert.
+                        // TODO: we should support working with NVMM buffers to avoid copying them
+                        // between the system memory and the GPU memory back and forth
+                        info!("Using NVMM memory, adding nvvidconv element");
+                        let nvvidconv_sink_pad = nvvidconv.static_pad("sink")
+                            .ok_or_else(|| { InputPipelineError::new("Unable to get nvvidconv pad") })?;
+                        if !nvvidconv_sink_pad.is_linked() {
+                            pad.link(&nvvidconv_sink_pad)
+                                .map_err(|_| { InputPipelineError::new("Unable to link new uridecodebin pad to nvvidconv sink pad") })?;
+                        } else {
+                            warn!("nvvidconv pad already linked, skipping link.");
+                        }
+
+                        Ok(gst::PadLinkSuccess)
+                    } else {
+                        Err(InputPipelineError::new("nvidconv element could not be created, but is required when using memory:NVMM"))
+                    }
+                } else {
+                    // We can use the videoconvert as usual since the decodebin will return
+                    // SystemMemory
+                    info!("Using SystemMemory");
+                    if !videoconvert_sink_pad.is_linked() {
+                        pad.link(&videoconvert_sink_pad)
+                            .map_err(|_| { InputPipelineError::new("Unable to link new uridecodebin pad to videoconvert sink pad") })
+                    } else {
+                        warn!("Videoconvert pad already linked, skipping link.");
+                        Ok(gst::PadLinkSuccess)
+                    }
+                }
             } else {
-                warn!("Videoconvert pad already linked, skipping link.");
-                Ok(gst::PadLinkSuccess)
+                    // We can use the videoconvert as usual since the decodebin will return
+                    // systemmemory
+                    debug!("Uridecodebin using SystemMemory, linking to videoconvert");
+                    if !videoconvert_sink_pad.is_linked() {
+                        pad.link(&videoconvert_sink_pad)
+                            .map_err(|_| { InputPipelineError::new("Unable to link new uridecodebin pad to videoconvert sink pad") })
+                    } else {
+                        warn!("Videoconvert pad already linked, skipping link.");
+                        Ok(gst::PadLinkSuccess)
+                    }
             }
         };
 
@@ -240,18 +301,6 @@ fn create_input_bin(
                 }
             }
         });
-
-        // Create ghost pad to be able to plug other components
-        let videoconvert_src_pad = match videoconvert.static_pad("src") {
-            Some(pad) => pad,
-            None => {
-                return Err(InputPipelineError::new("Failed to create the pipeline. Unable to get videoconvert source pad."));
-            }
-        };
-        let ghostpath_src = gst::GhostPad::with_target(&videoconvert_src_pad)
-            .map_err(|_| { InputPipelineError::new("Unable to create the ghost pad to link bin")})?;
-        bin.add_pad(&ghostpath_src)
-            .map_err(|_| { InputPipelineError::new("Unable to add ghostpad to input bin")})?;
     }
 
     Ok(bin)
