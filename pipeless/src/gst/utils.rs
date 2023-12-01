@@ -6,7 +6,7 @@ pub fn create_generic_component(ctype: &str, cname: &str) -> Result<gst::Element
     let component = gst::ElementFactory::make(ctype)
         .name(cname)
         .build().or_else(|err| {
-            error!("Failed to create component {} of type {}", cname, ctype);
+            warn!("Failed to create component {} of type {}", cname, ctype);
             Err(err)
         });
 
