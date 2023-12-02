@@ -102,12 +102,7 @@ async fn run_hook(
     frame: Option<pipeless::data::Frame>,
 ) -> Option<pipeless::data::Frame> {
     if let Some(frame) = frame {
-        // Offload CPU bounded task to a worker thread
         let context = stage.get_context();
-        // NOTE: I hcnaged this and it works faster, however the process time is like 4 times bigger
-        // Using spawn_blocking there are not several models instantiated. Using spawn, everal models are instantiated.
-        // Testing without any of those, since we have await -> frames run one after the other
-        // All the cases take the same time to run the whole stream...
         return hook.exec_hook(frame, context).await;
     }
 
