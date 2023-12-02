@@ -66,13 +66,10 @@ impl RgbFrame {
     pub fn set_original_pixels(&mut self, original_pixels: ndarray::Array3<u8>) {
         self.original = original_pixels
     }
-    pub fn get_original_pixels(&self) -> &ndarray::Array3<u8> {
-        &self.original
+    pub fn get_original_pixels(&self) -> ndarray::ArrayView3<u8> {
+        self.original.view()
     }
-    pub fn get_modified_pixels(&self) -> &ndarray::Array3<u8> {
-        &self.modified
-    }
-    pub fn get_mutable_pixels(&mut self) -> ndarray::ArrayViewMut3<u8> {
+    pub fn get_modified_pixels(&mut self) -> ndarray::ArrayViewMut3<u8> {
         self.modified.view_mut()
     }
     pub fn update_mutable_pixels(
@@ -148,7 +145,7 @@ impl Frame {
             Frame::RgbFrame(frame) => { frame.set_original_pixels(original_pixels) },
         }
     }
-    pub fn get_original_pixels(&self) -> &ndarray::Array3<u8> {
+    pub fn get_original_pixels(&mut self) -> ndarray::ArrayView3<u8> {
         match self {
             Frame::RgbFrame(frame) => frame.get_original_pixels()
         }

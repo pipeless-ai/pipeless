@@ -1,6 +1,6 @@
 use log::{error, warn};
 use pyo3::prelude::*;
-use numpy;
+use numpy::{self, ToPyArray};
 
 use crate::{data::{RgbFrame, Frame}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
 
@@ -26,11 +26,11 @@ impl<'source> FromPyObject<'source> for Frame {
 }
 /// Allows the RgbFrame variant of Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for RgbFrame {
-    fn into_py(self, py: Python) -> Py<PyAny> {
+    fn into_py(mut self, py: Python) -> Py<PyAny> {
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item("uuid", self.get_uuid().to_string()).unwrap();
-        dict.set_item("original", numpy::PyArray3::from_array(py, self.get_original_pixels())).unwrap();
-        dict.set_item("modified", numpy::PyArray3::from_array(py, self.get_modified_pixels())).unwrap();
+        dict.set_item("original", self.get_original_pixels().to_pyarray(py)).unwrap();
+        dict.set_item("modified", self.get_modified_pixels().to_pyarray(py)).unwrap();
         dict.set_item("width", self.get_width()).unwrap();
         dict.set_item("height", self.get_height()).unwrap();
         dict.set_item("pts", self.get_pts().mseconds()).unwrap();
@@ -38,18 +38,19 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("duration", self.get_duration().mseconds()).unwrap();
         dict.set_item("fps", self.get_fps()).unwrap();
         dict.set_item("input_ts", self.get_input_ts()).unwrap();
-        dict.set_item("inference_input", numpy::PyArrayDyn::from_array(py, self.get_inference_input())).unwrap();
-        dict.set_item("inference_output", numpy::PyArrayDyn::from_array(py, self.get_inference_output())).unwrap();
+        dict.set_item("inference_input", self.get_inference_input().to_pyarray(py)).unwrap();
+        dict.set_item("inference_output", self.get_inference_output().to_pyarray(py)).unwrap();
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.into()
     }
 }
+
 /// Allows the RgbFrame variant of Frame to be converted from Python to Rust
 impl<'source> FromPyObject<'source> for RgbFrame {
     fn extract(ob: &'source PyAny) -> PyResult<Self> {
-        let original_py_array: &numpy::PyArray3<u8> = ob.get_item("original")?.extract()?;
+        let original_py_array: &numpy::PyArray3<u8> = ob.get_item("original")?.downcast::<numpy::PyArray3<u8>>()?;
         let original_ndarray: ndarray::Array3<u8> = original_py_array.to_owned_array();
-        let modified_py_array: &numpy::PyArray3<u8> = ob.get_item("modified")?.extract()?;
+        let modified_py_array: &numpy::PyArray3<u8> = ob.get_item("modified")?.downcast::<numpy::PyArray3<u8>>()?;
         let modified_ndarray: ndarray::Array3<u8> = modified_py_array.to_owned_array();
 
         let inference_input_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>>;
@@ -153,6 +154,7 @@ impl PythonHook {
         let module_file_name = format!("{}.py", module_name);
         let wrapper_module_name = format!("{}_wrapper", module_name);
         let wrapper_module_file_name = format!("{}.py", wrapper_module_name);
+        // TODO: create a KVS module for python using PYo3 and expose it via pyo3::append_to_inittab!(make_person_module); so users can import it on their hooks
         let wrapper_py_code = format!("
 import {0}
 
@@ -200,7 +202,7 @@ def hook_wrapper(frame, context):
 }
 impl HookTrait for PythonHook {
     /// Executes a Python hook by obtaining the GIL and passes the provided frame and stage context to it
-    fn exec_hook(&self, frame: Frame, _stage_context: &Context) -> Option<Frame> {
+    fn exec_hook(&self, mut frame: Frame, _stage_context: &Context) -> Option<Frame> {
         let py_module = self.get_module();
         let out_frame = Python::with_gil(|py| -> Option<Frame> {
             let stage_context = match _stage_context {
@@ -213,7 +215,7 @@ impl HookTrait for PythonHook {
             };
 
             if let Ok(hook_func) = py_module.getattr(py, "hook_wrapper") {
-                let original_pixels = frame.get_original_pixels().to_owned();
+                let original_pixels = frame.get_original_pixels().to_owned(); // it seems that to_owned implies to copy data
                 // TODO: we will probably need a pool of interpreters to avoid initializing a new one ever time because o cold starts
                 // TODO: this acquires the Python GIL, breaking the concurrency, except when we are running on different cores thanks
                 //       to how we invoke frame processing using the Tokio thread pool, becuase it runs threads on all the cores.
@@ -222,7 +224,7 @@ impl HookTrait for PythonHook {
                     Ok(ret) => {
                         match ret.extract::<Frame>(py) {
                             Ok(mut f) => {
-                                // Avoid the user to accidentally the original frame
+                                // Avoid the user to accidentally modify the original frame
                                 f.set_original_pixels(original_pixels);
                                 return Some(f)
                             },
