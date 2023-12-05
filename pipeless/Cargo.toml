@@ -1,6 +1,6 @@
 [package]
 name = "pipeless-ai"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 authors = ["Miguel A. Cabrera Minagorri"]
 description = "An open-source computer vision framework to build and deploy applications in minutes"

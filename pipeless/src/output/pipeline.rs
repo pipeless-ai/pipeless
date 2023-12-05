@@ -125,28 +125,28 @@ fn create_processing_bin(stream: &StreamDef) -> Result<gst::Bin, OutputPipelineE
     } else if stream.video.get_protocol() == "rtmp" {
         let videoconvert = pipeless::gst::utils::create_generic_component(
             "videoconvert", "videoconvert")?;
+        let encoder = pipeless::gst::utils::create_generic_component(
+            "openh264enc", "encoder")?;
+        let parser = pipeless::gst::utils::create_generic_component(
+            "h264parse", "parser")?;
         let queue = pipeless::gst::utils::create_generic_component(
             "queue", "queue")?;
-        let encoder = pipeless::gst::utils::create_generic_component(
-            "x264enc", "encoder")?;
-        let taginject = pipeless::gst::utils::create_generic_component(
-            "taginject", "taginject")?;
         let muxer = pipeless::gst::utils::create_generic_component(
             "flvmux", "muxer")?;
         bin.add_many([
-            &videoconvert, &queue, &encoder, &taginject, &muxer
+            &videoconvert, &encoder, &parser, &queue, &muxer
         ]).map_err(|_| { OutputPipelineError::new("Unable to add elements to processing bin") })?;
 
         muxer.set_property("streamable", true);
 
-        videoconvert.link(&queue)
-            .map_err(|_| { OutputPipelineError::new("Unable to link videoconvert to queue") })?;
-        queue.link(&encoder)
-            .map_err(|_| { OutputPipelineError::new("Unable to link queue to encoder") })?;
-        encoder.link(&taginject)
-            .map_err(|_| { OutputPipelineError::new("Unable to link encoder to taginject") })?;
-        taginject.link(&muxer)
-            .map_err(|_| { OutputPipelineError::new("Unable to link taginject to muxer") })?;
+        videoconvert.link(&encoder)
+            .map_err(|_| { OutputPipelineError::new("Unable to link videoconvert to encoder") })?;
+        encoder.link(&parser)
+            .map_err(|_| { OutputPipelineError::new("Unable to link encoder to parser") })?;
+        parser.link(&queue)
+            .map_err(|_| { OutputPipelineError::new("Unable to link parser to queue") })?;
+        queue.link(&muxer)
+            .map_err(|_| { OutputPipelineError::new("Unable to link queue to muxer") })?;
 
         // Ghost pads to be able to plug other components to the bin
         let videoconvert_sink_pad = videoconvert.static_pad("sink")
