@@ -9,6 +9,10 @@ set -o pipefail
 
 command="${1:-}"
 
+# Setup Python virtual environment
+# the user can mount a volume at /.venv and avoid the installation of the Python packages on every start
+echo "Creating Python virtual env..."
+python3 -m venv "/.venv"
 # Activate Python venv
 . "/.venv/bin/activate"
 
