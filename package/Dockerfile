@@ -13,7 +13,7 @@ RUN install_packages \
     # Gstreamer deps
     libcairo2-dev libgirepository1.0-dev \
     # Python
-    python3-dev python3-pip
+    python3-dev python3-pip python3-venv
 
 COPY scripts /scripts
 

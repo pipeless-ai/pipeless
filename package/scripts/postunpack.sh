@@ -13,6 +13,12 @@ REQUIRED_DIRS=(
     # Allow python to install packages as nonroot
     "/.local"
     "/.cache"
+    # Some common Python packages like Matplotlib try to write into .config
+    "/.config"
+    # Create a folder to store the Python virtual environment. Created at runtime
+    # to allow the user mount a volume and avoid packages installation on every
+    # start
+    "/.venv"
 )
 
 for dir in "${REQUIRED_DIRS[@]}"; do
