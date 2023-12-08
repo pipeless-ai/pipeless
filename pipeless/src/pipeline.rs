@@ -197,7 +197,7 @@ impl Manager {
                                     let read_guard = rw_pipeline.read().await;
                                     match &read_guard.output_pipeline {
                                         Some(pipe) => {
-                                            if let Err(err) = pipe.on_new_frame(out_frame) {
+                                            if let Err(err) = pipe.on_new_frame(out_frame, &pipeless_bus_sender) {
                                                 error!("{}", err);
                                             }
                                         }

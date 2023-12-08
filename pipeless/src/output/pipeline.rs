@@ -65,7 +65,7 @@ fn set_pipeline_tags(pipeline: &gst::Pipeline, new_tag_list: &gst::TagList) {
     debug!("Updating pipeline with new tags: {}", new_tag_list.to_string());
     // NOTE: We always must have an element called taginject on the pipeline
     match pipeline.by_name("taginject") {
-        None => warn!("Taginject element not found in the pipeline"),
+        None => debug!("Taginject element not found in the pipeline"),
         Some(t_inject) => {
             t_inject.set_property(
                 "tags",
@@ -159,6 +159,37 @@ fn create_processing_bin(stream: &StreamDef) -> Result<gst::Bin, OutputPipelineE
         let ghostpath_src = gst::GhostPad::with_target(&muxer_src_pad)
             .map_err(|_| { OutputPipelineError::new("Unable to create the ghost pad to link bin") })?;
         bin.add_pad(&ghostpath_src).map_err(|_| { OutputPipelineError::new("Unable to add ghostpad source") })?;
+    } else if stream.video.get_protocol() == "rtsp" {
+        let videoconvert = pipeless::gst::utils::create_generic_component(
+            "videoconvert", "videoconvert")?;
+        let capsfilter = pipeless::gst::utils::create_generic_component(
+            "capsfilter", "capsfilter")?;
+        let encoder = pipeless::gst::utils::create_generic_component(
+            "x264enc", "encoder")?;
+        bin.add_many([
+            &videoconvert, &capsfilter, &encoder
+        ]).map_err(|_| { OutputPipelineError::new("Unable to add elements to processing bin") })?;
+
+        let caps = gst::Caps::from_str("video/x-h264,profile=baseline")
+            .map_err(|_| { OutputPipelineError::new("Unable to create caps from provided string") })?;
+        capsfilter.set_property("caps", caps);
+
+        videoconvert.link(&encoder)
+            .map_err(|_| { OutputPipelineError::new("Unable to link videoconvert to encoder") })?;
+        encoder.link(&capsfilter)
+            .map_err(|_| { OutputPipelineError::new("Unable to link encoder to capsfilter") })?;
+
+        // Ghost pads to be able to plug other components to the bin
+        let videoconvert_sink_pad = videoconvert.static_pad("sink")
+            .ok_or_else(|| { OutputPipelineError::new("Failed to create the pipeline. Unable to get videoconvert sink pad.") })?;
+        let ghostpath_sink = gst::GhostPad::with_target(&videoconvert_sink_pad)
+            .map_err(|_| { OutputPipelineError::new("Unable to create the sink ghost pad to link bin") })?;
+        bin.add_pad(&ghostpath_sink).map_err(|_| { OutputPipelineError::new("Unable to add ghostpad sink") })?;
+        let capsfilter_src_pad = capsfilter.static_pad("src")
+            .ok_or_else(|| { OutputPipelineError::new("Failed to create the pipeline. Unable to get capsfilter source pad.") })?;
+        let ghostpath_src = gst::GhostPad::with_target(&capsfilter_src_pad)
+            .map_err(|_| { OutputPipelineError::new("Unable to create the ghost pad to link bin") })?;
+        bin.add_pad(&ghostpath_src).map_err(|_| { OutputPipelineError::new("Unable to add ghostpad source") })?;
     } else if stream.video.get_protocol() == "screen" {
         let queue1 = pipeless::gst::utils::create_generic_component(
             "queue", "queue1")?;
@@ -207,9 +238,18 @@ fn create_sink(stream: &StreamDef) -> Result<gst::Element, BoolError> {
     return match stream.video.get_protocol() {
         // TODO: implement processing bin for all the below protocols
         "file" => get_sink("filesink", Some(location)),
-        "https" => get_sink("souphttpsink", Some(location)),
         "rtmp" => get_sink("rtmpsink", Some(format!("rtmp://{}", location).as_ref())),
-        "rstp" => get_sink("rtspclientsink", Some(location)),
+        "rtsp" => {
+            let sink = get_sink("rtspclientsink", Some(format!("rtsp://{}", location).as_ref()))?;
+            // TODO: allow the user to configure the profiles per stream (not globally to pipeless)
+            // sink.set_property("profiles", gstreamer_rtsp::RTSPProfile::AVPF);
+
+            // TODO: allow the user to configure the protocols
+            // Using TCP by default because UDP split frames to MTU size and may produce problems in some multimedia servers.
+            // Also, UDP may produce errors when there are NATs between the client and server
+            sink.set_property("protocols", gstreamer_rtsp::RTSPLowerTrans::TCP);
+            Ok(sink)
+        },
         "screen" => get_sink("autovideosink", None),
         _ => {
             warn!("unsupported output protocol, defaulting to screen");
@@ -284,7 +324,7 @@ fn on_bus_message(
 
 fn create_gst_pipeline(
     output_stream_def: &StreamDef,
-    caps: &str
+    caps: &str,
 ) -> Result<(gst::Pipeline, gst::BufferPool), OutputPipelineError> {
     let pipeline = gst::Pipeline::new();
     let input_stream_caps = gst::Caps::from_str(caps)
@@ -415,7 +455,11 @@ impl Pipeline {
         Ok(())
     }
 
-    pub fn on_new_frame(&self, frame: pipeless::data::Frame) -> Result<(), OutputPipelineError>{
+    pub fn on_new_frame(
+        &self,
+        frame: pipeless::data::Frame,
+        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>
+    ) -> Result<(), OutputPipelineError>{
         match frame {
             pipeless::data::Frame::RgbFrame(mut rgb_frame) => {
                 let modified_pixels = rgb_frame.get_modified_pixels();
@@ -442,20 +486,30 @@ impl Pipeline {
                 // data_slice.par_iter_mut().for_each(|byte| {
                 //     *byte = (*byte + 1) % 256;
                 // });
-                gst_buffer_mut.copy_from_slice(0, out_frame_data)
-                    .map_err(|_| { OutputPipelineError::new("Unable to copy slice into buffer") })?;
+                if out_frame_data.len() > gst_buffer_mut.size() {
+                    warn!("
+                        The frame produced is bigger than the buffer.
+                        This may happen if your input stream changes the frame size in the input capabilitites.
+                        Stopping pipeline. If the pipeline is set to automatically restart it will be recreated with the new capabilities.
+                    ");
+                    // If the pipeline is set to restart automatically, after the error, a new one will be created
+                    pipeless::events::publish_output_stream_error_event_sync(pipeless_bus_sender, "The size of the input frame has changed.");
+                } else {
+                    gst_buffer_mut.copy_from_slice(0, out_frame_data)
+                        .map_err(|_| { OutputPipelineError::new("Unable to copy slice into buffer") })?;
 
-                if copy_timestamps {
-                    let pts = rgb_frame.get_pts();
-                    let dts = rgb_frame.get_dts();
-                    let duration = rgb_frame.get_duration();
-                    gst_buffer_mut.set_pts(pts);
-                    gst_buffer_mut.set_dts(dts);
-                    gst_buffer_mut.set_duration(duration);
-                }
+                    if copy_timestamps {
+                        let pts = rgb_frame.get_pts();
+                        let dts = rgb_frame.get_dts();
+                        let duration = rgb_frame.get_duration();
+                        gst_buffer_mut.set_pts(pts);
+                        gst_buffer_mut.set_dts(dts);
+                        gst_buffer_mut.set_duration(duration);
+                    }
 
-                if let Err(err) = appsrc.push_buffer(gst_buffer) {
-                    return Err(OutputPipelineError::new(&format!("Failed to send the output buffer: {}", err)));
+                    if let Err(err) = appsrc.push_buffer(gst_buffer) {
+                        return Err(OutputPipelineError::new(&format!("Failed to send the output buffer: {}", err)));
+                    }
                 }
             }
         }
@@ -466,7 +520,7 @@ impl Pipeline {
     pub fn on_new_tags(&self, new_tags: gst::TagList) {
         let merged_tags = new_tags;
         match self.gst_pipeline.by_name("taginject") {
-            None => warn!("Taginject element not found, skipping tags update."),
+            None => debug!("Taginject element not found, skipping tags update."),
             Some(_t_inject) => {
                 // FIXME: Gstreamer bug taginject tags are not readable when they should.
                 //        Uncomment the following 2 lines when fixed to update tags properly.
