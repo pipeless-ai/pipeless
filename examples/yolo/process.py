@@ -6,7 +6,7 @@ def hook(frame, context):
     model = context['model']
     input_fps = frame['fps']
     delay = time.time() - frame['input_ts']
-    if delay > 1 / input_fps:
+    if input_fps > 0 and delay > 1 / input_fps:
        print('Skipping frame to maintain real-time')
     else:
         prediction = next(model(rgb_frame, stream=True))
