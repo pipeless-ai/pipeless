@@ -103,10 +103,7 @@ fn on_new_sample(
             gst::ClockTime::ZERO
         }
     };
-    let duration = buffer.duration().ok_or_else(|| {
-        error!("Unable to get duration");
-        gst::FlowError::Error
-    })?;
+    let duration = buffer.duration().or(Some(gst::ClockTime::from_mseconds(0))).unwrap();
     let buffer_info = buffer.map_readable().or_else(|_| {
         error!("Unable to extract the info from the sample buffer.");
         Err(gst::FlowError::Error)

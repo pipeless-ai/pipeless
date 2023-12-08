@@ -172,15 +172,24 @@ impl Manager {
             let pipeless_bus_sender = event_bus.get_sender();
             let concurrent_limit = num_cpus::get() * 2; // NOTE: Making benchmarks we found this is a good value
             let frame_path_executor_arc = frame_path_executor_arc.clone();
+            let n_frame = Arc::new(tokio::sync::Mutex::new(0));
             event_bus.process_events(concurrent_limit,
                 move |event, end_signal| {
                     let rw_pipeline = rw_pipeline.clone();
                     let dispatcher_sender = dispatcher_sender.clone();
                     let pipeless_bus_sender = pipeless_bus_sender.clone();
                     let frame_path_executor_arc = frame_path_executor_arc.clone();
+                    let n_frame = n_frame.clone();
                     async move {
                         match event {
                             pipeless::events::Event::FrameChangeEvent(e) => {
+                                let local_n_frame;
+                                {
+                                    let mut n_frame = n_frame.lock().await;
+                                    *n_frame += 1;
+                                    local_n_frame = (*n_frame).clone();
+                                }
+                                error!("Processing frame number: {}", local_n_frame);
                                 let frame = e.into_frame();
                                 let frame_path;
                                 {
@@ -197,7 +206,7 @@ impl Manager {
                                     let read_guard = rw_pipeline.read().await;
                                     match &read_guard.output_pipeline {
                                         Some(pipe) => {
-                                            if let Err(err) = pipe.on_new_frame(out_frame) {
+                                            if let Err(err) = pipe.on_new_frame(out_frame, &pipeless_bus_sender) {
                                                 error!("{}", err);
                                             }
                                         }
@@ -206,6 +215,7 @@ impl Manager {
                                 } else {
                                     warn!("No frame returned from path execution, skipping frame forwarding to the output (if any).");
                                 }
+                                error!("Finished to process frame number: {}", local_n_frame);
                             }
                             pipeless::events::Event::NewInputCapsEvent(e) => {
                                 let caps = e.get_caps();
