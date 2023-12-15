@@ -28,13 +28,15 @@
 
 <div align="center">
    <p><b>Easily create, deploy and run computer vision applications.</b></p>
-
+   <br />
+  
+   <a href="https://pipeless.ai">Check the live demo in the website</a>
    <br />
 
    <div>
       <img width="382" align="center" alt="Loading video..." src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/examples.gif">
-   </div>
-
+   </div> 
+   
    <br /><br />
 </div>
 
