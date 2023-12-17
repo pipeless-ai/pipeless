@@ -21,6 +21,9 @@ enum AddCommand {
         /// Comma separated list of stages that will be executed for the frames of the new stream
         #[arg(short, long)]
         frame_path: String,
+        /// Optional. Restart policy for the stream. Either always, never, on_error or on_eos. on_eos by default.
+        #[arg(short, long)]
+        restart_policy: Option<String>,
     }
 }
 
@@ -50,6 +53,9 @@ enum UpdateCommand {
         /// Optional. New comma separated list of stages that will be executed for the frames of the new stream
         #[arg(short, long)]
         frame_path: Option<String>,
+        /// Optional. Restart policy for the stream. Either always, never, on_error or on_eos.
+        #[arg(short, long)]
+        restart_policy: Option<String>,
     }
 }
 
@@ -97,7 +103,6 @@ enum Commands {
     },
 }
 
-
 fn main() {
     let cli = Cli::parse();
 
@@ -106,7 +111,7 @@ fn main() {
         Some(Commands::Start { stages_dir }) => pipeless_ai::cli::start::start_pipeless_node(&stages_dir),
         Some(Commands::Add { command }) => {
             match &command {
-                Some(AddCommand::Stream { input_uri, output_uri, frame_path }) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path),
+                Some(AddCommand::Stream { input_uri, output_uri, frame_path , restart_policy}) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path, restart_policy),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },
@@ -118,7 +123,7 @@ fn main() {
         },
         Some(Commands::Update { command }) => {
             match &command {
-                Some(UpdateCommand::Stream { id, input_uri, output_uri, frame_path }) => pipeless_ai::cli::streams::update(id, input_uri, output_uri, frame_path),
+                Some(UpdateCommand::Stream { id, input_uri, output_uri, frame_path , restart_policy}) => pipeless_ai::cli::streams::update(id, input_uri, output_uri, frame_path, restart_policy),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },

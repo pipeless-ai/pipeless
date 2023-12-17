@@ -65,6 +65,7 @@ impl StatefulHook {
 /// frames are waiting for the lock to be released, however, in the stateless case, we can safely access the
 /// content of the hook from many frames at the same time. It is up to the user to elect when to use each one
 /// Note Stateless hooks use Arc while Stateful use Arc_Mutex
+/// Note also that distributing the computing for stateful hooks in a cloud setup may be a bad idea.
 #[derive(Clone)] // Cloning will not duplicate data since we are using Arc
 pub enum Hook {
     StatelessHook(StatelessHook),

@@ -1,11 +1,11 @@
 use std::{sync::Arc, convert::Infallible};
 use tokio::sync::RwLock;
-use log::info;
+use log::{info, warn};
 use serde_json::json;
 use warp::Filter;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{self as pipeless};
+use crate::{self as pipeless, config::streams::RestartPolicy};
 
 #[derive(Clone, Deserialize, Serialize)]
 struct StreamBody {
@@ -13,6 +13,7 @@ struct StreamBody {
     input_uri: Option<String>,
     output_uri: Option<String>,
     frame_path: Option<Vec<String>>,
+    restart_policy: Option<pipeless::config::streams::RestartPolicy>,
 }
 
 async fn handle_get_streams(
@@ -52,10 +53,22 @@ async fn handle_add_stream(
         ));
     }
     let output_uri = stream.output_uri.clone();
+    let restart_policy = match stream.clone().restart_policy {
+        Some(policy) => policy,
+        None => {
+            warn!("Restart policy not specified for stream, defaulting to 'never'");
+            RestartPolicy::Never
+        }
+    };
     {
         let res = streams_table.write()
             .await
-            .add(pipeless::config::streams::StreamsTableEntry::new(input_uri, output_uri, frame_path));
+            .add(pipeless::config::streams::StreamsTableEntry::new(
+                input_uri,
+                output_uri,
+                frame_path,
+                restart_policy,
+            ));
 
         if let Err(err) = res {
             return Ok(warp::reply::with_status(
@@ -115,7 +128,7 @@ async fn handle_update_stream(
             frame_path = entry.get_frame_path().to_owned();
         } else {
             return Ok(warp::reply::with_status(
-                warp::reply::json(&json!({"error": "Frame path not found in stream"})),
+                warp::reply::json(&json!({"error": "Stream entry not found"})),
                 warp::http::StatusCode::NOT_FOUND,
             ));
         }
@@ -134,10 +147,26 @@ async fn handle_update_stream(
             ));
         }
     }
+    let restart_policy: RestartPolicy;
+    if let Some(policy) = stream.clone().restart_policy {
+        restart_policy = policy;
+    } else {
+        if let Some(entry) = streams_table.read()
+            .await
+            .get_entry_by_id(id)
+        {
+            restart_policy = entry.get_restart_policy();
+        } else {
+            return Ok(warp::reply::with_status(
+                warp::reply::json(&json!({"error": "Stream entry not found"})),
+                warp::http::StatusCode::NOT_FOUND,
+            ));
+        }
+    }
     {
         streams_table.write()
             .await
-            .update_by_entry_id(id, &input_uri, output_uri, frame_path);
+            .update_by_entry_id(id, &input_uri, output_uri, frame_path, restart_policy);
     }
 
     match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {
@@ -170,6 +199,7 @@ async fn handle_remove_stream(
             input_uri: Some(entry.get_input_uri().to_string()),
             output_uri: entry.get_output_uri().map(|s| s.to_string()),
             frame_path: Some(entry.get_frame_path().to_owned()),
+            restart_policy: Some(entry.get_restart_policy()),
         };
 
         match dispatcher_sender.send(pipeless::dispatcher::DispatcherEvent::TableChange) {

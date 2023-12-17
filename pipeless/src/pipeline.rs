@@ -31,6 +31,13 @@ impl From<pipeless::output::pipeline::OutputPipelineError> for PipelineError {
     }
 }
 
+#[derive(Eq,PartialEq)]
+pub enum PipelineEndReason {
+    Completed, // End of stream
+    Error,
+    Updated, // When the user changes the stream definition
+}
+
 /// A Pipeless pipeline is an association of an input pipeline and an
 /// output pipeline, plus the stages the frames must pass through
 /// The input and output pipelines are handled via independent Gstreamer pipelines
@@ -246,8 +253,10 @@ impl Manager {
                                     } else {
                                         // When there is no output, stop the stream as fast as the input EOS is reached
                                         info!("End of stream reached for pipeline: {}", write_guard.input_pipeline.get_pipeline_id());
-                                        if let Err(err) = dispatcher_sender
-                                            .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(write_guard.input_pipeline.get_pipeline_id())) {
+                                        let message = pipeless::dispatcher::DispatcherEvent::PipelineFinished(
+                                            write_guard.input_pipeline.get_pipeline_id(), PipelineEndReason::Completed
+                                        );
+                                        if let Err(err) = dispatcher_sender.send(message) {
                                             warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                         };
 
@@ -266,8 +275,10 @@ impl Manager {
                                 }
                                 info!("End of output stream reached for pipeline: {}", pipeline_id);
 
-                                if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
+                                let message = pipeless::dispatcher::DispatcherEvent::PipelineFinished(
+                                    pipeline_id, PipelineEndReason::Completed
+                                );
+                                if let Err(err) = dispatcher_sender.send(message) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 };
 
@@ -283,12 +294,14 @@ impl Manager {
                                     pipeline_id = read_guard.id;
                                 }
                                 error!(
-                                    "Stopping streams for pipeline: {} due to input stream error: {}",
+                                    "Stopping stream for pipeline: {} due to input stream error: {}",
                                     pipeline_id, e.get_msg()
                                 );
 
-                                if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
+                                let message = pipeless::dispatcher::DispatcherEvent::PipelineFinished(
+                                    pipeline_id, PipelineEndReason::Error
+                                );
+                                if let Err(err) = dispatcher_sender.send(message) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 };
 
@@ -304,12 +317,12 @@ impl Manager {
                                     pipeline_id = read_guard.id;
                                 }
                                 error!(
-                                    "Stopping streams for pipeline: {} due to output stream error: {}",
+                                    "Stopping stream for pipeline: {} due to output stream error: {}",
                                     pipeline_id, e.get_msg()
                                 );
 
                                 if let Err(err) = dispatcher_sender
-                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id)) {
+                                    .send(pipeless::dispatcher::DispatcherEvent::PipelineFinished(pipeline_id, PipelineEndReason::Error)) {
                                     warn!("Unable to send pipeline finished event to dispatcher. Error: {}", err);
                                 }
 

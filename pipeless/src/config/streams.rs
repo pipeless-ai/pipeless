@@ -1,8 +1,69 @@
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
-use log::error;
+use std::str::FromStr;
+use log::{error, info};
 use serde_derive::{Serialize, Deserialize};
 use uuid;
+
+// The reconciler takes care of moving streams to the target state
+#[derive(Debug,Copy,Clone,Serialize,Deserialize,PartialEq)]
+pub enum StreamEntryState {
+    Running,
+    Completed,
+    Error,
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
+pub struct RestartPolicyError;
+impl fmt::Display for RestartPolicyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Unknown restart policy")
+    }
+}
+
+#[derive(Debug,Copy,Clone,Serialize,PartialEq)]
+pub enum RestartPolicy {
+    Never, // Never restart
+    Always, // Restart when there is an error or the stream reaches the end
+    OnError, // Restart when there is an error
+    OnEos, // Restart when the stream reaches the end
+}
+impl FromStr for RestartPolicy {
+    type Err = RestartPolicyError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "never" | "Never" => Ok(Self::Never),
+            "always" | "Always" => Ok(Self::Always),
+            "onerror" | "OnError" | "onError" | "Onerror" | "on_error" | "On_Error" => Ok(Self::OnError),
+            "oneos" | "OnEos" | "onEos" | "Oneos" | "on_eos" | "On_Eos" => Ok(Self::OnEos),
+            _ => Err(RestartPolicyError),
+        }
+    }
+}
+impl<'de> serde::Deserialize<'de> for RestartPolicy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: String = serde::Deserialize::deserialize(deserializer)?;
+
+        match s.parse::<RestartPolicy>() {
+            Ok(restart_policy) => Ok(restart_policy),
+            Err(err) => Err(serde::de::Error::custom(format!("Error parsing restart policy: {}", err))),
+        }
+    }
+}
+impl fmt::Display for RestartPolicy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RestartPolicy::Never => write!(f, "never"),
+            RestartPolicy::Always => write!(f, "always"),
+            RestartPolicy::OnError => write!(f, "on_error"),
+            RestartPolicy::OnEos => write!(f, "on_eos"),
+        }
+    }
+}
 
 fn calculate_hash<T: Hash>(data: &T) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -10,13 +71,19 @@ fn calculate_hash<T: Hash>(data: &T) -> u64 {
     hasher.finish()
 }
 
-fn calculate_entry_hash(input_uri: &str, output_uri: Option<&str>, frame_path: &Vec<String>) -> u64 {
+fn calculate_entry_hash(
+    input_uri: &str,
+    output_uri: Option<&str>,
+    frame_path: &Vec<String>,
+    restart_policy: &RestartPolicy
+) -> u64 {
     let mut hash = calculate_hash(&input_uri);
     if let Some(out_uri) = output_uri {
         // Combine hashs with XOR to avoid overflows
         hash = hash ^ calculate_hash(&out_uri);
     }
     hash = hash ^ calculate_hash(&frame_path.join("/"));
+    hash = hash ^ calculate_hash(&restart_policy.to_string());
     hash
 }
 
@@ -39,25 +106,42 @@ pub struct StreamsTableEntry {
     /// to allow processing several consecutive streams from the same source
     pipeline_id: Option<uuid::Uuid>,
     // To know when the entry (only the URIs) has changed.
-    // Calculated when the entry is created, so we have to re-create entries to make the hash match the content.
-    uris_hash: u64,
+    // An entry that does not match the hash will be re-created since it has been updated.
+    hash: u64,
+    target_state: StreamEntryState,
+    restart_policy: RestartPolicy,
 }
 impl StreamsTableEntry {
     pub fn new(
         input_uri: String,
         output_uri: Option<String>,
-        frame_path: Vec<String>
+        frame_path: Vec<String>,
+        restart_policy: RestartPolicy,
     ) -> Self {
-        let entry_hash = calculate_entry_hash(&input_uri, output_uri.as_deref(), &frame_path);
+        let entry_hash = calculate_entry_hash(&input_uri, output_uri.as_deref(), &frame_path, &restart_policy);
         // We have to use underscores when providing the stage names as modules to some laguages like Python.
         let sanitized_frame_path: Vec<String> = frame_path.iter().map(|s| s.replace("-", "_")).collect();
+
+        let mut restart_policy = restart_policy;
+        let using_input_file = input_uri.starts_with("file://");
+        let using_output_file = match output_uri.clone() {
+            Some(uri) => uri.starts_with("file://"),
+            None => false
+        };
+        if using_input_file || using_output_file {
+            info!("Overriding restart policy with 'never' because the stream uses files");
+            restart_policy = RestartPolicy::Never;
+        }
+
         Self {
             id: uuid::Uuid::new_v4(),
             input_uri: input_uri.to_string(),
             output_uri: output_uri.map(|x| x.to_string()),
             frame_path: sanitized_frame_path,
             pipeline_id: None, // No pipeline id assigned when created
-            uris_hash: entry_hash
+            hash: entry_hash,
+            target_state: StreamEntryState::Running,
+            restart_policy,
         }
     }
 
@@ -100,7 +184,7 @@ impl StreamsTableEntry {
 
     /// Returns the hash that the entry has from its creation
     pub fn get_stored_hash(&self) -> u64 {
-        self.uris_hash
+        self.hash
     }
 
     /// Calculates the hash that the entry should have according to the current values
@@ -108,8 +192,25 @@ impl StreamsTableEntry {
         calculate_entry_hash(
             self.get_input_uri(),
             self.get_output_uri(),
-            &self.frame_path
+            &self.frame_path,
+            &self.restart_policy,
         )
+    }
+
+    pub fn get_target_state(&self) -> StreamEntryState {
+        self.target_state
+    }
+
+    pub fn set_target_state(&mut self, state: StreamEntryState) {
+        self.target_state = state;
+    }
+
+    pub fn set_restart_policy(&mut self, restart_policy: RestartPolicy) {
+        self.restart_policy = restart_policy;
+    }
+
+    pub fn get_restart_policy(&self) -> RestartPolicy {
+        self.restart_policy
     }
 }
 
@@ -183,12 +284,16 @@ impl StreamsTable {
         self.table.iter_mut().find(|entry| entry.get_pipeline() == Some(pipeline_id))
     }
 
-    pub fn update_by_entry_id(&mut self, entry_id: uuid::Uuid, input_uri: &str, output_uri: Option<String>, frame_path: Vec<String>) {
+    pub fn update_by_entry_id(
+        &mut self, entry_id: uuid::Uuid, input_uri: &str, output_uri: Option<String>,
+        frame_path: Vec<String>, restart_policy: RestartPolicy
+    ) {
         if let Some(entry) = self.table.iter_mut().find(|entry| entry.id == entry_id) {
             entry.unassign_pipeline();
             entry.set_input_uri(input_uri);
             entry.set_output_uri(output_uri);
             entry.set_frame_path(frame_path);
+            entry.set_restart_policy(restart_policy);
         } else {
             error!("Unable to update stream entry. Stream id not found {}", entry_id);
         }
@@ -206,7 +311,8 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         assert!(table.add(entry1).is_ok());
         assert_eq!(table.get_table().len(), 1);
@@ -215,7 +321,8 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         assert!(table.add(entry2).is_err());
     }
@@ -226,7 +333,8 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             Some("output1".to_string()),
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         assert!(table.add(entry1).is_ok());
         assert_eq!(table.get_table().len(), 1);
@@ -235,7 +343,8 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input2".to_string(),
             Some("output1".to_string()),
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         assert!(table.add(entry2).is_err());
     }
@@ -246,7 +355,8 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         table.add(entry1.clone()).unwrap();
 
@@ -265,7 +375,8 @@ mod tests {
         let entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             None,
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         table.add(entry1.clone()).unwrap();
 
@@ -277,7 +388,8 @@ mod tests {
         let entry2 = StreamsTableEntry::new(
             "input2".to_string(),
             None,
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         table.add(entry2.clone()).unwrap();
         assert!(table.set_stream_pipeline(entry2.get_id(), pipeline_id).is_err());
@@ -290,7 +402,8 @@ mod tests {
         let mut entry1 = StreamsTableEntry::new(
             "input1".to_string(),
             Some("output1".to_string()),
-            vec!["s1".to_owned(), "s2".to_owned()]
+            vec!["s1".to_owned(), "s2".to_owned()],
+            RestartPolicy::Never,
         );
         entry1.assign_pipeline(pipeline_id);
         table.add(entry1.clone()).unwrap();
