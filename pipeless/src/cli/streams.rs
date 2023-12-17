@@ -23,7 +23,12 @@ fn handle_response(response: Result<reqwest::blocking::Response, reqwest::Error>
     }
 }
 
-pub fn add(input_uri: &str, output_uri: &Option<String>, frame_path: &str) {
+pub fn add(
+    input_uri: &str,
+    output_uri: &Option<String>,
+    frame_path: &str,
+    restart_policy: &Option<String>,
+) {
     let url = "http://localhost:3030/streams";
 
     let stages_vec: Vec<&str> = frame_path.split(",").collect();
@@ -31,6 +36,7 @@ pub fn add(input_uri: &str, output_uri: &Option<String>, frame_path: &str) {
         "input_uri": input_uri,
         "output_uri": output_uri,
         "frame_path": stages_vec,
+        "restart_policy": restart_policy,
     });
 
     let client = reqwest::blocking::Client::new();
@@ -60,7 +66,8 @@ pub fn update(
     stream_id: &str,
     input_uri: &Option<String>,
     output_uri: &Option<String>,
-    frame_path: &Option<String>
+    frame_path: &Option<String>,
+    restart_policy: &Option<String>,
 ) {
     let url = "http://localhost:3030/streams";
 
@@ -78,6 +85,7 @@ pub fn update(
         "input_uri": input_uri,
         "output_uri": output_uri,
         "frame_path": stages_vec,
+        "restart_policy": restart_policy,
     });
 
     let client = reqwest::blocking::Client::new();
