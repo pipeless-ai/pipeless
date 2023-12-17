@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::str::FromStr;
-use log::{error, info};
+use log::{error, warn};
 use serde_derive::{Serialize, Deserialize};
 use uuid;
 
@@ -129,8 +129,10 @@ impl StreamsTableEntry {
             None => false
         };
         if using_input_file || using_output_file {
-            info!("Overriding restart policy with 'never' because the stream uses files");
-            restart_policy = RestartPolicy::Never;
+            if restart_policy != RestartPolicy::Never {
+                warn!("Overriding restart policy with 'never' because the stream uses files");
+                restart_policy = RestartPolicy::Never;
+            }
         }
 
         Self {

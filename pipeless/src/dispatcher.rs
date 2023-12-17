@@ -4,7 +4,7 @@ use tokio::sync::RwLock;
 use log::{warn, error, info};
 use tokio;
 
-use crate::{self as pipeless, config::streams::StreamEntryState};
+use crate as pipeless;
 
 pub enum DispatcherEvent {
     TableChange, // Indicates a change on the config table. Adapters notify changes via this
@@ -122,8 +122,8 @@ pub fn start(
                             let entries_without_pipeline: Vec<&pipeless::config::streams::StreamsTableEntry> =
                                 streams_table_copy.iter().filter(without_pipeline).collect();
                             for entry in entries_without_pipeline {
-                                error!("{:?}", entry.get_target_state());
-                                if entry.get_target_state() != StreamEntryState::Running {
+                                if entry.get_target_state() != pipeless::config::streams::StreamEntryState::Running {
+                                    // Skip the creation of pipelines for streams whose target state is not running
                                     continue;
                                 }
                                 let dispatcher_event_sender = dispatcher_sender.clone();
@@ -233,7 +233,6 @@ pub fn start(
 
                             return;
                         }
-
 
                         // Create new event since we have modified the streams config table
                         if let Err(err) = dispatcher_sender.send(DispatcherEvent::TableChange) {

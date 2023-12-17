@@ -21,7 +21,7 @@ enum AddCommand {
         /// Comma separated list of stages that will be executed for the frames of the new stream
         #[arg(short, long)]
         frame_path: String,
-        /// Optional. Restart policy for the stream. Either always, never, on_error or on_eos. on_eos by default.
+        /// Optional. Restart policy for the stream. Either always, never, on_error or on_eos. 'Never' by default.
         #[arg(short, long)]
         restart_policy: Option<String>,
     }

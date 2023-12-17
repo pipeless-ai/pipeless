@@ -5,7 +5,7 @@ use serde_json::json;
 use warp::Filter;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{self as pipeless, config::streams::RestartPolicy};
+use crate as pipeless;
 
 #[derive(Clone, Deserialize, Serialize)]
 struct StreamBody {
@@ -57,7 +57,7 @@ async fn handle_add_stream(
         Some(policy) => policy,
         None => {
             warn!("Restart policy not specified for stream, defaulting to 'never'");
-            RestartPolicy::Never
+            pipeless::config::streams::RestartPolicy::Never
         }
     };
     {
@@ -147,7 +147,7 @@ async fn handle_update_stream(
             ));
         }
     }
-    let restart_policy: RestartPolicy;
+    let restart_policy: pipeless::config::streams::RestartPolicy;
     if let Some(policy) = stream.clone().restart_policy {
         restart_policy = policy;
     } else {
