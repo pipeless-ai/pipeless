@@ -387,7 +387,8 @@ fail_trap() {
     else
       echo "Failed to install $BINARY_NAME"
     fi
-    echo -e "\tFor support, go to https://github.com/pipeless-ai/pipeless."
+    echo -e "\tFor support, tell us the problem at the following link, we will usually reply in a few hours:"
+    echo -e "\t\thttps://github.com/pipeless-ai/pipeless/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=Installation%20error"
   fi
   cleanup
   exit $result
