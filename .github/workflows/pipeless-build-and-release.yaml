@@ -81,8 +81,8 @@ jobs:
       run: |
         # Avoid to upgrade dependents like azure-cli, because we don't need them
         export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
-        # Avoid error when installing PYthon as gstreamer dependency
-        rm -f '/usr/local/bin/2to3-3.12'
+        # Avoid error when installing Python as gstreamer dependency
+        brew link --overwrite python@3.12
         brew install gstreamer
         brew install coreutils # For sha256sum
 
