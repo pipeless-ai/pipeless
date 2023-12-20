@@ -1,5 +1,10 @@
+use std::env;
 use std::fs::{self, File};
 use std::io::prelude::*;
+
+use crate::cli::stage::generate_stage;
+
+use super::stage::ask_for_new_stage;
 
 pub fn init(project_name: &str, template: &Option<String>) {
     fs::create_dir(project_name).unwrap();
@@ -7,6 +12,7 @@ pub fn init(project_name: &str, template: &Option<String>) {
     match template {
         Some(template_name) => {
             match template_name.as_str() {
+                "empty" => {},
                 "scaffold" => {
                     let stage_path = &format!("{}/my-stage", project_name);
                     fs::create_dir(stage_path).unwrap();
@@ -33,7 +39,22 @@ pub fn init(project_name: &str, template: &Option<String>) {
                 }
             }
         },
-        None => ()
+        None => {
+            // Use the interactive creation
+            if let Err(err) = env::set_current_dir(&project_name) {
+                eprintln!("Cannot move into the new project directory, skipping interactive creation. Error: {}", err);
+            } else {
+                while match ask_for_new_stage() {
+                    Ok(b) => b,
+                    Err(err) =>  {
+                        println!("❌ Failed to initialize stage interactively: {}", err);
+                        false
+                    }
+                } {
+                    generate_stage();
+                }
+            }
+        }
     }
     println!("✅ New project created at: {}", project_name);
 }

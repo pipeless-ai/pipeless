@@ -66,6 +66,14 @@ enum ListCommand {
 }
 
 #[derive(Subcommand)]
+enum GenerateCommand {
+    /// Generate a new stage interactively
+    Stage,
+    /// Generate a new hook interactively
+    Hook
+}
+
+#[derive(Subcommand)]
 enum Commands {
     /// Init a new Pipeless project
     Init {
@@ -81,26 +89,31 @@ enum Commands {
         #[arg(short, long)]
         stages_dir: String,
     },
-    /// Add configuration resources
+    /// Add resources such as streams
     Add {
         #[command(subcommand)]
         command: Option<AddCommand>,
     },
-    /// Remove configuration resources
+    /// Remove resources such as streams
     Remove {
         #[command(subcommand)]
         command: Option<RemoveCommand>,
     },
-    /// Update configuration resources
+    /// Update resources such as streams
     Update {
         #[command(subcommand)]
         command: Option<UpdateCommand>,
     },
-    /// List configuration resources
+    /// List resources such as streams
     List {
         #[command(subcommand)]
         command: Option<ListCommand>,
     },
+    /// Generate hook files with the interactive shell
+    Generate {
+        #[command(subcommand)]
+        command: Option<GenerateCommand>,
+    }
 }
 
 fn main() {
@@ -130,6 +143,13 @@ fn main() {
         Some(Commands::List { command }) => {
             match &command {
                 Some(ListCommand::Streams) => pipeless_ai::cli::streams::list(),
+                None =>  println!("Use --help to see the complete list of available commands"),
+            }
+        },
+        Some(Commands::Generate { command }) => {
+            match &command {
+                Some(GenerateCommand::Stage) => pipeless_ai::cli::stage::generate_stage(),
+                Some(GenerateCommand::Hook) => pipeless_ai::cli::hook::generate_hook_wrapper(),
                 None =>  println!("Use --help to see the complete list of available commands"),
             }
         },

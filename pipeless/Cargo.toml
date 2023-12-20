@@ -1,6 +1,6 @@
 [package]
 name = "pipeless-ai"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2021"
 authors = ["Miguel A. Cabrera Minagorri"]
 description = "An open-source computer vision framework to build and deploy applications in minutes"
@@ -45,6 +45,7 @@ lazy_static = "1.4.0"
 rayon = "1.8.0"
 num_cpus = "1.16.0"
 gstreamer-rtsp = "0.21.0"
+inquire = "0.6.2"
 
 [dependencies.uuid]
 version = "1.4.1"
