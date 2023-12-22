@@ -44,9 +44,9 @@ impl InferenceHook {
 impl HookTrait for InferenceHook {
     fn exec_hook(
         &self,
-        frame: crate::data::Frame,
+        frame: crate::frame::Frame,
         _: &crate::stages::stage::Context
-    ) -> Option<crate::data::Frame> {
+    ) -> Option<crate::frame::Frame> {
        let out_frame = self.session.infer(frame);
        Some(out_frame)
     }

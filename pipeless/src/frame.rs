@@ -3,6 +3,16 @@ use ndarray;
 use uuid;
 use gstreamer as gst;
 
+use crate as pipeless;
+
+/// Types of data that the inference runtimes can produce and will end in the 'inference_output' field
+/// of the frame data
+#[derive(Clone)] // FIXME: we derive clone to be able to perform into_py for Python
+pub enum InferenceOutput {
+    Raw(ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>),
+    RoboflowObjDetection(Vec<pipeless::stages::inference::roboflow::RoboflowObjectDetectionPredictions>)
+}
+
 pub struct RgbFrame {
     uuid: uuid::Uuid,
     original: ndarray::Array3<u8>,
@@ -15,7 +25,7 @@ pub struct RgbFrame {
     fps: u8,
     input_ts: f64, // epoch in seconds
     inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
-    inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
+    inference_output: InferenceOutput,
     pipeline_id: uuid::Uuid,
 }
 impl RgbFrame {
@@ -34,7 +44,8 @@ impl RgbFrame {
             pts, dts, duration, fps,
             input_ts,
             inference_input: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
-            inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
+            // Create all new frames with the empty raw data since we don't know here the inference runtime used.
+            inference_output: InferenceOutput::Raw(ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0]))),
             pipeline_id,
         }
     }
@@ -47,7 +58,7 @@ impl RgbFrame {
         pts: u64, dts: u64, duration: u64,
         fps: u8, input_ts: f64,
         inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
-        inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
+        inference_output: InferenceOutput,
         pipeline_id: &str,
     ) -> Self {
         RgbFrame {
@@ -104,13 +115,13 @@ impl RgbFrame {
     pub fn get_inference_input(&self) -> &ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>> {
         &self.inference_input
     }
-    pub fn get_inference_output(&self) -> &ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>> {
-        &self.inference_output
+    pub fn get_inference_output(&self) -> InferenceOutput {
+        self.inference_output.clone()
     }
     pub fn set_inference_input(&mut self, input_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
         self.inference_input = input_data;
     }
-    pub fn set_inference_output(&mut self, output_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
+    pub fn set_inference_output(&mut self, output_data: InferenceOutput) {
         self.inference_output = output_data;
     }
     pub fn get_pipeline_id(&self) -> uuid::Uuid {
@@ -155,7 +166,7 @@ impl Frame {
             Frame::RgbFrame(frame) => frame.get_inference_input()
         }
     }
-    pub fn get_inference_output(&self) -> &ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>> {
+    pub fn get_inference_output(&self) -> InferenceOutput {
         match self {
             Frame::RgbFrame(frame) => frame.get_inference_output()
         }
@@ -165,7 +176,7 @@ impl Frame {
             Frame::RgbFrame(frame) => { frame.set_inference_input(input_data); },
         }
     }
-    pub fn set_inference_output(&mut self, output_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
+    pub fn set_inference_output(&mut self, output_data: InferenceOutput) {
         match self {
             Frame::RgbFrame(frame) => { frame.set_inference_output(output_data); },
         }

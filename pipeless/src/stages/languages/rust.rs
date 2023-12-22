@@ -1,5 +1,5 @@
 use log::error;
-use crate::{stages::{hook::HookTrait, stage::{Context, ContextTrait}}, data::Frame};
+use crate::{stages::{hook::HookTrait, stage::{Context, ContextTrait}}, frame::Frame};
 
 pub struct RustStageContext {
     // TODO

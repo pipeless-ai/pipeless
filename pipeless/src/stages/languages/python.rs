@@ -2,7 +2,7 @@ use log::{error, warn};
 use pyo3::prelude::*;
 use numpy::{self, ToPyArray};
 
-use crate::{data::{RgbFrame, Frame}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
+use crate::{frame::{RgbFrame, Frame, InferenceOutput}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait, inference::roboflow::RoboflowObjectDetectionPredictions}, stages::stage::Context, kvs::store};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -29,7 +29,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
     fn into_py(mut self, py: Python) -> Py<PyAny> {
         let dict = pyo3::types::PyDict::new(py);
         dict.set_item("uuid", self.get_uuid().to_string()).unwrap();
-        dict.set_item("original", self.get_original_pixels().to_pyarray(py)).unwrap();
+        dict.set_item("original", self.get_original_pixels().to_pyarray(py)).unwrap(); // FIXME: to_pyarray clones the data
         dict.set_item("modified", self.get_modified_pixels().to_pyarray(py)).unwrap();
         dict.set_item("width", self.get_width()).unwrap();
         dict.set_item("height", self.get_height()).unwrap();
@@ -39,9 +39,74 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("fps", self.get_fps()).unwrap();
         dict.set_item("input_ts", self.get_input_ts()).unwrap();
         dict.set_item("inference_input", self.get_inference_input().to_pyarray(py)).unwrap();
-        dict.set_item("inference_output", self.get_inference_output().to_pyarray(py)).unwrap();
+        dict.set_item("inference_output", self.get_inference_output().clone().into_py(py)).unwrap(); // FIXME: get_inference_output clones the data
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.into()
+    }
+}
+
+/// Allows the InferenceOutput to be passed to Python
+impl IntoPy<Py<PyAny>> for InferenceOutput {
+    fn into_py(self, py: Python) -> Py<PyAny> {
+        match self {
+            InferenceOutput::Raw(raw) => {
+                raw.to_pyarray(py).into()
+            },
+            InferenceOutput::RoboflowObjDetection(rob) => {
+                rob.into_py(py)
+            },
+        }
+    }
+}
+/// Allows the InferenceOutput to be obtained from Python
+impl<'source> FromPyObject<'source> for InferenceOutput {
+    fn extract(ob: &'source PyAny) -> PyResult<Self> {
+        if let Ok(data) = ob.extract::<Vec<RoboflowObjectDetectionPredictions>>() {
+            Ok(InferenceOutput::RoboflowObjDetection(data))
+        } else {
+            let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>> =
+                if let Ok(inference_output_py_array) = ob.get_item("inference_output")?.extract() {
+                    let inference_output_py_array: &numpy::PyArrayDyn<f32> = inference_output_py_array;
+                    inference_output_py_array.to_owned_array().into_dyn()
+                } else {
+                    error!("Unable to obtain data from 'inference_output'. Is it an array of float values?
+                        Hint: use .astype('float32') in your Python code if you are trying to provide a numpy array.
+                        Otherwise, ensure the dict matches one of the possible inference output formats found in the docs
+                    ");
+                    ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0]))
+                };
+            Ok(InferenceOutput::Raw(inference_output_ndarray))
+        }
+    }
+}
+
+/// Allows the RoboflowObjectDetectionPredictions to be passed to Python
+impl IntoPy<Py<PyAny>> for crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions {
+    fn into_py(self, py: Python) -> Py<PyAny> {
+        let dict = pyo3::types::PyDict::new(py);
+        dict.set_item("x", self.get_x()).unwrap();
+        dict.set_item("y", self.get_y()).unwrap();
+        dict.set_item("width", self.get_width()).unwrap();
+        dict.set_item("height", self.get_height()).unwrap();
+        dict.set_item("confidence", self.get_confidence()).unwrap();
+        dict.set_item("class", self.get_class()).unwrap();
+        dict.into()
+    }
+}
+
+/// Allows the RoboflowObjectDetectionPredictions to be obtained from Python
+impl<'source> FromPyObject<'source> for crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions {
+    fn extract(ob: &'source PyAny) -> PyResult<Self> {
+        let x = ob.get_item("x").unwrap().extract()?;
+        let y = ob.get_item("y").unwrap().extract()?;
+        let width = ob.get_item("width").unwrap().extract()?;
+        let height = ob.get_item("height").unwrap().extract()?;
+        let confidence = ob.get_item("confidence").unwrap().extract()?;
+        let class = ob.get_item("class").unwrap().extract()?;
+
+        Ok(crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions::new(
+            x, y, width, height, confidence, class
+        ))
     }
 }
 
@@ -61,14 +126,6 @@ impl<'source> FromPyObject<'source> for RgbFrame {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Unable to obtain data from 'inference_input'. Is it a NumPy array of float values? Hint: use .astype('float32') in your Python code"));
         }
 
-        let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>>;
-        if let Ok(inference_output_py_array) = ob.get_item("inference_output")?.extract() {
-            let inference_output_py_array: &numpy::PyArrayDyn<f32> = inference_output_py_array;
-            inference_output_ndarray = inference_output_py_array.to_owned_array().into_dyn();
-        } else {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Unable to obtain data from 'inference_output'. Is it a NumPy array of float values? Hint: use .astype('float32') in your Python code"));
-        }
-
         let uuid = ob.get_item("uuid").unwrap().extract()?;
         let original = original_ndarray;
         let modified = modified_ndarray;
@@ -80,7 +137,7 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let fps = ob.get_item("fps").unwrap().extract()?;
         let input_ts = ob.get_item("input_ts").unwrap().extract()?;
         let inference_input = inference_input_ndarray;
-        let inference_output =inference_output_ndarray;
+        let inference_output = ob.get_item("inference_output")?.extract::<InferenceOutput>()?;
         let pipeline_id = ob.get_item("pipeline_id").unwrap().extract()?;
 
         let frame = RgbFrame::from_values(

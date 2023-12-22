@@ -9,16 +9,16 @@ trait EventType {}
 
 pub struct FrameChange {
     // Events own the frame allowing them to freely flow inside pipeless
-    frame: pipeless::data::Frame,
+    frame: pipeless::frame::Frame,
 }
 impl FrameChange {
-    pub fn new(frame: pipeless::data::Frame) -> Self {
+    pub fn new(frame: pipeless::frame::Frame) -> Self {
         Self { frame }
     }
-    pub fn get_frame(&self) -> &pipeless::data::Frame {
+    pub fn get_frame(&self) -> &pipeless::frame::Frame {
         &self.frame
     }
-    pub fn into_frame(self) -> pipeless::data::Frame {
+    pub fn into_frame(self) -> pipeless::frame::Frame {
         self.frame
     }
 }
@@ -105,7 +105,7 @@ pub enum Event {
     OutputStreamErrorEvent(OutputStreamError),
 }
 impl Event {
-    pub fn new_frame_change(frame: pipeless::data::Frame) -> Self {
+    pub fn new_frame_change(frame: pipeless::frame::Frame) -> Self {
         let frame_change = FrameChange::new(frame);
         Self::FrameChangeEvent(frame_change)
     }
@@ -188,7 +188,7 @@ we cannot await in the Gstreamer callbacks
 */
 pub fn publish_new_frame_change_event_sync(
     bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
-    frame: pipeless::data::Frame
+    frame: pipeless::frame::Frame
 ) {
     let new_frame_event = Event::new_frame_change(frame);
     if let Err(err) = bus_sender.send(new_frame_event) {

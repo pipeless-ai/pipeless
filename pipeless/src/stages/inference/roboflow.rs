@@ -1,10 +1,7 @@
-use std::{str::FromStr, num::ParseFloatError};
+use std::str::FromStr;
 use base64::Engine;
-use image::GenericImageView;
 use log::{warn, error};
 use serde_derive::Deserialize;
-use serde_json::json;
-
 use crate as pipeless;
 
 #[derive(Debug)]
@@ -39,50 +36,39 @@ impl FromStr for RoboflowTaskType {
     }
 }
 
-struct RoboflowInferenceResponse {
-    predictions: Vec<RoboflowObjectDetectionPredictions>,
-}
-#[derive(Deserialize)]
-struct RoboflowObjectDetectionPredictions {
+#[derive(Deserialize,Clone)]// FIXME: we derive clone to be able to perform into_py for Python
+pub struct RoboflowObjectDetectionPredictions {
     x: f32,
     y: f32,
     width: f32,
     height: f32,
-    class: String,
     confidence: f32,
+    class: String,
 }
 impl RoboflowObjectDetectionPredictions {
-    fn get_x(&self) -> f32 {
+    pub fn new(
+        x: f32, y: f32, width: f32, height: f32,
+        confidence: f32, class: String
+    ) -> Self {
+        Self { x, y, width, height, confidence, class }
+    }
+    pub fn get_x(&self) -> f32 {
         self.x
     }
-    fn get_y(&self) -> f32 {
+    pub fn get_y(&self) -> f32 {
         self.y
     }
-    fn get_width(&self) -> f32 {
+    pub fn get_width(&self) -> f32 {
         self.width
     }
-    fn get_height(&self) -> f32 {
+    pub fn get_height(&self) -> f32 {
         self.height
     }
-    fn get_class_float32(&self) -> Result<f32, ParseFloatError> {
-        // Obtain a float32 number that we can convert to/from the class string
-        let class_ascii_u8: Vec<u8> = self.class.chars().map(|c| c as u8).collect();
-        let mut class_n_str = String::from("");
-        for n in class_ascii_u8 {
-            let mut n_str = n.to_string();
-            match n_str.len() {
-                // Prepend 0 so all numbers have 3 digits to be able to convert back to the string
-                1 => n_str.insert_str(0, "00"),
-                2 => n_str.insert(0, '0'),
-                _ => (),
-            }
-            class_n_str = class_n_str + &n_str;
-        }
-
-        class_n_str.parse::<f32>()
-    }
-    fn get_confidence(&self) -> f32 {
+    pub fn get_confidence(&self) -> f32 {
         self.confidence
+    }
+    pub fn get_class(&self) -> String {
+        self.class.clone()
     }
 }
 
@@ -117,7 +103,7 @@ impl RoboflowSession {
         if let pipeless::stages::inference::session::SessionParams::Roboflow(roboflow_params) = params {
             let http_session =  reqwest::blocking::Client::new();
 
-            // Obtain the mode image size. Only valid for v1
+            // Obtain the mode image size. Only valid for roboflow inference v1
             // let url = format!("{}/model/registry?api_key={}", roboflow_params.inference_server_url, roboflow_params.api_key);
             // let response = http_session
             //    .get(&url)
@@ -136,7 +122,7 @@ impl RoboflowSession {
     }
 }
 impl super::session::SessionTrait for RoboflowSession {
-    fn infer(&self, mut frame: pipeless::data::Frame) -> pipeless::data::Frame {
+    fn infer(&self, mut frame: pipeless::frame::Frame) -> pipeless::frame::Frame {
         let input_data = frame.get_inference_input().to_owned();
         if input_data.len() == 0 {
             warn!("No inference input data was provided. Did you forget to assign the 'inference_input' field to the frame data in your pre-process hook?");
@@ -190,20 +176,7 @@ impl super::session::SessionTrait for RoboflowSession {
                                     let predictions = &body["predictions"];
                                     if !predictions.is_null() {
                                         let rob_inf_pred: Vec<RoboflowObjectDetectionPredictions> = serde_json::from_value(predictions.clone()).unwrap();
-                                        let rob_res = RoboflowInferenceResponse { predictions: rob_inf_pred };
-
-                                        // Return an array of f32 as required by our frame data type
-                                        let out: Vec<f32> = rob_res.predictions.iter()
-                                            .flat_map(|p|
-                                                vec![
-                                                    p.get_x(), p.get_y(), p.get_width(), p.get_height(), p.get_class_float32().unwrap_or_else(|_| 0.0)
-                                                ]
-                                             ).collect();
-
-                                        let out_c: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>> =
-                                            ndarray::ArrayBase::from_vec(out).into_dyn();
-
-                                        frame.set_inference_output(out_c);
+                                        frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowObjDetection(rob_inf_pred));
                                     }
                                 } else {
                                     error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);

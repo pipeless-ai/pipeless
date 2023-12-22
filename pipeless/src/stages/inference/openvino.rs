@@ -11,7 +11,7 @@ impl OpenvinoSession {
         unimplemented!();
     }
 
-    pub fn infer(_frame: pipeless::data::Frame) {
+    pub fn infer(_frame: pipeless::frame::Frame) {
         unimplemented!();
     }
 }

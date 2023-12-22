@@ -54,9 +54,9 @@ impl FramePathExecutor {
     /// frame the frampath goes in order.
     pub async fn execute_path(
         &self,
-        frame: pipeless::data::Frame,
+        frame: pipeless::frame::Frame,
         path: FramePath
-    ) -> Option<pipeless::data::Frame> {
+    ) -> Option<pipeless::frame::Frame> {
         let mut frame = Some(frame);
         for stage_name in path.get_path().iter() {
             if let Some(stage) = self.stages.get(stage_name) {
@@ -99,8 +99,8 @@ impl FramePathExecutor {
 async fn run_hook(
     hook: &pipeless::stages::hook::Hook,
     stage: &pipeless::stages::stage::Stage,
-    frame: Option<pipeless::data::Frame>,
-) -> Option<pipeless::data::Frame> {
+    frame: Option<pipeless::frame::Frame>,
+) -> Option<pipeless::frame::Frame> {
     if let Some(frame) = frame {
         let context = stage.get_context();
         return hook.exec_hook(frame, context).await;

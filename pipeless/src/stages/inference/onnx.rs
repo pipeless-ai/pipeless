@@ -111,7 +111,7 @@ impl OnnxSession {
 }
 
 impl super::session::SessionTrait for OnnxSession {
-    fn infer(&self, mut frame: pipeless::data::Frame) -> pipeless::data::Frame {
+    fn infer(&self, mut frame: pipeless::frame::Frame) -> pipeless::frame::Frame {
         let input_data = frame.get_inference_input().to_owned();
         if input_data.len() == 0 {
             warn!("No inference input data was provided. Did you forget to assign the 'inference_input' field to the frame data in your pre-process hook?");
@@ -145,7 +145,7 @@ impl super::session::SessionTrait for OnnxSession {
                         // TODO: iterate over the outputs hashmap to return all the model outputs not just the first
                         let output = outputs[&self.session.outputs[0].name].try_extract().unwrap();
                         let output_ndarray = output.view().to_owned(); // FIXME: This to_owned may add a copy of the data
-                        frame.set_inference_output(output_ndarray);
+                        frame.set_inference_output(pipeless::frame::InferenceOutput::Raw(output_ndarray));
                     },
                     Err(err) => error!("There was an error running inference: {}", err)
                 }

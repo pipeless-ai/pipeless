@@ -11,7 +11,7 @@ use super::{
 };
 
 pub trait SessionTrait {
-    fn infer(&self, frame: pipeless::data::Frame) -> pipeless::data::Frame;
+    fn infer(&self, frame: pipeless::frame::Frame) -> pipeless::frame::Frame;
 }
 
 pub enum InferenceSession {
@@ -20,7 +20,7 @@ pub enum InferenceSession {
     Roboflow(RoboflowSession),
 }
 impl InferenceSession {
-    pub fn infer(&self, frame: pipeless::data::Frame) -> pipeless::data::Frame {
+    pub fn infer(&self, frame: pipeless::frame::Frame) -> pipeless::frame::Frame {
         match self {
             InferenceSession::Onnx(onnx_session) => onnx_session.infer(frame),
             InferenceSession::Roboflow(roboflow_session) => roboflow_session.infer(frame),
