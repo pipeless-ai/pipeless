@@ -170,7 +170,14 @@ fn build_hook(
                 panic!("The provided inference runtime '{}' is not recognized. At hook '{}' of stage '{}'", inference_runtime_key, hook_type, stage_name);
             }).unwrap();
 
-            let model_uri = &inference_def["model_uri"];
+            let model_uri = if runtime == pipeless::stages::inference::runtime::InferenceRuntime::Roboflow {
+                // When using Roboflow inference there is no model URI, instead the id from the roboflow universe
+                // is specified under inference_params.roboflow_model_id
+               serde_json::Value::String(String::from(""))
+            } else {
+               inference_def["model_uri"].to_owned()
+            };
+            println!("{}", model_uri);
             if !model_uri.is_string() {
                 panic!("The json definition of the hook '{}' from the stage '{}' must include the field 'model_uri' as a string", hook_type, stage_name);
             }

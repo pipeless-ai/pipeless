@@ -4,7 +4,7 @@ use ort;
 use crate as pipeless;
 
 pub struct OnnxSessionParams {
-    stage_name: String, // Name o the stage this session belongs to
+    stage_name: String, // Name of the stage this session belongs to
     execution_provider: String, //The user has to provide the execution provider
     execution_mode: Option<String>, // Parallel or sequential exeuction mode or onnx
     inter_threads: Option<i16>, // If execution mode is Parallel (and nodes can be run in parallel), this sets the maximum number of threads to use to run them in parallel.
@@ -114,7 +114,7 @@ impl super::session::SessionTrait for OnnxSession {
     fn infer(&self, mut frame: pipeless::data::Frame) -> pipeless::data::Frame {
         let input_data = frame.get_inference_input().to_owned();
         if input_data.len() == 0 {
-            warn!("No inference input data was provided. Did you forget to add it at your pre-process hook?");
+            warn!("No inference input data was provided. Did you forget to assign the 'inference_input' field to the frame data in your pre-process hook?");
             return frame;
         }
 
@@ -144,7 +144,7 @@ impl super::session::SessionTrait for OnnxSession {
                         let outputs = io_bindings.outputs().unwrap();
                         // TODO: iterate over the outputs hashmap to return all the model outputs not just the first
                         let output = outputs[&self.session.outputs[0].name].try_extract().unwrap();
-                        let output_ndarray = output.view().to_owned();
+                        let output_ndarray = output.view().to_owned(); // FIXME: This to_owned may add a copy of the data
                         frame.set_inference_output(output_ndarray);
                     },
                     Err(err) => error!("There was an error running inference: {}", err)

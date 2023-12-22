@@ -1,10 +1,13 @@
+use std::str::FromStr;
+
 use log::warn;
 
 use crate as pipeless;
 
 use super::{
     onnx::{OnnxSession, OnnxSessionParams},
-    openvino::{OpenvinoSession, OpenvinoSessionParams}
+    openvino::{OpenvinoSession, OpenvinoSessionParams},
+    roboflow::{RoboflowSession, RoboflowSessionParams}
 };
 
 pub trait SessionTrait {
@@ -13,12 +16,14 @@ pub trait SessionTrait {
 
 pub enum InferenceSession {
     Onnx(OnnxSession),
-    Openvino(OpenvinoSession)
+    Openvino(OpenvinoSession),
+    Roboflow(RoboflowSession),
 }
 impl InferenceSession {
     pub fn infer(&self, frame: pipeless::data::Frame) -> pipeless::data::Frame {
         match self {
             InferenceSession::Onnx(onnx_session) => onnx_session.infer(frame),
+            InferenceSession::Roboflow(roboflow_session) => roboflow_session.infer(frame),
             InferenceSession::Openvino(_) => unimplemented!(),
         }
     }
@@ -26,7 +31,8 @@ impl InferenceSession {
 
 pub enum SessionParams {
     Onnx(OnnxSessionParams),
-    Openvino(OpenvinoSessionParams)
+    Openvino(OpenvinoSessionParams),
+    Roboflow(RoboflowSessionParams),
 }
 impl SessionParams {
     pub fn from_raw_data(stage_name: &str, runtime: &super::runtime::InferenceRuntime, data: &serde_json::Value) -> Self {
@@ -51,6 +57,31 @@ impl SessionParams {
                 ))
             },
             super::runtime::InferenceRuntime::Openvino => unimplemented!(),
+            super::runtime::InferenceRuntime::Roboflow => {
+                let roboflow_model_id = data["roboflow_model_id"].as_str().unwrap_or_else(|| {
+                    panic!("When using Roboflow inference the 'roboflow_model_id' inference parameter is required.");
+                });
+                if roboflow_model_id.split('/').collect::<Vec<&str>>().len() != 2 {
+                    panic!("Wrong Roboflow model ID provided: {}. Ensure it follows the correct format. Example: 'soccer-players-5fuqs/1'", data["roboflow_model_id"]);
+                }
+                let inference_server_url = data["roboflow_inference_server_url"].as_str().unwrap_or_else(|| {
+                    warn!("'roboflow_inference_server_url' not specified, defaulting to 'https://detect.roboflow.com'");
+                    "https://detect.roboflow.com"
+                });
+                let task_type_str = data["roboflow_task_type"].as_str().unwrap_or_else(|| { "" });
+                let task_type = super::roboflow::RoboflowTaskType::from_str(task_type_str)
+                    .expect("The 'inference_params' field must include 'roboflow_task_type' as one of 'ObjectDetection', 'InstanceSegmentation', 'Classification', 'KeypointsDetection'");
+
+                if let Ok(api_key) = std::env::var("PIPELESS_ROBOFLOW_API_KEY") {
+                    SessionParams::Roboflow(
+                        RoboflowSessionParams::new(
+                            inference_server_url, roboflow_model_id,
+                            &api_key, task_type,
+                        ))
+                } else {
+                    panic!("To use the Roboflow inference integration you need to export the env var PIPELESS_ROBOFLOW_API_KEY containing your Roboflow API key.");
+                }
+            },
         }
     }
 }
