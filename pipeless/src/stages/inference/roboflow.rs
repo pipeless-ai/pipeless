@@ -94,14 +94,20 @@ impl RoboflowSessionParams {
     }
 }
 /// We provide a connection to an external Roboflow Inference server, thus, the session is a HTTP session
+/// Note this will be shared by all hooks since is part of the inference stage
 pub struct RoboflowSession {
-    http_session: reqwest::blocking::Client,
+    http_session: reqwest::Client,
     params: RoboflowSessionParams,
 }
 impl RoboflowSession {
     pub fn new(params: super::session::SessionParams) -> Result<Self, String> {
         if let pipeless::stages::inference::session::SessionParams::Roboflow(roboflow_params) = params {
-            let http_session =  reqwest::blocking::Client::new();
+            let http_session = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(2))
+                .pool_idle_timeout(None) // Keeps connections alive even when not used
+                .pool_max_idle_per_host(15)
+                .build()
+                .expect("Error creating the HTTP for Roboflow inference");
 
             // Obtain the mode image size. Only valid for roboflow inference v1
             // let url = format!("{}/model/registry?api_key={}", roboflow_params.inference_server_url, roboflow_params.api_key);
@@ -121,6 +127,7 @@ impl RoboflowSession {
         }
     }
 }
+
 impl super::session::SessionTrait for RoboflowSession {
     fn infer(&self, mut frame: pipeless::frame::Frame) -> pipeless::frame::Frame {
         let input_data = frame.get_inference_input().to_owned();
@@ -129,7 +136,8 @@ impl super::session::SessionTrait for RoboflowSession {
             return frame;
         }
 
-        // TODO: automatically resize and traspose the input image to the expected by the model
+        // TODO: automatically resize and traspose the input image to the expected by the model. OR better, create a stage that does it so users simply have
+        //       to use that stage before theirs
 
         // TODO: we should batch more than one frame to reduce the latency added on each network call
         let rgb_ndarray = input_data.view().to_owned(); // FIXME: This to_owned may add a copy of the data
@@ -162,34 +170,40 @@ impl super::session::SessionTrait for RoboflowSession {
                     &self.params.api_key
                 );
                 let payload = base64_frame;
-                let response = self.http_session
-                    .post(&url)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(payload)
-                    .send();
-                match response {
-                    Ok(res) =>  {
-                        let status = res.status();
-                        if status.is_success() {
-                            if let Ok(json_str) = res.text() {
-                                if let Ok(body) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                                    let predictions = &body["predictions"];
-                                    if !predictions.is_null() {
-                                        let rob_inf_pred: Vec<RoboflowObjectDetectionPredictions> = serde_json::from_value(predictions.clone()).unwrap();
-                                        frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowObjDetection(rob_inf_pred));
+
+                tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async {
+                        let response = self.http_session
+                            .post(&url)
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .body(payload)
+                            .send();
+
+                        match response.await {
+                            Ok(res) =>  {
+                                let status = res.status();
+                                if status.is_success() {
+                                    if let Ok(json_str) = res.text().await {
+                                        if let Ok(body) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                                            let predictions = &body["predictions"];
+                                            if !predictions.is_null() {
+                                                let rob_inf_pred: Vec<RoboflowObjectDetectionPredictions> = serde_json::from_value(predictions.clone()).unwrap();
+                                                frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowObjDetection(rob_inf_pred));
+                                            }
+                                        } else {
+                                            error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);
+                                        }
+                                    } else {
+                                        error!("The response from the Roboflow inference server cannot be converted into a string.");
                                     }
                                 } else {
-                                    error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);
+                                    error!("Bad request to Roboflow inference server. Status: {}", status);
                                 }
-                            } else {
-                                error!("The response from the Roboflow inference server cannot be converted into a string.");
-                            }
-                        } else {
-                            error!("Bad request to Roboflow inference server. Status: {}", status);
+                            },
+                            Err(err) => { error!("Error querying the Roboflow inference server: {}", err); }
                         }
-                    },
-                    Err(err) => { error!("Error querying the Roboflow inference server: {}", err); }
-                }
+                    });
+                });
             },
             None => error!("Unable to convert frame array into rgb image, skipping frame.")
         }
@@ -197,6 +211,7 @@ impl super::session::SessionTrait for RoboflowSession {
         frame
     }
 }
+
 
 fn ndarray_to_rgb_image(arr: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) -> Option<image::RgbImage> {
     let dims = arr.shape();

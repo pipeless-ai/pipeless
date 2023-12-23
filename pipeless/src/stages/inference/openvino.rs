@@ -11,7 +11,10 @@ impl OpenvinoSession {
         unimplemented!();
     }
 
-    pub fn infer(_frame: pipeless::frame::Frame) {
+
+}
+impl super::session::SessionTrait for OpenvinoSession {
+    fn infer(&self, _frame: pipeless::frame::Frame) -> pipeless::frame::Frame {
         unimplemented!();
     }
 }
