@@ -106,7 +106,7 @@ pipeless add stream --input-uri "https://pipeless-public.s3.eu-west-3.amazonaws.
 
 You can also use the interactive shell to create the project:
 
-<img width="382" align="center" alt="Loading video..." src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/init.gif" />
+<img width="382" align="center" alt="Loading video..." src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/interactive_shell.gif" />
 
 Check the complete [getting started guide](https://pipeless.ai/docs/v1/getting-started) or plunge into the [complete documentation](https://www.pipeless.ai/docs).
 
