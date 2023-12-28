@@ -1,0 +1,8 @@
+{
+    "runtime": "roboflow",
+    "inference_params": {
+        "roboflow_model_id": "soccer-players-5fuqs/1",
+        "roboflow_task_type": "object_detection",
+        "roboflow_request_timeout": 2000
+    }
+}
