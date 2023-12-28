@@ -72,11 +72,16 @@ impl SessionParams {
                 let task_type = super::roboflow::RoboflowTaskType::from_str(task_type_str)
                     .expect("The 'inference_params' field must include 'roboflow_task_type' as one of 'ObjectDetection', 'InstanceSegmentation', 'Classification', 'KeypointsDetection'");
 
+                let request_timeout = data["roboflow_request_timeout"].as_i64().unwrap_or_else(|| {
+                    warn!("'roboflow_request_timeout' not specified, defaulting to 2 seconds");
+                    2000
+                }) as u64;
+
                 if let Ok(api_key) = std::env::var("PIPELESS_ROBOFLOW_API_KEY") {
                     SessionParams::Roboflow(
                         RoboflowSessionParams::new(
                             inference_server_url, roboflow_model_id,
-                            &api_key, task_type,
+                            &api_key, task_type, request_timeout
                         ))
                 } else {
                     panic!("To use the Roboflow inference integration you need to export the env var PIPELESS_ROBOFLOW_API_KEY containing your Roboflow API key.");
