@@ -457,11 +457,11 @@ impl Pipeline {
 
     pub fn on_new_frame(
         &self,
-        frame: pipeless::data::Frame,
+        frame: pipeless::frame::Frame,
         pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>
     ) -> Result<(), OutputPipelineError>{
         match frame {
-            pipeless::data::Frame::RgbFrame(mut rgb_frame) => {
+            pipeless::frame::Frame::RgbFrame(mut rgb_frame) => {
                 let modified_pixels = rgb_frame.get_modified_pixels();
                 let out_frame_data = modified_pixels.as_slice()
                     .ok_or_else(|| { OutputPipelineError::new("Unable to get bytes data from RGB frame. Is your output image of the same shape as the input?") })?;

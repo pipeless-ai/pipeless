@@ -4,7 +4,7 @@ use crate::stages::hook::HookTrait;
 use super::{runtime::InferenceRuntime, session::{InferenceSession, SessionParams}};
 
 /// Inference hooks maintain the inference session.
-/// When created as stateless hooks, the inference session will be duplicated to every worker
+/// When created as stateless hooks, the inference session will be duplicated to every worker (hook function).
 /// When using a model that maintains internal state a stateful hook should be used.
 /// Since the hook is associated to a stage, the inference session will last as long as the stage
 /// To use different sessions per stream, the stage should be duplicated. Creating a symlink
@@ -26,6 +26,13 @@ impl InferenceHook {
                     Err(err) => panic!("{}", err)
                 }
             },
+            InferenceRuntime::Roboflow =>  {
+                let roboflow_session_result = pipeless::stages::inference::roboflow::RoboflowSession::new(session_params);
+                match roboflow_session_result {
+                    Ok(roboflow_session) => pipeless::stages::inference::session::InferenceSession::Roboflow(roboflow_session),
+                    Err(err) => panic!("{}", err)
+                }
+            },
             InferenceRuntime::Openvino => pipeless::stages::inference::session::InferenceSession::Openvino(
                 pipeless::stages::inference::openvino::OpenvinoSession::new(model_uri, session_params)
             ),
@@ -37,9 +44,9 @@ impl InferenceHook {
 impl HookTrait for InferenceHook {
     fn exec_hook(
         &self,
-        frame: crate::data::Frame,
+        frame: crate::frame::Frame,
         _: &crate::stages::stage::Context
-    ) -> Option<crate::data::Frame> {
+    ) -> Option<crate::frame::Frame> {
        let out_frame = self.session.infer(frame);
        Some(out_frame)
     }

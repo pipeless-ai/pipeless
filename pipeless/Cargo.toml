@@ -46,6 +46,8 @@ rayon = "1.8.0"
 num_cpus = "1.16.0"
 gstreamer-rtsp = "0.21.0"
 inquire = "0.6.2"
+image = { version = "0.24.7", features = ["jpeg"] }
+base64 = "0.21.5"
 
 [dependencies.uuid]
 version = "1.4.1"

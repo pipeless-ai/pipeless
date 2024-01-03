@@ -24,9 +24,9 @@ impl fmt::Display for HookType {
 pub trait HookTrait: Send + Sync {
     fn exec_hook(
         &self,
-        frame: pipeless::data::Frame,
+        frame: pipeless::frame::Frame,
         stage_context: &pipeless::stages::stage::Context
-    ) -> Option<pipeless::data::Frame>;
+    ) -> Option<pipeless::frame::Frame>;
 }
 
 #[derive(Clone)]
@@ -91,9 +91,9 @@ impl Hook {
 
     pub async fn exec_hook(
         &self,
-        frame: pipeless::data::Frame,
+        frame: pipeless::frame::Frame,
         stage_context: Arc<pipeless::stages::stage::Context>,
-    ) -> std::option::Option<pipeless::data::Frame> {
+    ) -> std::option::Option<pipeless::frame::Frame> {
         match self {
             Hook::StatelessHook(hook) => {
                 // Offload the hook execution which is usually a CPU bounded (and intensive) task

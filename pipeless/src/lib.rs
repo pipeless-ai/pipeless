@@ -15,7 +15,7 @@ pub mod output;
 pub mod config;
 pub mod gst;
 pub mod events;
-pub mod data;
+pub mod frame;
 pub mod dispatcher;
 pub mod stages;
 pub mod cli;

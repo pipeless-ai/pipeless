@@ -116,7 +116,7 @@ fn on_new_sample(
         gst::FlowError::Error
     })?;
 
-    let frame = pipeless::data::Frame::new_rgb(
+    let frame = pipeless::frame::Frame::new_rgb(
         ndframe, width, height,
         pts, dts, duration,
         fps as u8, frame_input_instant,
