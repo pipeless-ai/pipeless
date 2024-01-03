@@ -2,7 +2,7 @@ use log::{error, warn};
 use pyo3::prelude::*;
 use numpy::{self, ToPyArray};
 
-use crate::{frame::{RgbFrame, Frame, InferenceOutput}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait, inference::roboflow::RoboflowObjectDetectionPredictions}, stages::stage::Context, kvs::store};
+use crate::{frame::{RgbFrame, Frame, InferenceOutput}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait, inference::roboflow::RoboflowPredictions}, stages::stage::Context, kvs::store};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -52,7 +52,7 @@ impl IntoPy<Py<PyAny>> for InferenceOutput {
             InferenceOutput::Raw(raw) => {
                 raw.to_pyarray(py).into()
             },
-            InferenceOutput::RoboflowObjDetection(rob) => {
+            InferenceOutput::RoboflowOutput(rob) => {
                 rob.into_py(py)
             },
         }
@@ -61,8 +61,8 @@ impl IntoPy<Py<PyAny>> for InferenceOutput {
 /// Allows the InferenceOutput to be obtained from Python
 impl<'source> FromPyObject<'source> for InferenceOutput {
     fn extract(ob: &'source PyAny) -> PyResult<Self> {
-        if let Ok(data) = ob.extract::<Vec<RoboflowObjectDetectionPredictions>>() {
-            Ok(InferenceOutput::RoboflowObjDetection(data))
+        if let Ok(data) = ob.extract::<Vec<RoboflowPredictions>>() {
+            Ok(InferenceOutput::RoboflowOutput(data))
         } else {
             let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>> =
                 if let Ok(inference_output_py_array) = ob.get_item("inference_output")?.extract() {
@@ -77,36 +77,6 @@ impl<'source> FromPyObject<'source> for InferenceOutput {
                 };
             Ok(InferenceOutput::Raw(inference_output_ndarray))
         }
-    }
-}
-
-/// Allows the RoboflowObjectDetectionPredictions to be passed to Python
-impl IntoPy<Py<PyAny>> for crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions {
-    fn into_py(self, py: Python) -> Py<PyAny> {
-        let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("x", self.get_x()).unwrap();
-        dict.set_item("y", self.get_y()).unwrap();
-        dict.set_item("width", self.get_width()).unwrap();
-        dict.set_item("height", self.get_height()).unwrap();
-        dict.set_item("confidence", self.get_confidence()).unwrap();
-        dict.set_item("class", self.get_class()).unwrap();
-        dict.into()
-    }
-}
-
-/// Allows the RoboflowObjectDetectionPredictions to be obtained from Python
-impl<'source> FromPyObject<'source> for crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions {
-    fn extract(ob: &'source PyAny) -> PyResult<Self> {
-        let x = ob.get_item("x").unwrap().extract()?;
-        let y = ob.get_item("y").unwrap().extract()?;
-        let width = ob.get_item("width").unwrap().extract()?;
-        let height = ob.get_item("height").unwrap().extract()?;
-        let confidence = ob.get_item("confidence").unwrap().extract()?;
-        let class = ob.get_item("class").unwrap().extract()?;
-
-        Ok(crate::stages::inference::roboflow::RoboflowObjectDetectionPredictions::new(
-            x, y, width, height, confidence, class
-        ))
     }
 }
 

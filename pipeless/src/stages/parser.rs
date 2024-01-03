@@ -177,7 +177,6 @@ fn build_hook(
             } else {
                inference_def["model_uri"].to_owned()
             };
-            println!("{}", model_uri);
             if !model_uri.is_string() {
                 panic!("The json definition of the hook '{}' from the stage '{}' must include the field 'model_uri' as a string", hook_type, stage_name);
             }

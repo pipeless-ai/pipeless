@@ -2,6 +2,7 @@ use std::str::FromStr;
 use base64::Engine;
 use log::{warn, error};
 use serde_derive::Deserialize;
+use serde_json::json;
 use crate as pipeless;
 
 #[derive(Debug)]
@@ -16,10 +17,10 @@ impl RoboflowTaskType {
     fn to_str_endpoint(&self) -> &str {
         match self {
             // Serialize to the corresponding endpoint
-            RoboflowTaskType::ObjectDetection => "/infer/object_detection",
-            RoboflowTaskType::InstanceSegmentation => "/infer/instance_segmentation",
-            RoboflowTaskType::Classification => "/infer/classification",
-            RoboflowTaskType::KeypointsDetection => "/infer/keypoints_detection",
+            RoboflowTaskType::ObjectDetection => "infer/object_detection",
+            RoboflowTaskType::InstanceSegmentation => "infer/instance_segmentation",
+            RoboflowTaskType::Classification => "infer/classification",
+            RoboflowTaskType::KeypointsDetection => "infer/keypoints_detection",
         }
     }
 }
@@ -36,21 +37,44 @@ impl FromStr for RoboflowTaskType {
     }
 }
 
-#[derive(Deserialize,Clone)]// FIXME: we derive clone to be able to perform into_py for Python
-pub struct RoboflowObjectDetectionPredictions {
+#[pyo3::pyclass]
+#[derive(Deserialize,Clone)]
+pub struct Point {
+    x: f32,
+    y: f32
+}
+#[pyo3::pymethods]
+impl Point {
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+}
+
+#[pyo3::pyclass]
+#[derive(Deserialize,Clone)] // FIXME: we derive clone to be able to perform into_py for Python
+pub struct RoboflowPredictions {
     x: f32,
     y: f32,
     width: f32,
     height: f32,
-    confidence: f32,
     class: String,
+    class_id: i32,
+    confidence: f32,
+    class_confidence: Option<f32>,
+    points: Option<Vec<Point>>,
 }
-impl RoboflowObjectDetectionPredictions {
+#[pyo3::pymethods]
+impl RoboflowPredictions {
+    #[new]
     pub fn new(
         x: f32, y: f32, width: f32, height: f32,
-        confidence: f32, class: String
+        confidence: f32, class: String, class_id: i32, points: Option<Vec<Point>>,
+        class_confidence: Option<f32>
     ) -> Self {
-        Self { x, y, width, height, confidence, class }
+        Self { x, y, width, height, confidence, class, class_id, points, class_confidence }
     }
     pub fn get_x(&self) -> f32 {
         self.x
@@ -69,6 +93,15 @@ impl RoboflowObjectDetectionPredictions {
     }
     pub fn get_class(&self) -> String {
         self.class.clone()
+    }
+    pub fn get_class_id(&self) -> i32 {
+        self.class_id
+    }
+    pub fn get_class_confidence(&self) -> Option<f32> {
+        self.class_confidence
+    }
+    pub fn get_points(&self) -> Option<Vec<Point>> {
+        self.points.clone()
     }
 }
 
@@ -113,16 +146,6 @@ impl RoboflowSession {
                 .build()
                 .expect("Error creating the HTTP for Roboflow inference");
 
-            // Obtain the mode image size. Only valid for roboflow inference v1
-            // let url = format!("{}/model/registry?api_key={}", roboflow_params.inference_server_url, roboflow_params.api_key);
-            // let response = http_session
-            //    .get(&url)
-            //    .send();
-            // match response {
-            //     Ok(res) => println!("{:?}", res),
-            //     Err(err) => panic!("Error fetching model information from the provided Roboflow inference server: {}", err)
-            // }
-
             // We need the session params to infer via HTTP so we store them in the session
             Ok(Self { http_session, params: roboflow_params })
         } else {
@@ -149,62 +172,93 @@ impl super::session::SessionTrait for RoboflowSession {
         match rgb_image {
             Some(image) => {
                 let base64_frame = rgb_image_to_jpeg_base64(image);
-                // This is for roboflow v1
-                /*
-                let url = format!("{}/{}", &self.params.inference_server_url, &self.params.task_type.to_str_endpoint());
-                let payload = json!({
-                    "api_key": self.params.api_key,
-                    "model_id": self.params.roboflow_model_id,
-                    "image" : {
-                        "type": "base64",
-                        "value": base64_frame
-                    },
-                    "client_mode": "v1",
-                });
-                let response = self.http_session
-                    .post(&url)
-                    .json(&payload)
-                    .send();
-                */
-                // For roboflow inference v0
-                let url = format!(
-                    "{}/{}?api_key={}",
-                    &self.params.inference_server_url,
-                    &self.params.roboflow_model_id,
-                    &self.params.api_key
-                );
-                let payload = base64_frame;
+                if self.params.inference_server_url.contains("roboflow.com") {
+                    // For roboflow inference v0
+                    let url = format!(
+                        "{}/{}?api_key={}",
+                        &self.params.inference_server_url,
+                        &self.params.roboflow_model_id,
+                        &self.params.api_key
+                    );
+                    let payload = base64_frame;
 
-                let response = self.http_session
-                    .post(&url)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(payload)
-                    .send();
+                    let response = self.http_session
+                        .post(&url)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .body(payload)
+                        .send();
 
-                match response {
-                    Ok(res) =>  {
-                        let status = res.status();
-                        if status.is_success() {
-                            if let Ok(json_str) = res.text() {
-                                if let Ok(body) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                                    let predictions = &body["predictions"];
-                                    if !predictions.is_null() {
-                                        let rob_inf_pred: Vec<RoboflowObjectDetectionPredictions> = serde_json::from_value(predictions.clone()).unwrap();
-                                        frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowObjDetection(rob_inf_pred));
+                    match response {
+                        Ok(res) =>  {
+                            let status = res.status();
+                            if status.is_success() {
+                                if let Ok(json_str) = res.text() {
+                                    if let Ok(body) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                                        let predictions = &body["predictions"];
+                                        if !predictions.is_null() {
+                                            if let Ok(rob_inf_pred) = serde_json::from_value::<Vec<RoboflowPredictions>>(predictions.clone()) {
+                                                frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowOutput(rob_inf_pred));
+                                            } else {
+                                                warn!("The was an error converting JSON to RoboflowPrediction object. Json value: {}", predictions);
+                                            }
+                                        }
+                                    } else {
+                                        error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);
                                     }
                                 } else {
-                                    error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);
+                                    error!("The response from the Roboflow inference server cannot be converted into a string.");
                                 }
                             } else {
-                                error!("The response from the Roboflow inference server cannot be converted into a string.");
+                                error!("Error in request to Roboflow inference server. Status: {}", status);
                             }
-                        } else {
-                            error!("Bad request to Roboflow inference server. Status: {}", status);
-                        }
-                    },
-                    Err(err) => { error!("Error querying the Roboflow inference server: {}", err); }
-                }
+                        },
+                        Err(err) => { error!("Error querying the Roboflow inference server: {}", err); }
+                    }
+                } else {
+                    // Roboflow inference v1
+                    let url = format!("{}/{}", &self.params.inference_server_url, &self.params.task_type.to_str_endpoint());
+                    let payload = json!({
+                        "api_key": self.params.api_key,
+                        "model_id": self.params.roboflow_model_id,
+                        "image" : {
+                            "type": "base64",
+                            "value": base64_frame
+                        },
+                        "client_mode": "v1",
+                    });
+                    let response = self.http_session
+                        .post(&url)
+                        .header("Content-Type", "application/json")
+                        .json(&payload)
+                        .send();
 
+                    match response {
+                        Ok(res) =>  {
+                            let status = res.status();
+                            if status.is_success() {
+                                if let Ok(json_str) = res.text() {
+                                    if let Ok(body) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                                        let predictions = &body["predictions"];
+                                        if !predictions.is_null() {
+                                            if let Ok(rob_inf_pred) = serde_json::from_value::<Vec<RoboflowPredictions>>(predictions.clone()) {
+                                                frame.set_inference_output(pipeless::frame::InferenceOutput::RoboflowOutput(rob_inf_pred));
+                                            } else {
+                                                warn!("The was an error converting JSON to RoboflowPrediction object. Json value: {}", predictions);
+                                            }
+                                        }
+                                    } else {
+                                        error!("The response obtained from the Roboflow inference server cannot be converted into a JSON. Obtained: {}", json_str);
+                                    }
+                                } else {
+                                    error!("The response from the Roboflow inference server cannot be converted into a string.");
+                                }
+                            } else {
+                                error!("Error in request to Roboflow inference server. Status: {}", status);
+                            }
+                        },
+                        Err(err) => { error!("Error querying the Roboflow inference server: {}", err); }
+                    }
+                }
             },
             None => error!("Unable to convert frame array into rgb image, skipping frame.")
         }
@@ -244,10 +298,9 @@ fn rgb_image_to_jpeg_base64(img: image::RgbImage) -> String {
     encoded_string
 }
 
-/*
-struct ObjectDetectionParameters {
-
-}
+/* TODO: the following parameters are supported in the Robolow Python SDK,
+         they can be passed to the Roboflow inference requests and we should allow to provide them
+         in process.json.
 struct KeypointsParameters {
     disable_preproc_auto_orientation: "disable_preproc_auto_orient,
     ("disable_preproc_contrast", "disable_preproc_contrast"),

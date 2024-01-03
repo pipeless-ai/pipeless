@@ -10,7 +10,7 @@ use crate as pipeless;
 #[derive(Clone)] // FIXME: we derive clone to be able to perform into_py for Python
 pub enum InferenceOutput {
     Raw(ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>),
-    RoboflowObjDetection(Vec<pipeless::stages::inference::roboflow::RoboflowObjectDetectionPredictions>)
+    RoboflowOutput(Vec<pipeless::stages::inference::roboflow::RoboflowPredictions>),
 }
 
 pub struct RgbFrame {
