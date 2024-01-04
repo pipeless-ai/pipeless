@@ -30,7 +30,6 @@
    <p><b>Easily create, deploy and run computer vision applications.</b></p>
    <br />
   
-   <a href="https://pipeless.ai">Check the live demo in the website</a>
    <br />
 
    <div>
@@ -40,16 +39,14 @@
    <br /><br />
 </div>
 
-Pipeless is an open-source framework to develop and deploy efficient computer vision applications in just minutes.
-
-Pipeless takes care of everything you need to run a computer vision application in production with real-time capabilities. That includes code parallelization, multimedia pipelines, memory management, model inference, multi-stream management, and more. Pipeless allows you to ship in minutes instead of weeks/months.
+**Pipeless is an open-source framework that takes care of everything you need to develop and deploy computer vision applications in just minutes.** That includes code parallelization, multimedia pipelines, memory management, model inference, multi-stream management, and more. Pipeless allows you to **ship applications that work in real-time in minutes instead of weeks/months**.
 
 Pipeless is inspired by modern serverless technologies. You provide some functions and Pipeless takes care of executing them for new video frames and everything involved.
 
 With Pipeless you create self-contained boxes that we call "stages". Each stage is a micro pipeline that performs a specific task. A stage may have 3 steps: pre-process, process and post-process. For each step you simply provide one code function, except for processing, that you can directly provide a computer vision model.
 When you provide streams to Pipeless, you specify the list of stages that will be executed for that stream. This allows you to dynamically configure the code that is executed per stream.
 
-You can load industry-standard models, such as YOLO, or custom models in one of the supported inference runtimes just by providing a URL. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
+You can load **industry-standard models**, such as YOLO, **or custom models** in one of the supported inference runtimes just by providing a URL. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
 
 You can deploy your Pipeless and your applications to edge and IoT devices or to the cloud. There are several tools for the deployment, including container images.
 
