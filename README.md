@@ -40,15 +40,20 @@
    <br /><br />
 </div>
 
-Pipeless is an open-source <b>computer vision framework</b> to create and deploy applications without the complexity of building and maintaining multimedia pipelines. It ships everything you need to create and deploy efficient computer vision applications that work in real-time in just minutes.
+Pipeless is an open-source framework to develop and deploy efficient computer vision applications in just minutes.
 
-Pipeless is inspired by modern serverless technologies. It provides the development experience of serverless frameworks applied to computer vision. You provide some functions that are executed for new video frames and Pipeless takes care of everything else.
+Pipeless takes care of everything you need to run a computer vision application in production with real-time capabilities. That includes code parallelization, multimedia pipelines, memory management, model inference, multi-stream management, and more. Pipeless allows you to ship in minutes instead of weeks/months.
 
-You can easily use industry-standard models, such as YOLO, or load your custom model in one of the supported inference runtimes. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
+Pipeless is inspired by modern serverless technologies. You provide some functions and Pipeless takes care of executing them for new video frames and everything involved.
 
-You can deploy your Pipeless application to edge and IoT devices or the cloud. We provide several tools for the deployment, including container images.
+With Pipeless you create self-contained boxes that we call "stages". Each stage is a micro pipeline that performs a specific task. A stage may have 3 steps: pre-process, process and post-process. For each step you simply provide one code function, except for processing, that you can directly provide a computer vision model.
+When you provide streams to Pipeless, you specify the list of stages that will be executed for that stream. This allows you to dynamically configure the code that is executed per stream.
 
-The following is a **non-exhaustive** set of relevant features:
+You can load industry-standard models, such as YOLO, or custom models in one of the supported inference runtimes just by providing a URL. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
+
+You can deploy your Pipeless and your applications to edge and IoT devices or to the cloud. There are several tools for the deployment, including container images.
+
+The following is a **non-exhaustive** set of relevant features that Pipeless includes:
 
 * **Multi-stream support**: process several streams at the same time.
 * **Dynamic stream configuration**: add, edit, and remove streams on the fly via a CLI or REST API (more adapters to come).
@@ -58,11 +63,13 @@ The following is a **non-exhaustive** set of relevant features:
 * **Several inference runtimes supported**: Provide a model and select one of the supported inference runtimes to run it out-of-the-box in CPU or GPUs. We support **CUDA**, **TensorRT**, **OpenVINO**, **CoreML**, and more to come.
 * **Well-defined project structure and highly reusable code**: Pipeless uses the file system structure to load processing stages and hooks, helping you organize the code in highly reusable boxes. Each stage is a directory, each hook is defined on its own file.
 
+**<a href="https://www.pipeless.ai/docs/docs/v1/getting-started#create-a-new-project">Get started now!</a>**
+
 **Join our [community](https://discord.gg/K2qxQ8uedG) and contribute to making the lives of computer vision developers easier!**
 
 ## Requirements ☝️
 
-* Python. Pre-built binaries are linked to Python 3.11 in Linux and 3.12 in macOS. Just provide the `--build` flag to the install script if you have a different version (or update your version and use a pre-built binary).
+* Python. Pre-built binaries are linked to Python 3.10 in Linux and 3.12 in macOS. If you have a different Python version, just provide the `--build` flag to the install script (or update your version and use a pre-built binary).
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 ## Installation 🛠️
@@ -79,6 +86,18 @@ Instead of installing locally, you can alternatively use docker and save the tim
 
 ```console
 docker run miguelaeh/pipeless --help
+```
+
+To use it with CUDA:
+
+```console
+docker run miguelaeh/pipeless:latest-cuda --help
+```
+
+To use with TensorRT use:
+
+```console
+docker run miguelaeh/pipeless:latest-tensorrt --help
 ```
 
 Find the whole container documentation [here](https://www.pipeless.ai/docs/v1/container).
