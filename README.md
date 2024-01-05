@@ -43,8 +43,7 @@
 
 Pipeless is inspired by modern serverless technologies. You provide some functions and Pipeless takes care of executing them for new video frames and everything involved.
 
-With Pipeless you create self-contained boxes that we call "stages". Each stage is a micro pipeline that performs a specific task. A stage may have 3 steps: pre-process, process and post-process. For each step you simply provide one code function, except for processing, that you can directly provide a computer vision model.
-When you provide streams to Pipeless, you specify the list of stages that will be executed for that stream. This allows you to dynamically configure the code that is executed per stream.
+With Pipeless you create self-contained boxes that we call "stages". Each stage is a micro pipeline that performs a specific task. Then, you can combine stages dynamically per stream, allowing you to process each stream with a different pipeline without changing your code and without restarting the program. To create a stage you simply provide a pre-process function, a model and a post-process function.
 
 You can load **industry-standard models**, such as YOLO, **or custom models** in one of the supported inference runtimes just by providing a URL. Pipeless ships some of the most popular inference runtimes, such as the ONNX Runtime, allowing you to run inference with high performance on CPU or GPU out-of-the-box.
 
