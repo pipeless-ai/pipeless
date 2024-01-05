@@ -183,6 +183,9 @@ pub fn start(
                                     info!("Stream config entry removed. Stopping associated pipeline");
                                     manager.stop().await;
                                     manager_to_remove = Some(pipeline_id.clone());
+
+                                    // Cleanup KV store keys of that pipeline
+                                    pipeless::kvs::store::KV_STORE.clean(&pipeline_id.to_string());
                                 }
                             }
                         }
@@ -225,18 +228,16 @@ pub fn start(
                                     }
                                 },
                             }
+
+                            // Create new event since we have modified the streams config table
+                            if let Err(err) = dispatcher_sender.send(DispatcherEvent::TableChange) {
+                                warn!("Unable to send dispatcher event for streams table changed. Error: {}", err.to_string());
+                            }
                         } else {
                             warn!("
                                 Unable to unassign pipeline for stream. Stream entry not found.
                                 Pipeline id: {}
                             ", pipeline_id);
-
-                            return;
-                        }
-
-                        // Create new event since we have modified the streams config table
-                        if let Err(err) = dispatcher_sender.send(DispatcherEvent::TableChange) {
-                            warn!("Unable to send dispatcher event for streams table changed. Error: {}", err.to_string());
                         }
                     }
                 }

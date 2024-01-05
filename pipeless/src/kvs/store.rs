@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, warn};
 use sled;
 use lazy_static::lazy_static;
 
@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 pub trait StoreInterface: Sync {
     fn get(&self, key: &str) -> String;
     fn set(&self, key: &str, value: &str);
+    fn clean(&self, prefix: &str); // clean all the keys that start with prefix
 }
 
 struct LocalStore {
@@ -43,6 +44,20 @@ impl StoreInterface for LocalStore {
             }
         }
     }
+
+    fn clean(&self, prefix: &str) {
+        let keys_to_remove: Vec<sled::IVec> = self.backend
+            .scan_prefix(prefix)
+            .keys()
+            .filter_map(Result::ok)
+            .collect();
+
+        for key in keys_to_remove {
+            if let Err(err) = self.backend.remove(&key) {
+                warn!("Failed to remove key from KV store. {}", err);
+            }
+        }
+    }
 }
 
 // TODO: setup Redis or any other distributed solution.
@@ -59,6 +74,6 @@ impl StoreInterface for DistributedStore {
 */
 
 lazy_static! {
-    // TODO: Add support for distributed store do not hardcode the local one
+    // TODO: Add support for distributed store. Do not hardcode the local one
     pub static ref KV_STORE: Box<dyn StoreInterface> = Box::new(LocalStore::new());
 }
