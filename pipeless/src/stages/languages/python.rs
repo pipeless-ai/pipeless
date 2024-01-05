@@ -154,6 +154,7 @@ impl PythonHook {
         let module_file_name = format!("{}.py", module_name);
         let wrapper_module_name = format!("{}_wrapper", module_name);
         let wrapper_module_file_name = format!("{}.py", wrapper_module_name);
+        // NOTE: We prepend the keys with the pipeline id and the stage name. The stage avoids key collision when you import a stage from the hub. We set the pipeline_id first to make it easier to cleanup when a stream ends
         // TODO: create a KVS module for python using PYo3 and expose it via pyo3::append_to_inittab!(make_person_module); so users can import it on their hooks
         let wrapper_py_code = format!("
 import {0}
@@ -161,9 +162,9 @@ import {0}
 def hook_wrapper(frame, context):
     pipeline_id = frame['pipeline_id']
     def pipeless_kvs_set(key, value):
-        _pipeless_kvs_set(f'{1}:{{pipeline_id}}:{{key}}', str(value))
+        _pipeless_kvs_set(f'{{pipeline_id}}:{1}:{{key}}', str(value))
     def pipeless_kvs_get(key):
-        return _pipeless_kvs_get(f'{1}:{{pipeline_id}}:{{key}}')
+        return _pipeless_kvs_get(f'{{pipeline_id}}:{1}:{{key}}')
     {0}.pipeless_kvs_set = pipeless_kvs_set
     {0}.pipeless_kvs_get = pipeless_kvs_get
     {0}.hook(frame, context)
