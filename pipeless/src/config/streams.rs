@@ -118,9 +118,10 @@ impl StreamsTableEntry {
         frame_path: Vec<String>,
         restart_policy: RestartPolicy,
     ) -> Self {
-        let entry_hash = calculate_entry_hash(&input_uri, output_uri.as_deref(), &frame_path, &restart_policy);
         // We have to use underscores when providing the stage names as modules to some laguages like Python.
         let sanitized_frame_path: Vec<String> = frame_path.iter().map(|s| s.replace("-", "_")).collect();
+
+        let entry_hash = calculate_entry_hash(&input_uri, output_uri.as_deref(), &sanitized_frame_path, &restart_policy);
 
         let mut restart_policy = restart_policy;
         let using_input_file = input_uri.starts_with("file://");
@@ -194,8 +195,8 @@ impl StreamsTableEntry {
         calculate_entry_hash(
             self.get_input_uri(),
             self.get_output_uri(),
-            &self.frame_path,
-            &self.restart_policy,
+            self.get_frame_path(),
+            &self.get_restart_policy()
         )
     }
 
