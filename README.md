@@ -29,13 +29,13 @@
 <div align="center">
    <p><b>Easily create, deploy and run computer vision applications.</b></p>
    <br />
-  
+
    <br />
 
    <div>
       <img width="382" align="center" alt="Loading video..." src="https://raw.githubusercontent.com/pipeless-ai/pipeless/main/assets/examples.gif">
-   </div> 
-   
+   </div>
+
    <br /><br />
 </div>
 
@@ -118,6 +118,8 @@ Provide a stream:
 ```console
 pipeless add stream --input-uri "https://pipeless-public.s3.eu-west-3.amazonaws.com/cats.mp4" --output-uri "screen" --frame-path "my-stage"
 ```
+
+The code generated is an empty template that scafold a stage so it will do nothing. Please go to the [examples](https://www.pipeless.ai/docs/v1/examples) to complete that stage.
 
 You can also use the interactive shell to create the project:
 

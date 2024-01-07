@@ -64,7 +64,7 @@ create_device_id() {
 
 setupPipelessEnv() {
   echo -e "\n\n"
-  echo "⚠️  IMPORTANT: Execute the following commands to load the Pipeless binary:"
+  echo "Execute the following commands to load the Pipeless binary:"
   echo ""
   echo '    export PATH="${PATH}:${HOME}/.pipeless"'
   if [[ "$OS" == "darwin" ]]; then
@@ -75,7 +75,7 @@ setupPipelessEnv() {
   fi
 
   echo ""
-  echo "💡 To automatically load the Pipeless binary in new sessions copy paste the above commands into your shell configuration file. (~/.bashrc, ~/.zshrc, etc.)"
+  echo "💡 To automatically load the Pipeless binary in new sessions copy and paste the above commands into your shell configuration file. (~/.bashrc, ~/.zshrc, etc.)"
 }
 
 # create a totally anonymous report so we can know the most used OS and archs and if there are errors
@@ -469,6 +469,13 @@ if ! checkPipelessInstalledVersion; then
     installFile
   fi
   setupPipelessEnv
+
   create_report "success"
+
+  echo "✅ Pipeless installed successfully!"
+  echo ""
+  echo "Useful resources:"
+  echo "* Getting started guide: https://www.pipeless.ai/docs/v1/getting-started"
+  echo "* Step by step examples: https://www.pipeless.ai/docs/v1/examples"
 fi
 cleanup
