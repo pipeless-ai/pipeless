@@ -1,8 +1,8 @@
 use std::str::FromStr;
-
 use reqwest;
 use serde_json::json;
-use json_to_table;
+use tabled;
+use crate::config::streams::StreamsTableEntry;
 
 fn handle_response(response: Result<reqwest::blocking::Response, reqwest::Error>) {
     match response {
@@ -108,13 +108,9 @@ pub fn list() {
             let status = res.status();
             let body = res.text().unwrap();
             if status.is_success() {
-                let body_json = serde_json::from_str(body.as_str()).unwrap();
-                let mut table = json_to_table::json_to_table(&body_json);
-                table
-                    .array_orientation(json_to_table::Orientation::Row)
-                    .object_orientation(json_to_table::Orientation::Row)
-                    .collapse();
-                println!("{}", table.to_string());
+                let entries : Vec<StreamsTableEntry> = serde_json::from_str(body.as_str()).unwrap();
+                let table = tabled::Table::new(entries);
+                println!("{}", table);
             } else {
                 println!("❌ Request to Pipeless node was not successful. Status code: {}", status);
                 println!("👉 Error message: {}", body);
