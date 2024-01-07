@@ -5,6 +5,7 @@ use std::str::FromStr;
 use log::{error, warn};
 use serde_derive::{Serialize, Deserialize};
 use uuid;
+use tabled::Tabled;
 
 // The reconciler takes care of moving streams to the target state
 #[derive(Debug,Copy,Clone,Serialize,Deserialize,PartialEq)]
@@ -12,6 +13,15 @@ pub enum StreamEntryState {
     Running,
     Completed,
     Error,
+}
+impl fmt::Display for StreamEntryState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StreamEntryState::Running => write!(f, "Running"),
+            StreamEntryState::Completed => write!(f, "Completed"),
+            StreamEntryState::Error => write!(f, "Error"),
+        }
+    }
 }
 
 #[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
@@ -92,7 +102,7 @@ fn calculate_entry_hash(
     Debug,
     PartialEq,
     Serialize,
-    Deserialize
+    Deserialize,
 )]
 pub struct StreamsTableEntry {
     /// Id of the dynamic coniguration entry
@@ -214,6 +224,31 @@ impl StreamsTableEntry {
 
     pub fn get_restart_policy(&self) -> RestartPolicy {
         self.restart_policy
+    }
+}
+impl Tabled for StreamsTableEntry {
+    const LENGTH: usize = 6;
+
+    fn fields(&self) -> Vec<std::borrow::Cow<'_, str>> {
+        vec![
+            self.id.to_string().into(),
+            self.input_uri.clone().into(),
+            self.output_uri.clone().unwrap_or_else(|| "".into()).into(),
+            self.frame_path.join(" -> ").into(),
+            self.target_state.to_string().into(),
+            self.restart_policy.to_string().into(),
+        ]
+    }
+
+    fn headers() -> Vec<std::borrow::Cow<'static, str>> {
+        vec![
+            "ID".into(),
+            "Input URI".into(),
+            "Output URI".into(),
+            "Frame Path".into(),
+            "State".into(),
+            "Restart Policy".into()
+        ]
     }
 }
 
