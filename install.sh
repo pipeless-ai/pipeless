@@ -64,6 +64,8 @@ create_device_id() {
 
 setupPipelessEnv() {
   echo -e "\n\n"
+  echo "✅ Pipeless installed successfully!"
+  echo ""
   echo "Execute the following commands to load the Pipeless binary:"
   echo ""
   echo '    export PATH="${PATH}:${HOME}/.pipeless"'
@@ -472,7 +474,6 @@ if ! checkPipelessInstalledVersion; then
 
   create_report "success"
 
-  echo "✅ Pipeless installed successfully!"
   echo ""
   echo "Useful resources:"
   echo "* Getting started guide: https://www.pipeless.ai/docs/v1/getting-started"
