@@ -219,12 +219,16 @@ gstreamer1.0-qt5 gstreamer1.0-pulseaudio gstreamer1.0-rtsp"
 # verifyDependencies ensures the user has the required dependencies to run Pipeless.
 verifyDependencies() {
   if [ "${HAS_PYTHON}" != "true" ]; then
-    echo "Python is not installed. Pipeless requires Python 3.10 to work"
+    echo "Python is not installed."
     echo "Please install Python before continuing. You can install python with:"
     if [ "${OS}" == "linux" ]; then
       echo "sudo apt-get install python3-dev python3-pip"
+      echo ""
+      echo "Note pre-built binaries are linked to Python 3.10. If you install a different Python version provide the --build flag to this script"
     elif [ "${OS}" == "darwin" ]; then
       echo "brew install python"
+      echo ""
+      echo "Note pre-built binaries are linked to Python 3.12. If you install a different Python version provide the --build flag to this script"
     fi
     create_report "error" "Missing Python" || true
     exit 1
