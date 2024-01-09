@@ -195,6 +195,13 @@ buildPipeless() {
     strip pipeless/target/release/pipeless
     mv pipeless/target/release/{pipeless,libonnxruntime*} "${PIPELESS_INSTALL_DIR}/"
   )
+
+  # handle the above subshell failure
+  if [ $? -ne 0 ]; then
+    create_report "error" "Error building from source" || true
+    exit 1
+  fi
+
 }
 
 checkGstreamer() {
