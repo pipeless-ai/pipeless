@@ -198,6 +198,12 @@ buildPipeless() {
 
   # handle the above subshell failure
   if [ $? -ne 0 ]; then
+    echo "❌ There was an error building Pipeless"
+    echo ""
+    echo "If the error is related to libonnxruntime not being found it is possible that Microsoft does not provide a pre-built onnx runtime for your target platform."
+    echo "Please the following guide to install both Pipeless and ONNX Runtime from source: https://www.pipeless.ai/docs/v1/getting-started/installation#building-onnx-runtime-from-source"
+    echo "If you need further help please contact us via a GitHub issue or our Discord server"
+
     create_report "error" "Error building from source" || true
     exit 1
   fi
