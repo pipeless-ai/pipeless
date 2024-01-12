@@ -60,15 +60,16 @@ async fn handle_add_stream(
             pipeless::config::streams::RestartPolicy::Never
         }
     };
+    let new_entry = pipeless::config::streams::StreamsTableEntry::new(
+        input_uri,
+        output_uri,
+        frame_path,
+        restart_policy,
+    );
     {
         let res = streams_table.write()
             .await
-            .add(pipeless::config::streams::StreamsTableEntry::new(
-                input_uri,
-                output_uri,
-                frame_path,
-                restart_policy,
-            ));
+            .add(new_entry.clone());
 
         if let Err(err) = res {
             return Ok(warp::reply::with_status(
@@ -89,7 +90,7 @@ async fn handle_add_stream(
     }
 
     Ok(warp::reply::with_status(
-        warp::reply::json(&stream),
+        warp::reply::json(&new_entry),
         warp::http::StatusCode::OK,
     ))
 }
