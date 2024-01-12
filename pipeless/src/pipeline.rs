@@ -70,7 +70,9 @@ impl Pipeline {
 
         let mut output_stream_def = None;
         if let Some(uri) = output_uri {
-            output_stream_def = Some(pipeless::output::pipeline::StreamDef::new(uri)?);
+            if !uri.is_empty() { // Prevent segfault when the output_uri is provided as empty string
+                output_stream_def = Some(pipeless::output::pipeline::StreamDef::new(uri)?);
+            }
         }
 
         Ok(Pipeline {
