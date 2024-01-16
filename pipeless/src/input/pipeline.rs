@@ -158,10 +158,19 @@ fn create_input_bin(
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
 ) -> Result<gst::Bin, InputPipelineError> {
     let bin = gst::Bin::new();
-    if uri == "v4l2" { // Device webcam
+    if uri.starts_with("v4l2") { // Device webcam
         let v4l2src = pipeless::gst::utils::create_generic_component("v4l2src", "v4l2src")?;
         let videoconvert = pipeless::gst::utils::create_generic_component("videoconvert", "videoconvert")?;
         let videoscale = pipeless::gst::utils::create_generic_component("videoscale", "videoscale")?;
+
+        // The input uri for v4l2 can contain the device to use. Example: "v4l2:/dev/video0"
+        let uri_parts: Vec<&str> = uri.split(':').collect();
+        if uri_parts.len() == 2 {
+            v4l2src.set_property("device", uri_parts[1]);
+        } else if uri_parts.len() > 2 {
+            error!("The provided input URI using v4l2 contains more than one video source. URI: {}", uri);
+            return Err(InputPipelineError::new("Wrong input URI provided"));
+        }
 
         // Webcam resolutions are not standard and we can't read the webcam caps,
         // force a hardcoded resolution so that we annouce a correct resolution to the output.
