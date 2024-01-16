@@ -30,7 +30,7 @@ impl Video {
             // Output to the screen
             protocol = String::from("screen");
             location = String::from("screen");
-        } else if uri != "v4l2" {
+        } else if !uri.starts_with("v4l2") {
             let uri_split: Vec<&str> = uri.split("://").collect();
             protocol = uri_split.get(0).ok_or_else(|| { VideoConfigError::new("Unable to get protocol from URI") })?.to_string();
             location = uri_split.get(1)
