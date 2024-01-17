@@ -102,7 +102,7 @@ jobs:
       run: |
         cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
         mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless &&
-        ln -s pipeless/target/release/libonnxruntime.so pipeless/target/release/libonnxruntime.so.1.16.3 && # This fixes some bugs for macOS
+        cp pipeless/target/release/libonnxruntime.so pipeless/target/release/libonnxruntime.so.1.16.3 && # This fixes some bugs for macOS
         strip pipeless/target/release/pipeless &&
         mkdir pipeless-${{ steps.check_version.outputs.new_version }}
         cp pipeless/target/release/{pipeless,libonnxruntime*} pipeless-${{ steps.check_version.outputs.new_version }}/
