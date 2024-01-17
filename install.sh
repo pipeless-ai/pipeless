@@ -70,7 +70,7 @@ setupPipelessEnv() {
   echo ""
   echo '    export PATH="${PATH}:${HOME}/.pipeless"'
   if [[ "$OS" == "darwin" ]]; then
-    # In macOS we have to use the rpath instead of the library path
+    # In macOS we have to use the rpath instead of the library path because the ort library file uses .dylib
     install_name_tool -add_rpath @executable_path "${PIPELESS_INSTALL_DIR}/pipeless"
   else
     echo '    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HOME}/.pipeless"'
