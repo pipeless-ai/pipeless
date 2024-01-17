@@ -401,13 +401,16 @@ fail_trap() {
   result=$?
   if [ "$result" != "0" ]; then
     if [[ -n "$INPUT_ARGUMENTS" ]]; then
-      echo "Failed to install $BINARY_NAME with the arguments provided: $INPUT_ARGUMENTS"
+      echo "❌  Failed to install $BINARY_NAME with the arguments provided: $INPUT_ARGUMENTS"
       help
     else
-      echo "Failed to install $BINARY_NAME"
+      echo "❌  Failed to install $BINARY_NAME"
     fi
-    echo -e "\tFor support, tell us the problem at the following link, we will usually reply in a few hours:"
-    echo -e "\t\thttps://github.com/pipeless-ai/pipeless/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=Installation%20error"
+
+    echo "If the error is related to ort or ONNX Runtime it is possible that Microsoft does not provide a pre-built ONNX Runtime for your target platform. Please check the following guide to build and install both, Pipeless and ONNX Runtime, from source: https://www.pipeless.ai/docs/v1/getting-started/installation#building-onnx-runtime-from-source"
+    echo ""
+    echo -e "If you need help, get in contact with us providing as much detail as possible in the following link, we will usually reply in a few hours:"
+    echo -e "\thttps://github.com/pipeless-ai/pipeless/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=Installation%20error"
   fi
   cleanup
   exit $result
