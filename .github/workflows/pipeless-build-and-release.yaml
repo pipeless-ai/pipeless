@@ -100,11 +100,16 @@ jobs:
 
     - name: Build
       run: |
-        cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
-        mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless &&
-        cp pipeless/target/release/libonnxruntime.so pipeless/target/release/libonnxruntime.so.1.16.3 && # This fixes some bugs for macOS
-        strip pipeless/target/release/pipeless &&
+        cargo build --all --release --manifest-path pipeless/Cargo.toml
+        mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless
+        strip pipeless/target/release/pipeless
         mkdir pipeless-${{ steps.check_version.outputs.new_version }}
+
+        if [[ ! -e pipeless/target/release/libonnxruntime.so.1.16.3 ]]; then
+          # The pipeless binary will be linked to libonnxruntime.so.1.16.3 so it must exist
+          cp pipeless/target/release/libonnxruntime.so pipeless/target/release/libonnxruntime.so.1.16.3
+        fi
+
         cp pipeless/target/release/{pipeless,libonnxruntime*} pipeless-${{ steps.check_version.outputs.new_version }}/
         tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz pipeless-${{ steps.check_version.outputs.new_version }}
 
