@@ -20,12 +20,6 @@ on:
 
 jobs:
   push_to_registry:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, self-hosted]
-        arch: [x64, arm64]
-
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
