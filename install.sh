@@ -106,7 +106,7 @@ verifySupported() {
     return 1
   fi
 
-  local supported="darwin-amd64\nlinux-amd64"
+  local supported="darwin-amd64\nlinux-amd64\nlinux-arm64"
   if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
     return 1
   fi
