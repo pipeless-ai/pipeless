@@ -118,8 +118,85 @@ jobs:
           pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
           pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
 
+  # Build for Jetson in our self hosted runner. Note it must be setup and have dependencies installed
+  build-jetson:
+    runs-on: self-hosted
+
+    # Provide an output that can be used by other jobs
+    outputs:
+      new_version: ${{ steps.check_version.outputs.new_version }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Get before and after versions
+      id: check_version
+      run: |
+        before_version=$(git describe --abbrev=0 --tags | grep -o '\([0-9]\+\.\)\+[0-9]\+')
+        after_version=$(cargo metadata --manifest-path pipeless/Cargo.toml --format-version 1 | jq -r '.packages[] | select(.name == "pipeless-ai").version')
+
+        if [ "$before_version" != "$after_version" ]; then
+          echo "Cargo.toml version has been updated"
+          echo "new_version=${after_version}" >> $GITHUB_OUTPUT
+        else
+          echo "Cargo.toml version was not updated"
+          exit 1
+        fi
+
+    - name: Set OS and Arch
+      id: set-os-arch
+      run: |
+        ARCH=$(uname -m)
+        case $ARCH in
+          armv5*) ARCH="armv5";;
+          armv6*) ARCH="armv6";;
+          armv7*) ARCH="arm";;
+          aarch64) ARCH="arm64";;
+          x86) ARCH="386";;
+          x86_64) ARCH="amd64";;
+          i686) ARCH="386";;
+          i386) ARCH="386";;
+        esac
+        echo "ARCH=$ARCH" >> $GITHUB_ENV
+
+        OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+        case "$OS" in
+          # Minimalist GNU for Windows
+          mingw*|cygwin*) OS='windows';;
+        esac
+        echo "OS=$OS" >> $GITHUB_ENV
+
+    - name: Build
+      run: |
+        # We have already placed the onnx runtime library at ~/.pipeless so it can be linked and copied
+        ORT_STRATEGY=system ORT_LIB_LOCATION=/home/miguelaeh/.pipeless/ cargo build --all --release --manifest-path pipeless/Cargo.toml  &&
+        mv pipeless/target/release/pipeless-ai pipeless/target/release/pipeless &&
+        strip pipeless/target/release/pipeless &&
+        mkdir pipeless-${{ steps.check_version.outputs.new_version }}
+        cp pipeless/target/release/{pipeless,libonnxruntime*} pipeless-${{ steps.check_version.outputs.new_version }}
+        # Copy the file that we renamed adding the version after building onnx runtime
+        cp /home/miguelaeh/.pipeless/libonnxruntime* pipeless-${{ steps.check_version.outputs.new_version }}/
+        tar -czf pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz pipeless-${{ steps.check_version.outputs.new_version }}
+
+    - name: Create SHA256 file
+      run: sha256sum pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz > pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ steps.check_version.outputs.new_version }}
+        path: |
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz
+          pipeless-${{ steps.check_version.outputs.new_version }}-${{ env.OS }}-${{ env.ARCH }}.tar.gz.sha256
+
+  # Create GitHub releases
   release:
-    needs: build
+    needs:
+      - build
+      - build-jetson
     runs-on: ubuntu-latest
 
     permissions:
@@ -155,6 +232,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Publish to crates.io
   publish:
     needs: release
     runs-on: ubuntu-latest
