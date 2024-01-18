@@ -419,10 +419,10 @@ fail_trap() {
 # help provides possible cli installation arguments
 help () {
   echo "Accepted cli arguments are:"
-  echo -e "\t[--help|-h ] ->> prints this help"
+  echo -e "\t[--help|-h ] -> prints this help"
   echo -e "\t[--version|-v <desired_version>] . When not defined it fetches the latest release from GitHub"
   echo -e "\te.g. --version v1.0.0"
-  echo -e "\t[--build]  ->> Force the build from source"
+  echo -e "\t[--build]  -> Force the build from source"
 }
 
 # cleanup temporary files

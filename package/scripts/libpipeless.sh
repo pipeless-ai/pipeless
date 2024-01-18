@@ -31,7 +31,6 @@ pipeless_install_user_python_deps() {
 
 ########################
 # Install system packages required by the user code to run the worker
-# These need to be installed at buildtime
 # Globals:
 #   PIPELESS_*
 # Arguments:
@@ -56,7 +55,6 @@ pipeless_install_user_system_deps() {
 
 ########################
 # Install pipeless
-# These need to be installed at buildtime
 # Globals:
 #   PIPELESS_*
 # Arguments:
@@ -65,14 +63,42 @@ pipeless_install_user_system_deps() {
 #   None
 #########################
 pipeless_install() {
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "aarch64"  ]]; then
+        pipeless_download_onnxruntime_arm
+        # The cargo build command in the install script will use these to locate the onnxruntime library
+        export ORT_STRATEGY="system"
+        export ORT_LIB_LOCATION="${HOME}/.pipeless/"
+    fi
+
     (
         cd /tmp
         wget https://raw.githubusercontent.com/pipeless-ai/pipeless/main/install.sh
         chmod +x install.sh
+        # Build Pipeless to ensure it links to the Python version of the image
         bash install.sh --build
     )
     # Cleanup
     rm -rf /tmp/*
     rm -rf /.rustup/*
     rm -rf /.cargo/*
+}
+
+########################
+# Download onnxruntime libraries for arm from our own S3 bucket since microsoft does not provide gpu flavors for arm
+# Globals:
+#   PIPELESS_*
+# Arguments:
+#   None
+# Returns:
+#   None
+#########################
+pipeless_download_onnxruntime_arm() {
+    local -r os_arch="linux-arm64"
+    local -r version = "1.16.3"
+    wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime.so.1.16.3"
+    wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime_providers_cuda.so"
+    wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime_providers_shared.so"
+    wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime_providers_tensorrt.so"
+    wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime.so"
 }
