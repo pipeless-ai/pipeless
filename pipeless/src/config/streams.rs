@@ -270,16 +270,6 @@ impl StreamsTable {
     }
 
     pub fn add(&mut self, entry: StreamsTableEntry) -> Result<(), String> {
-        if self.table.iter().any(|e| e.input_uri == entry.input_uri) {
-            return Err("Duplicated input_uri".to_string());
-        }
-        if let Some(ref output_uri) = entry.output_uri {
-            // When the output is to the screen we allow the duplication
-            if output_uri != "screen" && self.table.iter().any(|e| e.output_uri == Some(output_uri.clone())) {
-                return Err("Duplicated output_uri".to_string());
-            }
-        }
-
         self.table.push(entry);
         Ok(())
     }
