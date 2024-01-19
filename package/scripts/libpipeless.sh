@@ -95,7 +95,7 @@ pipeless_install() {
 #########################
 pipeless_download_onnxruntime_arm() {
     local -r os_arch="linux-arm64"
-    local -r version = "1.16.3"
+    local -r version="1.16.3"
     wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime.so.1.16.3"
     wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime_providers_cuda.so"
     wget -P "${HOME}/.pipeless" "https://pipeless-public.s3.eu-west-3.amazonaws.com/onnxruntime/${os_arch}/${version}/libonnxruntime_providers_shared.so"
