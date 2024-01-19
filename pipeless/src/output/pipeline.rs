@@ -507,8 +507,18 @@ impl Pipeline {
                         gst_buffer_mut.set_duration(duration);
                     }
 
+
                     if let Err(err) = appsrc.push_buffer(gst_buffer) {
-                        return Err(OutputPipelineError::new(&format!("Failed to send the output buffer: {}", err)));
+                        match err {
+                            gst::FlowError::Eos => {
+                                // Do not log error or warn because confuses users
+                                debug!("Unable to send frame, output pipeline is EOS.");
+                                return Ok(());
+                            }
+                            _ => {
+                                return Err(OutputPipelineError::new(&format!("Failed to send the output buffer: {}", err)));
+                            }
+                        }
                     }
                 }
             }
