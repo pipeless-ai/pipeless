@@ -4,10 +4,16 @@ use tokio::sync::RwLock;
 use gstreamer as gst;
 use glib;
 use tokio;
+use ctrlc;
 
 use crate as pipeless;
 
 pub fn start_pipeless_node(stages_dir: &str) {
+    ctrlc::set_handler(|| {
+        println!("Exiting...");
+        std::process::exit(0);
+    }).expect("Error setting Ctrl+C handler");
+
     pipeless::setup_logger();
     pyo3::prepare_freethreaded_python(); // Setup Pyo3
 

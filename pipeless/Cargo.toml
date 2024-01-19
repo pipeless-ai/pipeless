@@ -46,6 +46,7 @@ num_cpus = "1.16.0"
 gstreamer-rtsp = "0.21.0"
 inquire = "0.6.2"
 tabled = "0.15.0"
+ctrlc = "3.4.2"
 
 [dependencies.uuid]
 version = "1.4.1"
