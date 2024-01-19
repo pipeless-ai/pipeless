@@ -65,7 +65,7 @@ The following is a **non-exhaustive** set of relevant features that Pipeless inc
 
 ## Requirements ☝️
 
-* Python. Pre-built binaries are linked to Python 3.10 in Linux and 3.12 in macOS. If you have a different Python version, just provide the `--build` flag to the install script (or update your version and use a pre-built binary).
+* **Python**. Pre-built binaries are linked to Python 3.10 in Linux amd64, 3.8 in Linux arm64, and 3.12 in macOS. If you have a different Python version, provide the `--build` flag to the install script to build from source so Pipeless links to your installed Python version (or update your version and use a pre-built binary, which is simpler).
 * **Gstreamer 1.20.3**. Verify with `gst-launch-1.0 --gst-version`. Installation instructions [here](https://gstreamer.freedesktop.org/documentation/installing/index.html?gi-language=python)
 
 ## Installation 🛠️
