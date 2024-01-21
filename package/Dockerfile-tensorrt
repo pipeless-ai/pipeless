@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/tensorrt:23.08-py3
+FROM nvcr.io/nvidia/tensorrt:22.12-py3
 
 COPY scripts/install_packages /usr/bin/install_packages
 
