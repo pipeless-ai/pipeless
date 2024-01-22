@@ -79,7 +79,7 @@ pipeless_install() {
         bash install.sh --build
     )
     # Cleanup
-    rm -rf /tmp/*
+    rm -f /tmp/rustup-init.sh /tmp/install.sh
     rm -rf /.rustup/*
     rm -rf /.cargo/*
 }
