@@ -1,6 +1,6 @@
 [package]
 name = "pipeless-ai"
-version = "1.6.3"
+version = "1.7.0"
 edition = "2021"
 authors = ["Miguel A. Cabrera Minagorri"]
 description = "An open-source computer vision framework to build and deploy applications in minutes"
@@ -47,6 +47,7 @@ gstreamer-rtsp = "0.21.0"
 inquire = "0.6.2"
 tabled = "0.15.0"
 ctrlc = "3.4.2"
+redis = { version = "0.24.0", features = ["aio", "tokio-comp"] }
 
 [dependencies.uuid]
 version = "1.4.1"

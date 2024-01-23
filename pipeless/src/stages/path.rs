@@ -43,9 +43,9 @@ pub struct FramePathExecutor {
     stages: HashMap<String, pipeless::stages::stage::Stage>,
 }
 impl FramePathExecutor {
-    pub fn new(stages_dir: &str) -> Self {
+    pub fn new(project_dir: &str) -> Self {
         Self {
-            stages: pipeless::stages::parser::load_stages(stages_dir)
+            stages: pipeless::stages::parser::load_stages(project_dir)
         }
     }
 

@@ -90,7 +90,7 @@ enum Commands {
         project_dir: String,
         /// Enable event export via Redis
         #[clap(short, long)]
-        export_redis_events: bool,
+        export_events_redis: bool,
     },
     /// Add resources such as streams
     Add {
