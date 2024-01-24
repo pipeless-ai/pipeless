@@ -200,12 +200,12 @@ pub fn start(
                         }
                     }
                     DispatcherEvent::PipelineFinished(pipeline_id, finish_state) => {
-                        let mut stream_id: Option<uuid::Uuid> = None;
+                        let mut stream_uuid: Option<uuid::Uuid> = None;
                         { // context to release the write lock
                             let mut table_write_guard = streams_table.write().await;
                             let stream_entry_option = table_write_guard.find_by_pipeline_id_mut(pipeline_id);
                             if let Some(entry) = stream_entry_option {
-                                stream_id = Some(entry.get_id());
+                                stream_uuid = Some(entry.get_id());
                                 // Remove the pipeline from the stream entry since it finished
                                 entry.unassign_pipeline();
 
@@ -253,7 +253,7 @@ pub fn start(
                         let ext_event: serde_json::Value = serde_json::json!({
                             "type": "StreamFinished",
                             "end_state": finish_state.to_string(),
-                            "stream_id": stream_id.unwrap_or_default(),
+                            "stream_uuid": stream_uuid.unwrap_or_default(),
                         });
                         let ext_event_json_str = serde_json::to_string(&ext_event);
                         if let Ok(json_str) = ext_event_json_str {
