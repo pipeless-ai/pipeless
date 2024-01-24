@@ -40,11 +40,15 @@ pub fn start_pipeless_node(project_dir: &str, export_redis_events: bool) {
         } else {
             pipeless::event_exporters::EventExporter::new_none_exporter()
         };
+        { // Context to lock the global event exporter in order to set it
+            let mut e_exp = pipeless::event_exporters::EVENT_EXPORTER.lock().await;
+            *e_exp = event_exporter;
+        }
 
         let streams_table = Arc::new(RwLock::new(pipeless::config::streams::StreamsTable::new()));
         let dispatcher = pipeless::dispatcher::Dispatcher::new(streams_table.clone());
         let dispatcher_sender = dispatcher.get_sender().clone();
-        pipeless::dispatcher::start(dispatcher, frame_path_executor, event_exporter);
+        pipeless::dispatcher::start(dispatcher, frame_path_executor);
 
         // Use the REST adapter to manage streams
         let rest_adapter = pipeless::config::adapters::rest::RestAdapter::new(streams_table.clone());

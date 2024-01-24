@@ -124,7 +124,7 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Init { project_name , template}) => pipeless_ai::cli::init::init(&project_name, template),
-        Some(Commands::Start { project_dir , export_redis_events }) => pipeless_ai::cli::start::start_pipeless_node(&project_dir, *export_redis_events),
+        Some(Commands::Start { project_dir , export_events_redis }) => pipeless_ai::cli::start::start_pipeless_node(&project_dir, *export_events_redis),
         Some(Commands::Add { command }) => {
             match &command {
                 Some(AddCommand::Stream { input_uri, output_uri, frame_path , restart_policy}) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path, restart_policy),

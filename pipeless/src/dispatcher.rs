@@ -68,17 +68,14 @@ impl Dispatcher {
 pub fn start(
     dispatcher: Dispatcher,
     frame_path_executor_arc: Arc<RwLock<pipeless::stages::path::FramePathExecutor>>,
-    event_exporter: pipeless::event_exporters::EventExporter,
 ) {
     let running_managers: Arc<RwLock<HashMap<uuid::Uuid, pipeless::pipeline::Manager>>> = Arc::new(RwLock::new(HashMap::new()));
     let frame_path_executor_arc = frame_path_executor_arc.clone();
-    let event_exporter_arc = Arc::new(tokio::sync::Mutex::new(event_exporter));
 
     tokio::spawn(async move {
         let running_managers = running_managers.clone();
         let dispatcher_sender = dispatcher.get_sender().clone();
         let streams_table = dispatcher.get_streams_table().clone();
-        let event_exporter_arc = event_exporter_arc.clone();
         // Process events forever
         let concurrent_limit = 3;
         dispatcher.process_events(concurrent_limit, move |event, _end_signal| {
@@ -86,7 +83,6 @@ pub fn start(
             let running_managers = running_managers.clone();
             let dispatcher_sender = dispatcher_sender.clone();
             let streams_table = streams_table.clone();
-            let event_exporter_arc = event_exporter_arc.clone();
             async move {
                 match event {
                     DispatcherEvent::TableChange => {
@@ -157,6 +153,7 @@ pub fn start(
                                                     new_manager.get_pipeline_id().await
                                                 ) {
                                                     error!("Error adding new stream to the streams config table: {}", err);
+                                                    pipeless::event_exporters::events::export_stream_start_error_event(entry.get_id()).await;
                                                 }
                                                 let mut managers_map_guard = running_managers.write().await;
                                                 managers_map_guard.insert(new_manager.get_pipeline_id().await, new_manager);
@@ -165,6 +162,7 @@ pub fn start(
                                                 error!("Unable to create new pipeline: {}. Rolling back streams configuration.", err.to_string());
                                                 let removed = streams_table_guard.remove(entry.get_id());
                                                 if removed.is_none() { warn!("Error rolling back table, entry not found.") };
+                                                pipeless::event_exporters::events::export_stream_start_error_event(entry.get_id()).await;
                                             }
                                         }
                                     },
@@ -249,18 +247,10 @@ pub fn start(
                             }
                         }
 
-                        // Export the event
-                        let ext_event: serde_json::Value = serde_json::json!({
-                            "type": "StreamFinished",
-                            "end_state": finish_state.to_string(),
-                            "stream_uuid": stream_uuid.unwrap_or_default(),
-                        });
-                        let ext_event_json_str = serde_json::to_string(&ext_event);
-                        if let Ok(json_str) = ext_event_json_str {
-                            event_exporter_arc.lock().await.publish(&json_str).await;
-                        } else {
-                            warn!("Error serializing event to JSON string, skipping external publishing");
-                        }
+                        pipeless::event_exporters::events::export_stream_finished_event(
+                            stream_uuid.unwrap_or_default(),
+                            finish_state.to_string().as_str()
+                        ).await;
                     }
                 }
             }

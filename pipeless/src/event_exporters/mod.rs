@@ -1,5 +1,11 @@
+use std::sync::Arc;
+
 use log::warn;
 use redis::AsyncCommands;
+use lazy_static::lazy_static;
+use tokio::sync::Mutex;
+
+pub mod events;
 
 pub enum EventExporterEnum {
     Redis(Redis),
@@ -50,4 +56,11 @@ impl Redis {
             warn!("Error publishing message to Redis: {}", err.to_string());
         }
     }
+}
+
+// Create global variable to access the event exporter from any point of the code
+// It uses an Arc to be shared among threads and a Mutex since the connection is updated on every push
+lazy_static! {
+    pub static ref EVENT_EXPORTER: Arc<Mutex<EventExporter>> =
+        Arc::new(Mutex::new(EventExporter::new_none_exporter()));
 }
