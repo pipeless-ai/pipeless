@@ -27,7 +27,9 @@ pub struct Dispatcher {
     receiver: tokio_stream::wrappers::UnboundedReceiverStream<DispatcherEvent>,
 }
 impl Dispatcher {
-    pub fn new(streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>) -> Self {
+    pub fn new(
+        streams_table: Arc<RwLock<pipeless::config::streams::StreamsTable>>,
+    ) -> Self {
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<DispatcherEvent>();
         Self {
             sender,
@@ -36,7 +38,6 @@ impl Dispatcher {
             ),
             streams_table
         }
-
     }
 
     pub fn get_sender(&self) -> tokio::sync::mpsc::UnboundedSender<DispatcherEvent> {
@@ -66,7 +67,7 @@ impl Dispatcher {
 
 pub fn start(
     dispatcher: Dispatcher,
-    frame_path_executor_arc: Arc<RwLock<pipeless::stages::path::FramePathExecutor>>
+    frame_path_executor_arc: Arc<RwLock<pipeless::stages::path::FramePathExecutor>>,
 ) {
     let running_managers: Arc<RwLock<HashMap<uuid::Uuid, pipeless::pipeline::Manager>>> = Arc::new(RwLock::new(HashMap::new()));
     let frame_path_executor_arc = frame_path_executor_arc.clone();
@@ -152,6 +153,7 @@ pub fn start(
                                                     new_manager.get_pipeline_id().await
                                                 ) {
                                                     error!("Error adding new stream to the streams config table: {}", err);
+                                                    pipeless::event_exporters::events::export_stream_start_error_event(entry.get_id()).await;
                                                 }
                                                 let mut managers_map_guard = running_managers.write().await;
                                                 managers_map_guard.insert(new_manager.get_pipeline_id().await, new_manager);
@@ -160,6 +162,7 @@ pub fn start(
                                                 error!("Unable to create new pipeline: {}. Rolling back streams configuration.", err.to_string());
                                                 let removed = streams_table_guard.remove(entry.get_id());
                                                 if removed.is_none() { warn!("Error rolling back table, entry not found.") };
+                                                pipeless::event_exporters::events::export_stream_start_error_event(entry.get_id()).await;
                                             }
                                         }
                                     },
@@ -195,50 +198,59 @@ pub fn start(
                         }
                     }
                     DispatcherEvent::PipelineFinished(pipeline_id, finish_state) => {
-                        let mut table_write_guard = streams_table.write().await;
-                        let stream_entry_option = table_write_guard.find_by_pipeline_id_mut(pipeline_id);
-                        if let Some(entry) = stream_entry_option {
-                            // Remove the pipeline from the stream entry since it finished
-                            entry.unassign_pipeline();
+                        let mut stream_uuid: Option<uuid::Uuid> = None;
+                        { // context to release the write lock
+                            let mut table_write_guard = streams_table.write().await;
+                            let stream_entry_option = table_write_guard.find_by_pipeline_id_mut(pipeline_id);
+                            if let Some(entry) = stream_entry_option {
+                                stream_uuid = Some(entry.get_id());
+                                // Remove the pipeline from the stream entry since it finished
+                                entry.unassign_pipeline();
 
-                            // Update the target state of the stream based on the restart policy
-                            match entry.get_restart_policy() {
-                                pipeless::config::streams::RestartPolicy::Never => {
-                                    match finish_state {
-                                        pipeless::pipeline::PipelineEndReason::Completed => entry.set_target_state(pipeless::config::streams::StreamEntryState::Completed),
-                                        pipeless::pipeline::PipelineEndReason::Error => entry.set_target_state(pipeless::config::streams::StreamEntryState::Error),
-                                        pipeless::pipeline::PipelineEndReason::Updated => entry.set_target_state(pipeless::config::streams::StreamEntryState::Running),
-                                    }
-                                },
-                                pipeless::config::streams::RestartPolicy::Always => {
-                                    entry.set_target_state(pipeless::config::streams::StreamEntryState::Running);
-                                },
-                                pipeless::config::streams::RestartPolicy::OnError => {
-                                    if finish_state == pipeless::pipeline::PipelineEndReason::Error {
+                                // Update the target state of the stream based on the restart policy
+                                match entry.get_restart_policy() {
+                                    pipeless::config::streams::RestartPolicy::Never => {
+                                        match finish_state {
+                                            pipeless::pipeline::PipelineEndReason::Completed => entry.set_target_state(pipeless::config::streams::StreamEntryState::Completed),
+                                            pipeless::pipeline::PipelineEndReason::Error => entry.set_target_state(pipeless::config::streams::StreamEntryState::Error),
+                                            pipeless::pipeline::PipelineEndReason::Updated => entry.set_target_state(pipeless::config::streams::StreamEntryState::Running),
+                                        }
+                                    },
+                                    pipeless::config::streams::RestartPolicy::Always => {
                                         entry.set_target_state(pipeless::config::streams::StreamEntryState::Running);
-                                    } else {
-                                        entry.set_target_state(pipeless::config::streams::StreamEntryState::Error);
-                                    }
-                                },
-                                pipeless::config::streams::RestartPolicy::OnEos => {
-                                    if finish_state == pipeless::pipeline::PipelineEndReason::Completed {
-                                        entry.set_target_state(pipeless::config::streams::StreamEntryState::Running);
-                                    } else {
-                                        entry.set_target_state(pipeless::config::streams::StreamEntryState::Completed);
-                                    }
-                                },
-                            }
+                                    },
+                                    pipeless::config::streams::RestartPolicy::OnError => {
+                                        if finish_state == pipeless::pipeline::PipelineEndReason::Error {
+                                            entry.set_target_state(pipeless::config::streams::StreamEntryState::Running);
+                                        } else {
+                                            entry.set_target_state(pipeless::config::streams::StreamEntryState::Error);
+                                        }
+                                    },
+                                    pipeless::config::streams::RestartPolicy::OnEos => {
+                                        if finish_state == pipeless::pipeline::PipelineEndReason::Completed {
+                                            entry.set_target_state(pipeless::config::streams::StreamEntryState::Running);
+                                        } else {
+                                            entry.set_target_state(pipeless::config::streams::StreamEntryState::Completed);
+                                        }
+                                    },
+                                }
 
-                            // Create new event since we have modified the streams config table
-                            if let Err(err) = dispatcher_sender.send(DispatcherEvent::TableChange) {
-                                warn!("Unable to send dispatcher event for streams table changed. Error: {}", err.to_string());
+                                // Create new event since we have modified the streams config table
+                                if let Err(err) = dispatcher_sender.send(DispatcherEvent::TableChange) {
+                                    warn!("Unable to send dispatcher event for streams table changed. Error: {}", err.to_string());
+                                }
+                            } else {
+                                warn!("
+                                    Unable to unassign pipeline for stream. Stream entry not found.
+                                    Pipeline id: {}
+                                ", pipeline_id);
                             }
-                        } else {
-                            warn!("
-                                Unable to unassign pipeline for stream. Stream entry not found.
-                                Pipeline id: {}
-                            ", pipeline_id);
                         }
+
+                        pipeless::event_exporters::events::export_stream_finished_event(
+                            stream_uuid.unwrap_or_default(),
+                            finish_state.to_string().as_str()
+                        ).await;
                     }
                 }
             }

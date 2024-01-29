@@ -85,9 +85,12 @@ enum Commands {
     },
     /// Start the pipeless node
     Start {
-        /// Read stages from the specified directory
-        #[arg(short, long)]
-        stages_dir: String,
+        /// Pipeless project directory
+        #[clap(short, long, alias = "stages-dir")]
+        project_dir: String,
+        /// Enable event export via Redis
+        #[clap(short, long)]
+        export_events_redis: bool,
     },
     /// Add resources such as streams
     Add {
@@ -121,7 +124,7 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Init { project_name , template}) => pipeless_ai::cli::init::init(&project_name, template),
-        Some(Commands::Start { stages_dir }) => pipeless_ai::cli::start::start_pipeless_node(&stages_dir),
+        Some(Commands::Start { project_dir , export_events_redis }) => pipeless_ai::cli::start::start_pipeless_node(&project_dir, *export_events_redis),
         Some(Commands::Add { command }) => {
             match &command {
                 Some(AddCommand::Stream { input_uri, output_uri, frame_path , restart_policy}) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path, restart_policy),

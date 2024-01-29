@@ -1,7 +1,7 @@
 use uuid;
 use tokio;
 use tokio::sync::RwLock;
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 use log::{info, error, warn};
 
 use crate as pipeless;
@@ -31,11 +31,20 @@ impl From<pipeless::output::pipeline::OutputPipelineError> for PipelineError {
     }
 }
 
-#[derive(Eq,PartialEq)]
+#[derive(Debug,Eq,PartialEq)]
 pub enum PipelineEndReason {
     Completed, // End of stream
     Error,
     Updated, // When the user changes the stream definition
+}
+impl fmt::Display for PipelineEndReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PipelineEndReason::Completed => write!(f, "completed"),
+            PipelineEndReason::Error => write!(f, "error"),
+            PipelineEndReason::Updated => write!(f, "updated"),
+        }
+    }
 }
 
 /// A Pipeless pipeline is an association of an input pipeline and an
