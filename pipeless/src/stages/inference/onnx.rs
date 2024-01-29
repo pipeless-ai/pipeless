@@ -147,7 +147,6 @@ impl super::session::SessionTrait for OnnxSession {
             self.session.allocator(),
             &cow_array
         );
-
         match ort_input_value_result {
             Ok(ort_input_value) => {
                 // Use IO bindings for faster data movement between devices
