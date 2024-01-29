@@ -42,12 +42,14 @@ impl SessionParams {
                     warn!("'execution_mode' must be set to 'Parallel' for 'inter_threads' to take effect");
                 }
                 let intra_threads = data["intra_threads"].as_i64();
+                let custom_op_lib_path = data["custom_op_lib_path"].as_str();
                 SessionParams::Onnx(
                     OnnxSessionParams::new(
                         stage_name,
                         execution_provider, execution_mode,
                         inter_threads.map(|t| t as i16),
-                        intra_threads.map(|t| t as i16)
+                        intra_threads.map(|t| t as i16),
+                        custom_op_lib_path,
                 ))
             },
             super::runtime::InferenceRuntime::Openvino => unimplemented!(),
