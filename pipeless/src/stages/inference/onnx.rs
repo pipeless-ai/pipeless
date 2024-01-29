@@ -86,6 +86,7 @@ impl OnnxSession {
             }
 
             if let Some(lib_path) = onnx_params.custom_op_lib_path {
+                log::info!("Loading custom operations lib from: {}", lib_path);
                 session_builder = session_builder.with_custom_op_lib(&lib_path).unwrap();
             }
 
@@ -132,29 +133,20 @@ impl super::session::SessionTrait for OnnxSession {
     fn infer(&self, mut frame: pipeless::data::Frame) -> pipeless::data::Frame {
         // TODO: automatically resize and traspose the input image to the expected by the model
 
-        let cow_array_u8;
-        let cow_array_f32;
-        let ort_input_value_result;
+        // FIXME: we are forcing users to provide float32 arrays which will produce the inference to fail if the model expects uint values.
+
         let input_data = frame.get_inference_input().to_owned();
         if input_data.len() == 0 {
-            //warn!("No inference input data was provided. Did you forget to add it at your pre-process hook?");
-
-            // Pass as input the whole image directly
-            // FIXME: the to_owned here may copy the frame adding latency
-            //let input_vec =  frame.get_original_pixels().to_owned().insert_axis(ndarray::Axis(0)).into_dyn(); // Batch image with batch size 1
-            cow_array_u8 = ndarray::CowArray::from([frame.get_original_pixels().to_owned().into_dyn()]);
-            ort_input_value_result = ort::Value::from_array(
-                self.session.allocator(),
-                &cow_array_u8
-            );
-        } else {
-            let input_vec = input_data.insert_axis(ndarray::Axis(0)).into_dyn(); // Batch image with batch size 1
-            cow_array_f32 = ndarray::CowArray::from(input_vec);
-            ort_input_value_result = ort::Value::from_array(
-                self.session.allocator(),
-                &cow_array_f32
-            );
+            warn!("No inference input data was provided. Did you forget to add it at your pre-process hook?");
+            return frame;
         }
+
+        let input_vec = input_data.view().insert_axis(ndarray::Axis(0)).into_dyn(); // Batch image with batch size 1
+        let cow_array = ndarray::CowArray::from(input_vec);
+        let ort_input_value_result = ort::Value::from_array(
+            self.session.allocator(),
+            &cow_array
+        );
 
         match ort_input_value_result {
             Ok(ort_input_value) => {
