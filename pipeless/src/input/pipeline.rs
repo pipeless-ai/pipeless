@@ -61,6 +61,7 @@ fn on_new_sample(
     pipeless_pipeline_id: uuid::Uuid,
     appsink: &gst_app::AppSink,
     pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    frame_number: &mut u64,
 ) -> Result<gst::FlowSuccess, gst::FlowError> {
     let sample = appsink.pull_sample().map_err(|_err| {
         error!("Sample is None");
@@ -116,11 +117,12 @@ fn on_new_sample(
         gst::FlowError::Error
     })?;
 
+    *frame_number += 1;
     let frame = pipeless::data::Frame::new_rgb(
         ndframe, width, height,
         pts, dts, duration,
         fps as u8, frame_input_instant,
-        pipeless_pipeline_id
+        pipeless_pipeline_id, *frame_number,
     );
     // The event takes ownership of the frame
     pipeless::events::publish_new_frame_change_event_sync(
@@ -413,11 +415,13 @@ fn create_gst_pipeline(
         .new_sample(
             {
                 let pipeless_bus_sender = pipeless_bus_sender.clone();
+                let mut frame_number: u64 = 0; // Used to set the frame number
                 move |appsink: &gst_app::AppSink| {
                 on_new_sample(
                     pipeless_pipeline_id,
                     appsink,
                     &pipeless_bus_sender,
+                    &mut frame_number,
                 )
             }
         }).build();

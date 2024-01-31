@@ -29,6 +29,7 @@ pub struct RgbFrame {
     inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     pipeline_id: uuid::Uuid,
     user_data: UserData,
+    frame_number: u64,
 }
 impl RgbFrame {
     pub fn new(
@@ -36,7 +37,7 @@ impl RgbFrame {
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
         fps: u8, input_ts: f64,
-        pipeline_id: uuid::Uuid,
+        pipeline_id: uuid::Uuid, frame_number: u64
     ) -> Self {
         let modified = original.to_owned();
         RgbFrame {
@@ -49,6 +50,7 @@ impl RgbFrame {
             inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
             pipeline_id,
             user_data: UserData::Empty,
+            frame_number,
         }
     }
 
@@ -62,7 +64,7 @@ impl RgbFrame {
         inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         pipeline_id: &str,
-        user_data: UserData,
+        user_data: UserData, frame_number: u64,
     ) -> Self {
         RgbFrame {
             uuid: uuid::Uuid::from_str(uuid).unwrap(),
@@ -74,7 +76,8 @@ impl RgbFrame {
             fps, input_ts,
             inference_input, inference_output,
             pipeline_id: uuid::Uuid::from_str(pipeline_id).unwrap(),
-            user_data: user_data
+            user_data: user_data,
+            frame_number,
         }
     }
 
@@ -137,6 +140,9 @@ impl RgbFrame {
     pub fn get_user_data(&self) -> &UserData {
         &self.user_data
     }
+    pub fn get_frame_number(&self) -> u64 {
+        self.frame_number
+    }
 }
 
 pub enum Frame {
@@ -148,12 +154,13 @@ impl Frame {
         width: usize, height: usize,
         pts: gst::ClockTime, dts: gst::ClockTime, duration: gst::ClockTime,
         fps: u8, input_ts: f64,
-        pipeline_id: uuid::Uuid
+        pipeline_id: uuid::Uuid, frame_number: u64,
     ) -> Self {
         let rgb = RgbFrame::new(
             original, width, height,
             pts, dts, duration,
-            fps, input_ts, pipeline_id
+            fps, input_ts,
+            pipeline_id, frame_number
         );
         Self::RgbFrame(rgb)
     }
