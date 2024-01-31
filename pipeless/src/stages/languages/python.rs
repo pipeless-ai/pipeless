@@ -1,8 +1,8 @@
 use log::{error, warn};
-use pyo3::prelude::*;
+use pyo3::{PyObject, prelude::*};
 use numpy::{self, ToPyArray};
 
-use crate::{data::{RgbFrame, Frame}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
+use crate::{data::{Frame, RgbFrame, UserData}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -41,6 +41,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("inference_input", self.get_inference_input().to_pyarray(py)).unwrap();
         dict.set_item("inference_output", self.get_inference_output().to_pyarray(py)).unwrap();
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
+        dict.set_item("user_data", self.get_user_data()).unwrap();
         dict.into()
     }
 }
@@ -82,15 +83,81 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let inference_input = inference_input_ndarray;
         let inference_output =inference_output_ndarray;
         let pipeline_id = ob.get_item("pipeline_id").unwrap().extract()?;
+        let user_data = ob.get_item("user_data").unwrap().extract()?;
 
         let frame = RgbFrame::from_values(
             uuid, original, modified, width, height,
             pts, dts, duration, fps, input_ts,
             inference_input, inference_output,
-            pipeline_id,
+            pipeline_id, user_data
         );
 
         Ok(frame)
+    }
+}
+
+/// Allows to pass the user data to python and back
+impl ToPyObject for UserData {
+    fn to_object(&self, py: Python<'_>) -> PyObject {
+        match self {
+            UserData::Empty => py.None(),
+            UserData::Integer(i) => i.into_py(py),
+            UserData::Float(f) => f.into_py(py),
+            UserData::String(s) => s.into_py(py),
+            UserData::Array(arr) => {
+                let list = pyo3::types::PyList::empty(py);
+                for item in arr {
+                    list.append(item.to_object(py)).unwrap();
+                }
+                list.into_py(py)
+            }
+            UserData::Dictionary(dict) => {
+                let py_dict = pyo3::types::PyDict::new(py);
+                for (key, value) in dict {
+                    py_dict.set_item(key, value.to_object(py)).unwrap();
+                }
+                py_dict.into_py(py)
+            }
+        }
+    }
+}
+
+/// Allows to pass the user data to python and back
+impl<'source> FromPyObject<'source> for UserData {
+    fn extract(obj: &'source PyAny) -> PyResult<Self> {
+        if let Ok(integer) = obj.extract::<i32>() {
+            Ok(UserData::Integer(integer))
+        } else if let Ok(float) = obj.extract::<f64>() {
+            Ok(UserData::Float(float))
+        } else if let Ok(string) = obj.extract::<String>() {
+            Ok(UserData::String(string))
+        } else if obj.is_instance_of::<pyo3::types::PyList>() {
+            let array = obj.downcast::<pyo3::types::PyList>()?;
+            let array_data = array.into_iter()
+                .map(|elem| UserData::extract(elem))
+                .collect::<PyResult<Vec<UserData>>>()?;
+            Ok(UserData::Array(array_data))
+        } else if obj.is_instance_of::<pyo3::types::PyDict>() {
+            let dict = obj.downcast::<pyo3::types::PyDict>()?;
+            let dict_keys = dict.keys();
+            let mut dict_items = Vec::new();
+            for key in dict_keys {
+                let key_str = key.extract::<String>()?;
+                let value = dict.get_item(key)?;
+                match value {
+                    Some(v) => {
+                        let value_data = UserData::extract(v)?;
+                        dict_items.push((key_str, value_data));
+                    },
+                    None => { dict_items.push((key_str, UserData::Empty)); },
+                }
+            }
+            Ok(UserData::Dictionary(dict_items))
+        } else if obj.is_none() {
+            Ok(UserData::Empty)
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err("Unsupported data type assigned to 'user_data'. Please check in the Pipeless the supported types."))
+        }
     }
 }
 
