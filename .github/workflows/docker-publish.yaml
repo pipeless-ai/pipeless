@@ -58,6 +58,15 @@ jobs:
     name: Push CUDA Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
+      # Avoids the runner to run out of space by removing unnecesary dependencies
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 35000
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+
       - name: Check out the repo
         uses: actions/checkout@v3
 
