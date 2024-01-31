@@ -3,6 +3,17 @@ use ndarray;
 use uuid;
 use gstreamer as gst;
 
+/// Custom data that the user can add to the frame in a stage
+/// allowing to pass data to subsequent stages
+pub enum UserData {
+    Empty,
+    Integer(i32),
+    Float(f64),
+    String(String),
+    Array(Vec<UserData>),
+    Dictionary(Vec<(String, UserData)>),
+}
+
 pub struct RgbFrame {
     uuid: uuid::Uuid,
     original: ndarray::Array3<u8>,
@@ -17,6 +28,7 @@ pub struct RgbFrame {
     inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
     pipeline_id: uuid::Uuid,
+    user_data: UserData,
 }
 impl RgbFrame {
     pub fn new(
@@ -36,6 +48,7 @@ impl RgbFrame {
             inference_input: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
             inference_output: ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])),
             pipeline_id,
+            user_data: UserData::Empty,
         }
     }
 
@@ -49,6 +62,7 @@ impl RgbFrame {
         inference_input: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         inference_output: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>,
         pipeline_id: &str,
+        user_data: UserData,
     ) -> Self {
         RgbFrame {
             uuid: uuid::Uuid::from_str(uuid).unwrap(),
@@ -60,6 +74,7 @@ impl RgbFrame {
             fps, input_ts,
             inference_input, inference_output,
             pipeline_id: uuid::Uuid::from_str(pipeline_id).unwrap(),
+            user_data: user_data
         }
     }
 
@@ -118,6 +133,9 @@ impl RgbFrame {
     }
     pub fn set_pipeline_id(&mut self, pipeline_id: &str) {
         self.pipeline_id = uuid::Uuid::from_str(pipeline_id).unwrap();
+    }
+    pub fn get_user_data(&self) -> &UserData {
+        &self.user_data
     }
 }
 
