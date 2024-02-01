@@ -131,8 +131,8 @@ impl RgbFrame {
     pub fn set_inference_output(&mut self, output_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
         self.inference_output = output_data;
     }
-    pub fn get_pipeline_id(&self) -> uuid::Uuid {
-        self.pipeline_id
+    pub fn get_pipeline_id(&self) -> &uuid::Uuid {
+        &self.pipeline_id
     }
     pub fn set_pipeline_id(&mut self, pipeline_id: &str) {
         self.pipeline_id = uuid::Uuid::from_str(pipeline_id).unwrap();
@@ -140,8 +140,8 @@ impl RgbFrame {
     pub fn get_user_data(&self) -> &UserData {
         &self.user_data
     }
-    pub fn get_frame_number(&self) -> u64 {
-        self.frame_number
+    pub fn get_frame_number(&self) -> &u64 {
+        &self.frame_number
     }
 }
 
@@ -193,6 +193,16 @@ impl Frame {
     pub fn set_inference_output(&mut self, output_data: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>) {
         match self {
             Frame::RgbFrame(frame) => { frame.set_inference_output(output_data); },
+        }
+    }
+    pub fn get_pipeline_id(&self) -> &uuid::Uuid {
+        match self {
+            Frame::RgbFrame(frame) => frame.get_pipeline_id(),
+        }
+    }
+    pub fn get_frame_number(&self) -> &u64 {
+        match self {
+            Frame::RgbFrame(frame) => frame.get_frame_number(),
         }
     }
 }
