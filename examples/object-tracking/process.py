@@ -1,18 +1,18 @@
 # make stateful
 
-from norfair import Detection, draw_tracked_objects
+from norfair import Detection, draw_points
 import numpy as np
 
 def hook(frame_data, context):
     tracker = context['tracker']
     frame = frame_data['modified']
     bboxes, scores, labels = frame_data['user_data'].values()
-    norfair_detections = yolo_to_norfair(bboxes, scores, labels)
+    norfair_detections = yolo_to_norfair(bboxes, scores)
     tracked_objects = tracker.update(detections=norfair_detections)
-    draw_tracked_objects(frame, tracked_objects)
+    draw_points(frame, drawables=tracked_objects)
     frame_data['modified'] = frame
 
-def yolo_to_norfair(bboxes, scores, labels):
+def yolo_to_norfair(bboxes, scores):
     norfair_detections = []
     for i, bbox in enumerate(bboxes):
         box_corners = [[bbox[0], bbox[1]], [bbox[2], bbox[3]]]
