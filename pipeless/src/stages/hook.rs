@@ -1,6 +1,7 @@
-use std::{sync::Arc, fmt};
+use std::{collections::HashMap, fmt, sync::Arc};
 use log::error;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
+use uuid::Uuid;
 
 use crate as pipeless;
 
@@ -46,6 +47,9 @@ impl StatelessHook {
 pub struct StatefulHook {
     h_type: HookType,
     h_body: Arc<Mutex<dyn HookTrait>>,
+    // Stateful hooks would not necesarily require to process sequentially, however, in almost all cases preserving a state in CV are related to sorted processing, such as tracking.
+    // Maps the stream uuid to the last frame processed for the stream. Used for stateful sequential sorted processing.
+    last_frame_map: Arc<RwLock<HashMap<Uuid, u64>>>,
 }
 impl StatefulHook {
     fn get_hook_type(&self) -> HookType {
@@ -53,6 +57,21 @@ impl StatefulHook {
     }
     fn get_hook_body(&self) -> Arc<Mutex<dyn HookTrait>> {
         self.h_body.clone()
+    }
+    async fn last_processed_frame_number(&self, pipeline_id: &Uuid) -> u64 {
+        let read_guard = self.last_frame_map.read().await;
+        match read_guard.get(pipeline_id) {
+            Some(n) => *n,
+            None => 0,
+        }
+    }
+    async fn increment_last_processed(&self, pipeline_id: &Uuid) {
+        let mut write_guard = self.last_frame_map.write().await;
+        let last = match write_guard.get(pipeline_id) {
+            Some(n) => *n,
+            None => 0,
+        };
+        write_guard.insert(*pipeline_id, last + 1);
     }
 }
 
@@ -85,6 +104,7 @@ impl Hook {
         let hook = StatefulHook {
             h_type: hook_type,
             h_body: hook_body,
+            last_frame_map: Arc::new(RwLock::new(HashMap::new())),
         };
         Self::StatefulHook(hook)
     }
@@ -122,15 +142,28 @@ impl Hook {
                 }
             },
             Hook::StatefulHook(hook) => {
+                let frame_pipeline_id = frame.get_pipeline_id().clone();
+                // Wait until it's this frame's turn to be processed
+                {
+                    let prev_frame_number = frame.get_frame_number() - 1;
+                    let mut last_processed = hook.last_processed_frame_number(&frame_pipeline_id).await;
+                    while last_processed != prev_frame_number {
+                        last_processed = hook.last_processed_frame_number(&frame_pipeline_id).await;
+                        tokio::task::yield_now().await;
+                    }
+                }
+
                 // NOTE: the following is sub-optimal. We can't use rayon with async code and
                 // for stateful hooks we need to lock the mutex before running.
                 let worker_res = tokio::task::spawn_blocking({
                     let stage_context = stage_context.clone();
                     let hook = hook.clone();
-                    || async move {
+                    move || async move{
                         let h_body = hook.get_hook_body();
                         let locked_hook = h_body.lock().await;
-                        locked_hook.exec_hook(frame, &stage_context)
+                        let res = locked_hook.exec_hook(frame, &stage_context);
+                        hook.increment_last_processed(&frame_pipeline_id).await;
+                        res
                     }
                 }).await;
                 match worker_res {

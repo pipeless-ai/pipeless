@@ -42,6 +42,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("inference_output", self.get_inference_output().to_pyarray(py)).unwrap();
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.set_item("user_data", self.get_user_data()).unwrap();
+        dict.set_item("frame_number", self.get_frame_number()).unwrap();
         dict.into()
     }
 }
@@ -84,12 +85,13 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let inference_output =inference_output_ndarray;
         let pipeline_id = ob.get_item("pipeline_id").unwrap().extract()?;
         let user_data = ob.get_item("user_data").unwrap().extract()?;
+        let frame_number = ob.get_item("frame_number").unwrap().extract()?;
 
         let frame = RgbFrame::from_values(
             uuid, original, modified, width, height,
             pts, dts, duration, fps, input_ts,
             inference_input, inference_output,
-            pipeline_id, user_data
+            pipeline_id, user_data, frame_number
         );
 
         Ok(frame)

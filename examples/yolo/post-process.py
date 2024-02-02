@@ -6,6 +6,15 @@ def hook(frame_data, _):
     for box in bboxes:
         x1, y1, x2, y2, score, class_number = box
         box_label(frame, [x1, y1, x2, y2], yolo_classes[int(class_number)], score, (255, 0, 255))
+
+    bboxes = bboxes.tolist()
+    # Add the predictions to the frame user_data in order to recover it frm other stages
+    frame_data['user_data'] = {
+        "bboxes": [bbox[:4] for bbox in bboxes],
+        "scores": [bbox[4] for bbox in bboxes],
+        "labels": [yolo_classes[int(bbox[5])] for bbox in bboxes]
+    }
+
     frame_data['modified'] = frame
 
 # Classes defined in the YOLO model to obtain the predicted class label
