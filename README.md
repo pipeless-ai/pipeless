@@ -54,7 +54,8 @@ The following is a **non-exhaustive** set of relevant features that Pipeless inc
 * **Multi-stream support**: process several streams at the same time.
 * **Dynamic stream configuration**: add, edit, and remove streams on the fly via a CLI or REST API (more adapters to come).
 * **Multi-language support**: you can Write your hooks in several languages, including Python.
-* **Dynamic processing steps**: you can add any number of steps to your stream processing, and even modify those steps dynamically.
+* **Dynamic processing steps**: you can add any number of steps to your stream processing, and even modify those steps dynamically on a per-stream basis.
+* **Built-in restart policies**: Forget about dealing with connection errors, cameras that fail, etc. You can easily specify restart policies per stream that handle those situations automatially.
 * **Highly parallelized**: do not worry about multi-threading and/or multi-processing, Pipeless takes care of that for you.
 * **Several inference runtimes supported**: Provide a model and select one of the supported inference runtimes to run it out-of-the-box in CPU or GPUs. We support **CUDA**, **TensorRT**, **OpenVINO**, **CoreML**, and more to come.
 * **Well-defined project structure and highly reusable code**: Pipeless uses the file system structure to load processing stages and hooks, helping you organize the code in highly reusable boxes. Each stage is a directory, each hook is defined on its own file.
