@@ -21,3 +21,4 @@ pub mod stages;
 pub mod cli;
 pub mod kvs;
 pub mod event_exporters;
+pub mod components;

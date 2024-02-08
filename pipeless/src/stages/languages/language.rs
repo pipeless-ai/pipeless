@@ -2,6 +2,7 @@ pub enum Language {
     Python,
     Rust,
     Json,
+    Wasm,
 }
 pub struct LanguageDef {
     language: Language,
@@ -20,5 +21,6 @@ pub fn get_available_languages() -> Vec<LanguageDef> {
         LanguageDef::new(Language::Python, "py"),
         LanguageDef::new(Language::Rust, "rs"),
         LanguageDef::new(Language::Json, "json"),
+        LanguageDef::new(Language::Wasm, "wasm"), // Wasm based hooks are pre-compiled wasm components
     ]
 }

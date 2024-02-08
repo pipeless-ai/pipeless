@@ -16,10 +16,18 @@ use crate as pipeless;
 pub enum Context {
     EmptyContext,
     PythonContext(pipeless::stages::languages::python::PythonStageContext),
-    RustContext(pipeless::stages::languages::rust::RustStageContext)
+    RustContext(pipeless::stages::languages::rust::RustStageContext),
+    WasmContext(pipeless::stages::languages::wasm::WasmStageContext),
 }
-pub trait ContextTrait<T> {
+/// A trait to create contexts by providing the code in a string. Useful for interpreted languages.
+pub trait FromCodeContextTrait<T> {
     fn init_context(stage_name: &str, init_code: &str) -> T;
+}
+/// A trait to create contexts from components. Useful for either compiled or interpreted languages.
+/// Returns an Option because we cannot know if the component will define an init function or not, unlike the FromCodeContextTrait where
+/// it is ensured that a context will be returned since we pass the init code directly.
+pub trait FromComponentContextTrait<T> {
+    fn init_context(stage_name: &str, component: &wasmtime::component::Component) -> T;
 }
 
 /// A Pipeless stage is the equivalent to a step that you would define when working

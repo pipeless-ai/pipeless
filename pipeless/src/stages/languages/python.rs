@@ -1,8 +1,8 @@
-use log::{error, warn};
+use log::{error, info, warn};
 use pyo3::{PyObject, prelude::*};
 use numpy::{self, ToPyArray};
 
-use crate::{data::{Frame, RgbFrame, UserData}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
+use crate::{data::{Frame, RgbFrame, UserData}, stages::{hook::{HookTrait, HookType}, stage::FromCodeContextTrait}, stages::stage::Context, kvs::store};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -167,8 +167,9 @@ impl<'source> FromPyObject<'source> for UserData {
 pub struct PythonStageContext {
     context: Py<pyo3::types::PyDict>,
 }
-impl ContextTrait<PythonStageContext> for PythonStageContext {
+impl FromCodeContextTrait<PythonStageContext> for PythonStageContext {
     fn init_context(stage_name: &str, init_code: &str) -> Self {
+        info!("Initializing context for stage: {}", stage_name);
         let module_name = format!("{}_{}", stage_name, "init");
         let module_file_name = format!("{}.py", module_name);
         let py_ctx = Python::with_gil(|py| -> Py<pyo3::types::PyDict> {
@@ -213,7 +214,7 @@ pub struct PythonHook {
     module: Py<pyo3::types::PyModule>,
 }
 impl PythonHook {
-    pub fn new(hook_type: HookType, stage_name: &str,py_code: &str) -> Self {
+    pub fn new(hook_type: HookType, stage_name: &str, py_code: &str) -> Self {
         // The wrapper removes the need for the user to return a frame from each hook
         // Also, injects the set and get functions for the KV store namespacing the keys
         // to avoid conflicts between streams in the format stage_name:pipeline_id:user_provided_key

@@ -11,6 +11,16 @@ pub enum HookType {
     Process,
     PostProcess,
 }
+impl HookType {
+    pub fn from_str(type_str: &str) -> Option<Self> {
+        match type_str {
+            "pre-process" | "pre_process" => Some(HookType::PreProcess),
+            "process" => Some(HookType::Process),
+            "post-process" | "post_process" => Some(HookType::PostProcess),
+            _ => None,
+        }
+    }
+}
 impl fmt::Display for HookType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self {

@@ -1,10 +1,10 @@
 use log::error;
-use crate::{stages::{hook::HookTrait, stage::{Context, ContextTrait}}, data::Frame};
+use crate::{stages::{hook::HookTrait, stage::{Context, FromCodeContextTrait}}, data::Frame};
 
 pub struct RustStageContext {
     // TODO
 }
-impl ContextTrait<RustStageContext> for RustStageContext {
+impl FromCodeContextTrait<RustStageContext> for RustStageContext {
     fn init_context(_stage_name: &str, _init_code: &str) -> RustStageContext {
         unimplemented!();
     }
