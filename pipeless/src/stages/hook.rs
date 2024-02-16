@@ -43,6 +43,8 @@ pub trait HookTrait: Send + Sync {
 #[derive(Clone)]
 pub struct StatelessHook {
     h_type: HookType,
+    // By using Arc here the underlying hook object is not cloned, which means we always use the same instance of the hook from many threads at the same time.
+    // That reduces memory usage, but the user must be aware that creating hooks that use and modify internal objects may produce unexpected behaviours.
     h_body: Arc<dyn HookTrait>,
 }
 impl StatelessHook {

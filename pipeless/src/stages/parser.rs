@@ -92,7 +92,9 @@ fn parse_wasm_hook(file_path: &str, hook_type_str: &str, stage: &mut pipeless::s
         stage.set_context(context);
     } else {
         if let Some(hook_type) = pipeless::stages::hook::HookType::from_str(hook_type_str) {
-            let wasm_hook = pipeless::stages::languages::wasm::WasmHook::new(hook_type, stage.get_name(), &component);
+            // TODO: use stateless hooks too. Should we add the stateless word to the file extension instead of inside the file? Like process.stateless.wasm, process.stateless.py
+            //let wasm_hook = pipeless::stages::languages::wasm::wasm_stateful::WasmStatefulHook::new(hook_type, stage.get_name(), &component);
+            let wasm_hook = pipeless::stages::languages::wasm::wasm_stateless::WasmStatelessHook::new(hook_type, stage.get_name(), &component);
             info!("\t\tCreating stateless hook for {}-{}", stage.get_name(), hook_type);
             // FIXME: how do we specify statefull or stateless hooks for wasm components? Should they export a function that returns that?
             let hook = pipeless::stages::hook::Hook::new_stateless(hook_type, Arc::new(wasm_hook));
