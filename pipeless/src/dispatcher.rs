@@ -68,6 +68,7 @@ impl Dispatcher {
 pub fn start(
     dispatcher: Dispatcher,
     frame_path_executor_arc: Arc<RwLock<pipeless::stages::path::FramePathExecutor>>,
+    buffer_size: usize,
 ) {
     let running_managers: Arc<RwLock<HashMap<uuid::Uuid, pipeless::pipeline::Manager>>> = Arc::new(RwLock::new(HashMap::new()));
     let frame_path_executor_arc = frame_path_executor_arc.clone();
@@ -139,7 +140,7 @@ pub fn start(
                                 match frame_path {
                                     Ok(frame_path) => {
                                         info!("New stream entry detected, creating pipeline");
-                                        let new_pipeless_bus = pipeless::events::Bus::new();
+                                        let new_pipeless_bus = pipeless::events::Bus::new(buffer_size);
                                         let new_manager_result = pipeless::pipeline::Manager::new(
                                             input_uri, output_uri, frame_path,
                                             &new_pipeless_bus.get_sender(),

@@ -261,7 +261,7 @@ fn create_sink(stream: &StreamDef) -> Result<gst::Element, BoolError> {
 fn on_bus_message(
     msg: &gst::Message,
     pipeline_id: uuid::Uuid,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
 ) {
     match msg.view() {
         gst::MessageView::Eos(_eos) => {
@@ -405,7 +405,7 @@ impl Pipeline {
         id: uuid::Uuid,
         stream: pipeless::output::pipeline::StreamDef,
         caps: &str,
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
     ) -> Result<Self, OutputPipelineError> {
         let (gst_pipeline, buffer_pool) = create_gst_pipeline(&stream, caps)?;
         let pipeline = Pipeline {
@@ -458,7 +458,7 @@ impl Pipeline {
     pub fn on_new_frame(
         &self,
         frame: pipeless::data::Frame,
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>
     ) -> Result<(), OutputPipelineError>{
         match frame {
             pipeless::data::Frame::RgbFrame(mut rgb_frame) => {
