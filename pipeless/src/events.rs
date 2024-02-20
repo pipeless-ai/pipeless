@@ -1,6 +1,6 @@
 use futures::{StreamExt, Future};
 use gst::TagList;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use gstreamer as gst;
 
 use crate as pipeless;
@@ -24,6 +24,7 @@ impl FrameChange {
 }
 impl EventType for FrameChange {}
 
+#[derive(Clone)]
 pub struct TagsChange {
     tags: gst::TagList,
 }
@@ -38,6 +39,7 @@ impl TagsChange {
 impl EventType for TagsChange {}
 
 // When the input stream stopped sending frames
+#[derive(Clone)]
 pub struct EndOfInputStream {}
 impl EndOfInputStream {
     pub fn new() -> Self {
@@ -47,6 +49,7 @@ impl EndOfInputStream {
 impl EventType for EndOfInputStream {}
 
 // When the output stream processed the input EOS
+#[derive(Clone)]
 pub struct EndOfOutputStream {}
 impl EndOfOutputStream {
     pub fn new() -> Self {
@@ -56,6 +59,7 @@ impl EndOfOutputStream {
 impl EventType for EndOfOutputStream {}
 
 // When the input stream caps are available
+#[derive(Clone)]
 pub struct NewInputCaps {
     caps: String,
 }
@@ -69,6 +73,7 @@ impl NewInputCaps {
 }
 impl EventType for NewInputCaps {}
 
+#[derive(Clone)]
 pub struct InputStreamError {
     msg: String,
 }
@@ -82,6 +87,7 @@ impl InputStreamError {
 }
 impl EventType for InputStreamError {}
 
+#[derive(Clone)]
 pub struct OutputStreamError {
     msg: String,
 }
@@ -134,6 +140,16 @@ impl Event {
         Self::OutputStreamErrorEvent(output_error)
     }
 }
+// We need to clone the event in the ensure_send function loop
+impl Clone for Event {
+    fn clone(&self) -> Self {
+        if let Event::FrameChangeEvent(_) = self {
+            panic!("Cloning FrameChangeEvent events is not allowed because they contain frames.");
+        }
+
+        self.clone()
+    }
+}
 
 /// The bus is used to handle events on the pipelines.
 /// working as expected even on different threads
@@ -141,22 +157,22 @@ impl Event {
 //       a cloud bus and a local bus. The cloud bus will basically
 //       be a connection to a message broker.
 pub struct Bus {
-    sender: tokio::sync::mpsc::UnboundedSender<Event>,
+    sender: tokio::sync::mpsc::Sender<Event>,
     // Use a stream receiver to be able to process events concurrently
-    receiver: tokio_stream::wrappers::UnboundedReceiverStream<Event>,
+    receiver: tokio_stream::wrappers::ReceiverStream<Event>,
 }
 impl Bus {
-    pub fn new() -> Self {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel::<Event>();
+    pub fn new(buffer_size: usize) -> Self {
+        let (sender, receiver) = tokio::sync::mpsc::channel::<Event>(buffer_size);
         Self {
             sender,
-            receiver: tokio_stream::wrappers::UnboundedReceiverStream::new(
+            receiver: tokio_stream::wrappers::ReceiverStream::new(
                 receiver
             ),
         }
     }
 
-    pub fn get_sender(&self) -> tokio::sync::mpsc::UnboundedSender<Event> {
+    pub fn get_sender(&self) -> tokio::sync::mpsc::Sender<Event> {
         self.sender.clone()
     }
 
@@ -179,77 +195,81 @@ impl Bus {
 /*
 Utils to produce sync events. Can be called anywhere within sync code.
 We use them to publish events from Gstreamer pipeline callback.
-
-NOTE: We can use the send method in both, sync and async contexts, only
-because the tokio unbounded channel never requires any form of waiting.
-Before moving to Tokio channels, we were using the async_channels crate,
-and we had to create different methods for sync and async code since
-we cannot await in the Gstreamer callbacks
 */
+
 pub fn publish_new_frame_change_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
     frame: pipeless::data::Frame
 ) {
     let new_frame_event = Event::new_frame_change(frame);
-    if let Err(err) = bus_sender.send(new_frame_event) {
-        warn!("Error sending frame change event: {}", err);
+    // By using try_send frames are discarded when the channel is full
+    if let Err(err) = bus_sender.try_send(new_frame_event) {
+        debug!("Discarding frame: {}", err);
     }
 }
 
 pub fn publish_input_eos_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
 ) {
     let eos_event = Event::new_end_of_input_stream();
-    if let Err(err) = bus_sender.send(eos_event) {
+    if let Err(err) = ensure_send(bus_sender, eos_event) {
         warn!("Error sending input EOS event: {}", err);
     }
 }
 
 pub fn publish_ouptut_eos_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
 ) {
     let eos_event = Event::new_end_of_output_stream();
-    if let Err(err) = bus_sender.send(eos_event) {
+    if let Err(err) = ensure_send(bus_sender, eos_event) {
         warn!("Error sending output EOS event: {}", err);
     }
 }
 
 pub fn publish_input_tags_changed_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
     tags: gst::TagList
 ) {
     let tags_change_event = Event::new_tags_change(tags);
-    if let Err(err) = bus_sender.send(tags_change_event) {
+    if let Err(err) = ensure_send(bus_sender, tags_change_event) {
         warn!("Error sending tags change event: {}", err);
     }
 }
 
 pub fn publish_new_input_caps_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
     caps: String
 ) {
     let new_input_caps_event = Event::new_input_caps(caps);
-    if let Err(err) = bus_sender.send(new_input_caps_event) {
+    if let Err(err) = ensure_send(bus_sender, new_input_caps_event) {
         warn!("Error sending new input caps event: {}", err);
     }
 }
 
 pub fn publish_input_stream_error_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
     err: &str
 ) {
     let input_stream_error_event = Event::new_input_stream_error(err);
-    if let Err(err) = bus_sender.send(input_stream_error_event) {
+    if let Err(err) = ensure_send(bus_sender, input_stream_error_event) {
         warn!("Error sending input stream error event: {}", err);
     }
 }
 
 pub fn publish_output_stream_error_event_sync(
-    bus_sender: &tokio::sync::mpsc::UnboundedSender<Event>,
+    bus_sender: &tokio::sync::mpsc::Sender<Event>,
     err: &str
 ) {
     let output_stream_error_event = Event::new_output_stream_error(err);
-    if let Err(err) = bus_sender.send(output_stream_error_event) {
+    if let Err(err) = ensure_send(bus_sender, output_stream_error_event) {
         warn!("Error sending output stream error event: {}", err);
     }
+}
+
+fn ensure_send(tx: &tokio::sync::mpsc::Sender<Event>, event: Event) -> Result<(), String> {
+    // NOTE: this is not optimal, but we cannot await from the gstreamer code. Ideally we should use send() which will await until there is space on the channel
+    if let Err(err) = tokio::task::block_in_place(|| tx.blocking_send(event)) {
+        return Err(format!("Failed to send event: {}", err.to_string()));
+    }
+    Ok(())
 }

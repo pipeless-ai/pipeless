@@ -8,7 +8,7 @@ use ctrlc;
 
 use crate as pipeless;
 
-pub fn start_pipeless_node(project_dir: &str, export_redis_events: bool) {
+pub fn start_pipeless_node(project_dir: &str, export_redis_events: bool, stream_buffer_size: usize) {
     ctrlc::set_handler(|| {
         println!("Exiting...");
         std::process::exit(0);
@@ -48,7 +48,7 @@ pub fn start_pipeless_node(project_dir: &str, export_redis_events: bool) {
         let streams_table = Arc::new(RwLock::new(pipeless::config::streams::StreamsTable::new()));
         let dispatcher = pipeless::dispatcher::Dispatcher::new(streams_table.clone());
         let dispatcher_sender = dispatcher.get_sender().clone();
-        pipeless::dispatcher::start(dispatcher, frame_path_executor);
+        pipeless::dispatcher::start(dispatcher, frame_path_executor, stream_buffer_size);
 
         // Use the REST adapter to manage streams
         let rest_adapter = pipeless::config::adapters::rest::RestAdapter::new(streams_table.clone());

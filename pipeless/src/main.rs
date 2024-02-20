@@ -88,9 +88,12 @@ enum Commands {
         /// Pipeless project directory
         #[clap(short, long, alias = "stages-dir")]
         project_dir: String,
-        /// Enable event export via Redis
+        /// Optional. Enable event export via Redis
         #[clap(short, long)]
         export_events_redis: bool,
+        /// Optional. Max buffer size for each stream, measured in number of frames. Serves as backpressure mechanism. When the buffer is full new frames are discarded until there is space again in the buffer.
+        #[clap(short, long, default_value = "240")]
+        stream_buffer_size: usize,
     },
     /// Add resources such as streams
     Add {
@@ -124,7 +127,7 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Init { project_name , template}) => pipeless_ai::cli::init::init(&project_name, template),
-        Some(Commands::Start { project_dir , export_events_redis }) => pipeless_ai::cli::start::start_pipeless_node(&project_dir, *export_events_redis),
+        Some(Commands::Start { project_dir , export_events_redis , stream_buffer_size}) => pipeless_ai::cli::start::start_pipeless_node(&project_dir, *export_events_redis, *stream_buffer_size),
         Some(Commands::Add { command }) => {
             match &command {
                 Some(AddCommand::Stream { input_uri, output_uri, frame_path , restart_policy}) => pipeless_ai::cli::streams::add(input_uri, output_uri, frame_path, restart_policy),

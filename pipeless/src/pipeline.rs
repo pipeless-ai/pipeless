@@ -63,7 +63,7 @@ struct Pipeline {
 }
 impl Pipeline {
     fn new(
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
         input_uri: String,
         output_uri: Option<String>,
         frames_path: pipeless::stages::path::FramePath,
@@ -100,7 +100,7 @@ impl Pipeline {
     pub fn create_and_start_output_pipeline(
         &mut self,
         input_caps: String,
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
     ) -> Result<(), pipeless::output::pipeline::OutputPipelineError> {
         if let Some(stream_def) = &self.output_stream_def {
             // TODO: build streamdefs within pipelines and pass the uri only
@@ -156,7 +156,7 @@ impl Manager {
         output_video_uri: Option<String>,
         frames_path: pipeless::stages::path::FramePath,
         // The bus needs to be created before the pipeline
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
         dispatcher_sender: tokio::sync::mpsc::UnboundedSender<pipeless::dispatcher::DispatcherEvent>,
     ) -> Result<Self, PipelineError> {
         let pipeline = Arc::new(RwLock::new(pipeless::pipeline::Pipeline::new(

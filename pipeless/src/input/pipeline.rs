@@ -60,7 +60,7 @@ impl StreamDef {
 fn on_new_sample(
     pipeless_pipeline_id: uuid::Uuid,
     appsink: &gst_app::AppSink,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
     frame_number: &mut u64,
 ) -> Result<gst::FlowSuccess, gst::FlowError> {
     let sample = appsink.pull_sample().map_err(|_err| {
@@ -135,7 +135,7 @@ fn on_new_sample(
 fn on_pad_added (
     pad: &gst::Pad,
     _info: &mut gst::PadProbeInfo,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
  ) -> gst::PadProbeReturn {
     let caps = match pad.current_caps() {
         Some(c) => c,
@@ -157,7 +157,7 @@ fn on_pad_added (
 
 fn create_input_bin(
     uri: &str,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
 ) -> Result<gst::Bin, InputPipelineError> {
     let bin = gst::Bin::new();
     if uri.starts_with("v4l2") { // Device webcam
@@ -317,7 +317,7 @@ fn create_input_bin(
 fn on_bus_message(
     msg: &gst::Message,
     pipeline_id: uuid::Uuid,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
 ) {
     match msg.view() {
         gst::MessageView::Eos(eos) => {
@@ -395,7 +395,7 @@ fn on_bus_message(
 fn create_gst_pipeline(
     pipeless_pipeline_id: uuid::Uuid,
     input_uri: &str,
-    pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+    pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
 ) -> Result<gst::Pipeline, InputPipelineError> {
     let pipeline = gst::Pipeline::new();
     let input_bin = create_input_bin(input_uri, pipeless_bus_sender)?;
@@ -445,7 +445,7 @@ impl Pipeline {
     pub fn new(
         id: uuid::Uuid,
         stream: pipeless::input::pipeline::StreamDef,
-        pipeless_bus_sender: &tokio::sync::mpsc::UnboundedSender<pipeless::events::Event>,
+        pipeless_bus_sender: &tokio::sync::mpsc::Sender<pipeless::events::Event>,
     ) -> Result<Self, InputPipelineError> {
         let input_uri = stream.get_video().get_uri();
         let gst_pipeline = create_gst_pipeline(id, input_uri, pipeless_bus_sender)?;
