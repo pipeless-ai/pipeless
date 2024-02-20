@@ -84,6 +84,7 @@ jobs:
         # Avoid error when installing Python as gstreamer dependency
         brew unlink python@3.12
         rm '/usr/local/bin/2to3-3.12'
+        brew link --overwrite python@3.12
         brew install gstreamer
         brew install coreutils # For sha256sum
 
