@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use log::{error, warn};
 use pyo3::{PyObject, prelude::*};
 use numpy::{self, ToPyArray};
 
-use crate::{data::{Frame, RgbFrame, UserData}, stages::{hook::{HookTrait, HookType}, stage::ContextTrait}, stages::stage::Context, kvs::store};
+use crate::{data::{Frame, InferenceOutput, RgbFrame, UserData}, kvs::store, stages::{hook::{HookTrait, HookType}, stage::{Context, ContextTrait}}};
 
 /// Allows a Frame to be converted from Rust to Python
 impl IntoPy<Py<PyAny>> for Frame {
@@ -39,7 +40,19 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
         dict.set_item("fps", self.get_fps()).unwrap();
         dict.set_item("input_ts", self.get_input_ts()).unwrap();
         dict.set_item("inference_input", self.get_inference_input().to_pyarray(py)).unwrap();
-        dict.set_item("inference_output", self.get_inference_output().to_pyarray(py)).unwrap();
+        match self.get_inference_output() {
+            crate::data::InferenceOutput::Default(out) => {
+                dict.set_item("inference_output", out.to_pyarray(py)).unwrap();
+            },
+            crate::data::InferenceOutput::OnnxInferenceOutput(out) => {
+                let out_dict = pyo3::types::PyDict::new(py);
+                for (key, value) in out {
+                    out_dict.set_item(key, value.to_pyarray(py)).unwrap();
+                }
+                dict.set_item("inference_output", out_dict).unwrap();
+            },
+        };
+
         dict.set_item("pipeline_id", self.get_pipeline_id().to_string()).unwrap();
         dict.set_item("user_data", self.get_user_data()).unwrap();
         dict.set_item("frame_number", self.get_frame_number()).unwrap();
@@ -47,7 +60,7 @@ impl IntoPy<Py<PyAny>> for RgbFrame {
     }
 }
 
-/// Allows the RgbFrame variant of Frame to be converted from Python to Rust
+// Allows the RgbFrame variant of Frame to be converted from Python to Rust
 impl<'source> FromPyObject<'source> for RgbFrame {
     fn extract(ob: &'source PyAny) -> PyResult<Self> {
         let original_py_array: &numpy::PyArray3<u8> = ob.get_item("original")?.downcast::<numpy::PyArray3<u8>>()?;
@@ -55,6 +68,7 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let modified_py_array: &numpy::PyArray3<u8> = ob.get_item("modified")?.downcast::<numpy::PyArray3<u8>>()?;
         let modified_ndarray: ndarray::Array3<u8> = modified_py_array.to_owned_array();
 
+        // TODO: support several inference inputs like for the runtimes. See how we use the inference output below
         let inference_input_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>>;
         if let Ok(inference_input_py_array) = ob.get_item("inference_input")?.extract() {
             let inference_input_py_array: &numpy::PyArrayDyn<f32> = inference_input_py_array;
@@ -63,13 +77,39 @@ impl<'source> FromPyObject<'source> for RgbFrame {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Unable to obtain data from 'inference_input'. Is it a NumPy array of float values? Hint: use .astype('float32') in your Python code"));
         }
 
-        let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>>;
-        if let Ok(inference_output_py_array) = ob.get_item("inference_output")?.extract() {
+        let inference_output = if ob.get_item("inference_output")?.is_instance_of::<pyo3::types::PyDict>() {
+            let dict = ob.get_item("inference_output")?.downcast::<pyo3::types::PyDict>()?;
+            let dict_keys = dict.keys();
+            let mut dict_items = HashMap::new();
+            for key in dict_keys {
+                let key_str = key.extract::<String>()?;
+                let value = dict.get_item(key)?;
+                match value {
+                    Some(v) => {
+                        let array = match v.extract::<&numpy::PyArray<f32, ndarray::Dim<ndarray::IxDynImpl>>>() {
+                            Ok(v) => {
+                                let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>> = v.to_owned_array().into_dyn();
+                                inference_output_ndarray
+                            },
+                            Err(err) => {
+                                warn!("Could not downcast Python object to PyArray. {}. Is it a NumPy array of float values? Hint: use .astype('float32') in your Python code", err.to_string());
+                                ndarray::ArrayBase::zeros(ndarray::IxDyn(&[]))
+                            }
+                        };
+                        dict_items.insert(key_str, array);
+                    },
+                    None => { dict_items.insert(key_str, ndarray::ArrayBase::zeros(ndarray::IxDyn(&[]))); },
+                }
+            }
+            crate::data::InferenceOutput::OnnxInferenceOutput(dict_items)
+        } else if let Ok(inference_output_py_array) = ob.get_item("inference_output")?.extract() {
             let inference_output_py_array: &numpy::PyArrayDyn<f32> = inference_output_py_array;
-            inference_output_ndarray = inference_output_py_array.to_owned_array().into_dyn();
+            let inference_output_ndarray: ndarray::ArrayBase<_, ndarray::Dim<ndarray::IxDynImpl>> = inference_output_py_array.to_owned_array().into_dyn();
+            InferenceOutput::Default(inference_output_ndarray)
         } else {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>("Unable to obtain data from 'inference_output'. Is it a NumPy array of float values? Hint: use .astype('float32') in your Python code"));
-        }
+            warn!("Unable to obtain data from 'inference_output'. Ensure it is either a dict of numpy arrays of float32 values or a NumPy array of float32 values. Hint: use .astype('float32') in your Python code");
+            InferenceOutput::Default(ndarray::ArrayBase::zeros(ndarray::IxDyn(&[0])))
+        };
 
         let uuid = ob.get_item("uuid").unwrap().extract()?;
         let original = original_ndarray;
@@ -82,7 +122,7 @@ impl<'source> FromPyObject<'source> for RgbFrame {
         let fps = ob.get_item("fps").unwrap().extract()?;
         let input_ts = ob.get_item("input_ts").unwrap().extract()?;
         let inference_input = inference_input_ndarray;
-        let inference_output =inference_output_ndarray;
+        let inference_output = inference_output;
         let pipeline_id = ob.get_item("pipeline_id").unwrap().extract()?;
         let user_data = ob.get_item("user_data").unwrap().extract()?;
         let frame_number = ob.get_item("frame_number").unwrap().extract()?;
@@ -219,7 +259,7 @@ impl PythonHook {
         // to avoid conflicts between streams in the format stage_name:pipeline_id:user_provided_key
         // Since all executions share the Python interpreter, we have to create different names for
         // all the modules
-        let module_name = format!("{}_{}", stage_name, hook_type);
+        let module_name = format!("_{}_{}", stage_name, hook_type); // Prepend with underscore to allow modules starting with numbers
         let module_file_name = format!("{}.py", module_name);
         let wrapper_module_name = format!("{}_wrapper", module_name);
         let wrapper_module_file_name = format!("{}.py", wrapper_module_name);
