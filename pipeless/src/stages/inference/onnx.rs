@@ -1,7 +1,11 @@
+use std::collections::HashMap;
+
 use log::{error, warn};
 use ort;
 
 use crate as pipeless;
+
+pub type OnnxInferenceOutput = HashMap<String, ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<ndarray::IxDynImpl>>>;
 
 pub struct OnnxSessionParams {
     stage_name: String, // Name o the stage this session belongs to
@@ -163,10 +167,43 @@ impl super::session::SessionTrait for OnnxSession {
                 match self.session.run_with_binding(&io_bindings) {
                     Ok(()) => {
                         let outputs = io_bindings.outputs().unwrap();
-                        // TODO: iterate over the outputs hashmap to return all the model outputs not just the first
-                        let output = outputs[&self.session.outputs[0].name].try_extract().unwrap();
-                        let output_ndarray = output.view().to_owned();
-                        frame.set_inference_output(output_ndarray);
+                        let mut frame_inference_output = OnnxInferenceOutput::new();
+                        for (output_name, output_value) in outputs {
+                            // FIXME: the extract code is very unelegant. The extract can return several different numric types depending on the model used
+                            //        and there is not a number wrapper that we can apply, so we have to check type by type
+                            match output_value.try_extract() {
+                                Ok(output) => {
+                                    //let output = output.view().map(|v: &_| v.into());
+                                    // FIXME: we can use an arrayview for the inference output instead of owned array base to avoid copying here.
+                                    let output_ndarray = output.view().to_owned();
+                                    frame_inference_output.insert(output_name, output_ndarray);
+                                },
+                                Err(_err) => {
+                                    // Try to convert from i64 since sometimes the models do not return floats
+                                    match output_value.try_extract() {
+                                        Ok(output) => {
+                                            // FIXME: this copies the array twice, first to_owned and then the mapv
+                                            let output_ndarray: ndarray::ArrayBase<ndarray::OwnedRepr<i64>, _> = output.view().to_owned();
+                                            let float_output = output_ndarray.mapv(|v| v as f32);
+                                            frame_inference_output.insert(output_name, float_output);
+                                        }
+                                        Err(_err) => {
+                                            // Try to convert from i64 since sometimes the models do not return floats
+                                            match output_value.try_extract() {
+                                                Ok(output) => {
+                                                    // FIXME: this copies the array twice, first to_owned and then the mapv
+                                                    let output_ndarray: ndarray::ArrayBase<ndarray::OwnedRepr<i32>, _> = output.view().to_owned();
+                                                    let float_output = output_ndarray.mapv(|v| v as f32);
+                                                    frame_inference_output.insert(output_name, float_output);
+                                                }
+                                                Err(err) => warn!("Error extracting inference results: {}", err.to_string()),
+                                            }
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                        frame.set_inference_output(pipeless::data::InferenceOutput::OnnxInferenceOutput(frame_inference_output));
                     },
                     Err(err) => error!("There was an error running inference: {}", err)
                 }

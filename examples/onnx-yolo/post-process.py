@@ -6,7 +6,7 @@ def hook(frame_data, _):
     model_output = frame_data['inference_output']
     if len(model_output) > 0:
         yolo_input_shape = (640, 640, 3) # h,w,c
-        boxes, scores, class_ids = postprocess_yolo(frame.shape, yolo_input_shape, model_output)
+        boxes, scores, class_ids = postprocess_yolo(frame.shape, yolo_input_shape, model_output.get("output0", []))
         class_labels = [yolo_classes[id] for id in class_ids]
         for i in range(len(boxes)):
             draw_bbox(frame, boxes[i], class_labels[i], scores[i], color_palette[class_ids[i]])

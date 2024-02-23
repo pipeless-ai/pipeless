@@ -203,6 +203,8 @@ pub fn publish_new_frame_change_event_sync(
 ) {
     let new_frame_event = Event::new_frame_change(frame);
     // By using try_send frames are discarded when the channel is full
+    // However, note this does not produce a fluid output video. For that instead of discarding the frame
+    // we would need to send it to the output without processing it
     if let Err(err) = bus_sender.try_send(new_frame_event) {
         debug!("Discarding frame: {}", err);
     }
