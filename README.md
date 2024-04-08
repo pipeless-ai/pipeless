@@ -37,6 +37,7 @@
    </div>
 
    <br /><br />
+   <a href="https://agents.pipeless.ai">Check out our hosted agents solution</a>
 </div>
 
 **Pipeless is an open-source framework that takes care of everything you need to develop and deploy computer vision applications in just minutes.** That includes code parallelization, multimedia pipelines, memory management, model inference, multi-stream management, and more. Pipeless allows you to **ship applications that work in real-time in minutes instead of weeks/months**.
