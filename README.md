@@ -15,7 +15,7 @@
   <a aria-label="Pipeless latest version" href="https://github.com/pipeless-ai/pipeless/releases">
     <img alt="" src="https://img.shields.io/github/v/release/pipeless-ai/pipeless?style=for-the-badge&label=latest&labelColor=000000">
   </a>
-  <a aria-label="License" href="https://github.com/miguelaeh/pipeless/blob/main/license.md">
+  <a aria-label="License" href="https://github.com/miguelaeh/pipeless/blob/main/LICENSE">
     <img alt="" src="https://img.shields.io/pypi/l/pipeless-ai?style=for-the-badge&labelColor=000000">
   </a>
   <a aria-label="Join the community on GitHub" href="https://github.com/miguelaeh/pipeless/discussions">
